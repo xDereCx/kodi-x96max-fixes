@@ -47,11 +47,11 @@
 		<news>1.0.0: fork of upstream 6.7.1. Fixed OK button being swallowed by lyrics dialog focus; OK now shows OSD and lyrics auto-resume when OSD closes.</news>
 	</extension>
 </addon>
-<addon id="script.xderecx.aeonnox5lyricsfix" name="Aeon Nox 5: CU LRC Lyrics topbar fix" version="1.0.1" provider-name="xDereCx">
+<addon id="script.xderecx.aeonnox5lyricsfix" name="Aeon Nox 5: CU LRC Lyrics topbar fix" version="1.0.2" provider-name="xDereCx">
 	<requires>
 		<import addon="xbmc.python" version="3.0.0"/>
 	</requires>
-	<extension point="xbmc.python" library="default.py"/>
+	<extension point="xbmc.python.script" library="default.py"/>
 	<extension point="xbmc.addon.metadata">
 		<summary lang="en_US">Fixes a dark band over lyrics text in Aeon Nox 5</summary>
 		<summary lang="sk_SK">Opravuje tmavý pruh cez texty piesní v Aeon Nox 5</summary>
@@ -60,7 +60,7 @@
 		<platform>all</platform>
 		<license>CC-BY-NC-SA-4.0</license>
 		<source>https://github.com/xDereCx/kodi-x96max-fixes</source>
-		<news>1.0.1: fixed repository install (bundled skin file was confusing Kodi's addon-type detection inside the zip). 1.0.0: initial release.</news>
+		<news>1.0.2: fixed extension point (was the invalid bare "xbmc.python", now "xbmc.python.script" - that bare string is only valid in a requires/import, not as an addon's own type). 1.0.1: fixed repository install (bundled skin file was confusing Kodi's addon-type detection inside the zip). 1.0.0: initial release.</news>
 	</extension>
 </addon>
 </addons>
