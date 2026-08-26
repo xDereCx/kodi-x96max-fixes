@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="repository.xderecx.kodifixes" name="xDereCx Kodi Fixes" version="1.0.0" provider-name="xDereCx">
+	<extension point="xbmc.addon.repository" name="xDereCx Kodi Fixes">
+		<dir>
+			<info compressed="false">https://raw.githubusercontent.com/xDereCx/kodi-x96max-fixes/master/zips/addons.xml</info>
+			<checksum>https://raw.githubusercontent.com/xDereCx/kodi-x96max-fixes/master/zips/addons.xml.md5</checksum>
+			<datadir zip="true">https://raw.githubusercontent.com/xDereCx/kodi-x96max-fixes/master/zips</datadir>
+		</dir>
+	</extension>
+	<extension point="xbmc.addon.metadata">
+		<summary lang="en_US">Repository of small, hand-picked Kodi addon fixes</summary>
+		<summary lang="sk_SK">Repozitár malých, ručne vybraných oprav Kodi addonov</summary>
+		<description lang="en_US">Hosts addons that have been forked and patched for a specific CoreELEC/Aeon Nox 5 setup. Currently: CU LRC Lyrics (Fixed), with an OK-button/OSD interaction fix.</description>
+		<description lang="sk_SK">Hostuje addony, ktoré boli forknuté a opravené pre konkrétny CoreELEC/Aeon Nox 5 setup. Zatiaľ: CU LRC Lyrics (Fixed), s opravou OK tlačidla/OSD.</description>
+		<platform>all</platform>
+		<license>GPL-2.0-only</license>
+		<source>https://github.com/xDereCx/kodi-x96max-fixes</source>
+		<assets>
+			<icon>icon.png</icon>
+		</assets>
+		<news>1.0.0: initial release, includes CU LRC Lyrics (Fixed).</news>
+	</extension>
+</addon>

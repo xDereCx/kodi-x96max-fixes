@@ -1,4 +1,4 @@
-v6.7.1+fix1 (fork by xDereCx)
+v1.0.0 (fork of upstream 6.7.1, by xDereCx)
 - fix: OK button on remote was swallowed by lyrics dialog's stolen focus
 - fix: OK now shows the music OSD, lyrics auto-reopen (via culrc.force) once OSD closes
 
