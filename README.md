@@ -38,15 +38,22 @@ every folder under `zips/` so Kodi's browser can see what's there.
   - Disable/uninstall the original `script.cu.lrclyrics` first — both
     can't run as the music lyrics service at once.
 
-## Not in the repository (manual install only)
+- **`script.xderecx.aeonnox5lyricsfix`** — small Program add-on. Run it
+  once from **Add-ons → Program add-ons** (needs `skin.aeon.nox.5`
+  already installed): it patches the skin's own CU LRC Lyrics override
+  file to hide the `topbar.png` control that draws a dark band over
+  lyrics text during playback, keeping a one-time `.bak` of the
+  original. Restart Kodi afterwards. Re-running it is a no-op if
+  already applied, and it refuses to touch anything if the skin isn't
+  installed or the target file looks different than expected.
 
-- **`skin-overrides/aeon-nox-5/`** — a single skin XML file fixing a
-  dark band overlaying lyrics text in Aeon Nox 5. This can't be a
-  Kodi-repository addon: it's a one-file override that has to be
-  copied into an *already-installed* copy of that (large, third-party)
-  skin. See
-  [skin-overrides/aeon-nox-5/README.md](skin-overrides/aeon-nox-5/README.md)
-  for manual install steps.
+## Manual-install fallback (no addon)
+
+- **`skin-overrides/aeon-nox-5/`** — the same one-file skin fix as
+  `script.xderecx.aeonnox5lyricsfix` above, but as a plain file to
+  copy by hand if you'd rather not run a script, or the program addon
+  refuses to apply because the skin file layout changed. See
+  [skin-overrides/aeon-nox-5/README.md](skin-overrides/aeon-nox-5/README.md).
 
 ## Repo layout / adding a new addon later
 

@@ -47,4 +47,20 @@
 		<news>1.0.0: fork of upstream 6.7.1. Fixed OK button being swallowed by lyrics dialog focus; OK now shows OSD and lyrics auto-resume when OSD closes.</news>
 	</extension>
 </addon>
+<addon id="script.xderecx.aeonnox5lyricsfix" name="Aeon Nox 5: CU LRC Lyrics topbar fix" version="1.0.0" provider-name="xDereCx">
+	<requires>
+		<import addon="xbmc.python" version="3.0.0"/>
+	</requires>
+	<extension point="xbmc.python" library="default.py"/>
+	<extension point="xbmc.addon.metadata">
+		<summary lang="en_US">Fixes a dark band over lyrics text in Aeon Nox 5</summary>
+		<summary lang="sk_SK">Opravuje tmavý pruh cez texty piesní v Aeon Nox 5</summary>
+		<description lang="en_US">Run this once from Program add-ons. It patches skin.aeon.nox.5's own CU LRC Lyrics override file (1080i/script-cu-lrclyrics-main.xml) to hide the topbar.png control that overlays a dark band on top of the lyrics text during music playback. Requires skin.aeon.nox.5 to already be installed. Makes a one-time backup of the original file (.bak) before patching; running it again is a no-op if already patched. Restart Kodi afterwards for the change to take effect.</description>
+		<description lang="sk_SK">Spusti raz z Program add-ons. Opraví vlastný CU LRC Lyrics súbor skinu skin.aeon.nox.5 (1080i/script-cu-lrclyrics-main.xml) tak, aby sa skryl topbar.png kontrolka, ktorá cez texty piesní prekrýva tmavý pruh. Vyžaduje už nainštalovaný skin.aeon.nox.5. Pred úpravou raz zálohuje pôvodný súbor (.bak); opätovné spustenie po oprave nič nerobí. Po spustení treba reštartovať Kodi.</description>
+		<platform>all</platform>
+		<license>CC-BY-NC-SA-4.0</license>
+		<source>https://github.com/xDereCx/kodi-x96max-fixes</source>
+		<news>1.0.0: initial release.</news>
+	</extension>
+</addon>
 </addons>
