@@ -7,7 +7,7 @@ import xbmcvfs
 
 ADDON = xbmcaddon.Addon()
 ADDON_PATH = xbmcvfs.translatePath(ADDON.getAddonInfo('path'))
-BUNDLED_FIX = os.path.join(ADDON_PATH, 'resources', 'skinfile', 'script-cu-lrclyrics-main.xml')
+BUNDLED_FIX = os.path.join(ADDON_PATH, 'resources', 'skinfile', 'script-cu-lrclyrics-main.xml.dat')
 DIALOG = xbmcgui.Dialog()
 
 
