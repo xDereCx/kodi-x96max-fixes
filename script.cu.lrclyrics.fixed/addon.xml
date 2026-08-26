@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="script.cu.lrclyrics.fixed" name="CU LRC Lyrics (Fixed)" version="6.7.1+fix1" provider-name="Taxigps, ronie (fork by xDereCx)">
+	<requires>
+		<import addon="xbmc.python" version="3.0.0"/>
+		<import addon="script.module.beautifulsoup4" version="4.8.2+matrix.1"/>
+		<import addon="script.module.chardet" version="3.0.4+matrix.1"/>
+		<import addon="script.module.mutagen" version="1.44.0+matrix.1"/>
+		<import addon="script.module.requests" version="2.22.0+matrix.1"/>
+	</requires>
+	<extension point="xbmc.python.lyrics" library="default.py"/>
+	<extension point="xbmc.service" library="default.py"/>
+	<extension point="xbmc.addon.metadata">
+		<summary lang="en_US">CU LRC Lyrics, with OK/OSD fix (fork)</summary>
+		<summary lang="sk_SK">CU LRC Lyrics, s opravou OK/OSD (fork)</summary>
+		<description lang="en_US">Fork of CU LRC Lyrics (original by Taxigps/ronie, https://gitlab.com/ronie/script.cu.lrclyrics/) with two fixes applied: (1) the OK button on the remote no longer gets swallowed by the lyrics dialog's stolen input focus, and (2) pressing OK now shows the music OSD/menu, and the lyrics view automatically reopens (via the addon's own culrc.force mechanism) once the OSD is closed, instead of requiring a full navigation reset. See this repository's README for details.</description>
+		<description lang="sk_SK">Fork CU LRC Lyrics (originál od Taxigps/ronie, https://gitlab.com/ronie/script.cu.lrclyrics/) s dvoma opravami: (1) tlačidlo OK na diaľkovom ovládači už nie je "zhltnuté" ukradnutým fokusom dialógu s textami, (2) stlačenie OK teraz zobrazí OSD menu a texty piesní sa automaticky znova otvoria (cez vlastný culrc.force mechanizmus addonu) po zatvorení OSD, bez nutnosti kompletného navigačného resetu. Podrobnosti v README tohto repozitára.</description>
+		<platform>all</platform>
+		<license>GPL-2.0-only</license>
+		<forum>https://forum.kodi.tv/showthread.php?tid=147340</forum>
+		<source>https://github.com/xDereCx/kodi-x96max-fixes</source>
+		<assets>
+			<icon>resources/icon.png</icon>
+		</assets>
+		<news>6.7.1+fix1: fixed OK button being swallowed by lyrics dialog focus; OK now shows OSD and lyrics auto-resume when OSD closes.</news>
+	</extension>
+</addon>
