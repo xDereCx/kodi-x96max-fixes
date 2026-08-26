@@ -42,6 +42,17 @@ def get_id_version(addon_xml_path):
     return root.get('id'), root.get('version')
 
 
+def get_icon_rel(addon_xml_path):
+    """The <icon> path exactly as addon.xml declares it -- Kodi resolves
+    it relative to the addon's own folder both when installed AND when
+    browsing an addon that isn't installed yet (fetched from datadir),
+    so the packaged icon must live at that same relative path or the
+    repository browser gets a 404 for the thumbnail."""
+    tree = ET.parse(addon_xml_path)
+    icon = tree.getroot().find('.//icon')
+    return icon.text.strip() if icon is not None and icon.text else None
+
+
 def zip_addon(addon_dir, addon_id, version, out_dir):
     os.makedirs(out_dir, exist_ok=True)
     zip_path = os.path.join(out_dir, f'{addon_id}-{version}.zip')
@@ -87,18 +98,20 @@ def main():
         out_dir = os.path.join(ZIPS, addon_id)
         zip_path = zip_addon(path, addon_id, version, out_dir)
         shutil.copy2(addon_xml, os.path.join(out_dir, 'addon.xml'))
+        icon_rel = get_icon_rel(addon_xml)
         has_icon = False
-        for icon_rel in ('icon.png', 'resources/icon.png'):
+        if icon_rel:
             icon_src = os.path.join(path, icon_rel)
             if os.path.isfile(icon_src):
-                shutil.copy2(icon_src, os.path.join(out_dir, 'icon.png'))
+                icon_dst = os.path.join(out_dir, icon_rel)
+                os.makedirs(os.path.dirname(icon_dst), exist_ok=True)
+                shutil.copy2(icon_src, icon_dst)
                 has_icon = True
-                break
         print(f'packaged {addon_id} {version} -> {os.path.relpath(zip_path, ROOT)}')
 
         entries = [os.path.basename(zip_path), 'addon.xml']
         if has_icon:
-            entries.append('icon.png')
+            entries.append(icon_rel)
         write_index(out_dir, entries, addon_id)
         addon_dirs.append(addon_id)
 
