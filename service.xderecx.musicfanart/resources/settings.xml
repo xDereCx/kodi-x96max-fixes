@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<settings version="1">
+	<section id="service.xderecx.musicfanart">
+		<category id="general" label="General">
+			<group id="1">
+				<setting id="fanarttv_key" type="string" label="fanart.tv API key (optional, used as fallback)" help="">
+					<level>0</level>
+					<default>7cca2cb3f2e0b6ce78c8df6f15b9a3b5</default>
+					<control type="edit" format="string">
+						<heading>fanart.tv API key</heading>
+					</control>
+				</setting>
+				<setting id="save_to_library" type="boolean" label="Save images permanently in the artist's own music folder" help="">
+					<level>0</level>
+					<default>true</default>
+					<control type="toggle"/>
+				</setting>
+				<setting id="library_subfolder_name" type="string" label="Subfolder name inside the artist folder" help="" parent="save_to_library">
+					<level>0</level>
+					<default>Fanart</default>
+					<control type="edit" format="string">
+						<heading>Subfolder name</heading>
+					</control>
+					<dependencies>
+						<dependency type="visible">
+							<condition operator="is" setting="save_to_library">true</condition>
+						</dependency>
+					</dependencies>
+				</setting>
+				<setting id="max_images" type="integer" label="Maximum images to collect per artist" help="">
+					<level>0</level>
+					<default>100</default>
+					<constraints>
+						<minimum>1</minimum>
+						<maximum>500</maximum>
+						<step>1</step>
+					</constraints>
+					<control type="slider" format="integer"/>
+				</setting>
+			</group>
+		</category>
+	</section>
+</settings>
