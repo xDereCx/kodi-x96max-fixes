@@ -5,10 +5,10 @@ on a CoreELEC (Omega) box running skin **Aeon Nox 5**. Install the
 repository once, then install/update addons from it directly in Kodi as
 more get added over time.
 
-## Install (one-time)
+## Install (one-time, on any Kodi box)
 
 1. In Kodi: **Settings → File manager → Add source**, add
-   `https://raw.githubusercontent.com/xDereCx/kodi-x96max-fixes/master/zips/repository.xderecx.kodifixes/`
+   `https://xderecx.github.io/kodi-x96max-fixes/zips/repository.xderecx.kodifixes/`
    (name it e.g. `xderecx-fixes`).
 2. **Settings → Add-ons → Install from zip file**, pick the source above,
    then `repository.xderecx.kodifixes-1.0.0.zip`.
@@ -18,6 +18,12 @@ more get added over time.
 From then on, Kodi checks this repository for updates the same way it
 does for any official repo — no need to repeat the zip install step
 unless the repository addon itself changes id.
+
+This is hosted on GitHub Pages (not raw.githubusercontent.com), because
+Kodi's file browser needs an actual directory listing to find the zip —
+raw.githubusercontent.com only serves exact known file paths and can't
+be browsed at all. `build_repo.py` generates a tiny `index.html` in
+every folder under `zips/` so Kodi's browser can see what's there.
 
 ## What's in the repository
 

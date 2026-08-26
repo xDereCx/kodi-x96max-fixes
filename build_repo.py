@@ -59,12 +59,27 @@ def zip_addon(addon_dir, addon_id, version, out_dir):
     return zip_path
 
 
+def write_index(dir_path, entries, title):
+    """Minimal HTML directory listing so Kodi's HTTP file-browser (which
+    parses <a href> links, same as an Apache/nginx autoindex page) can
+    browse this folder over GitHub Pages -- raw.githubusercontent.com
+    serves exact file paths only and has no directory listing at all,
+    which is why 'Install from zip file' can't browse it."""
+    with open(os.path.join(dir_path, 'index.html'), 'w', encoding='utf-8') as f:
+        f.write(f'<html><head><title>{title}</title></head><body>\n')
+        f.write(f'<h1>{title}</h1>\n<ul>\n')
+        for name in entries:
+            f.write(f'<li><a href="{name}">{name}</a></li>\n')
+        f.write('</ul>\n</body></html>\n')
+
+
 def main():
     if os.path.isdir(ZIPS):
         shutil.rmtree(ZIPS)
     os.makedirs(ZIPS)
 
     addon_blocks = []
+    addon_dirs = []
     for name, path, addon_xml in find_addons():
         addon_id, version = get_id_version(addon_xml)
         if addon_id != name:
@@ -72,12 +87,20 @@ def main():
         out_dir = os.path.join(ZIPS, addon_id)
         zip_path = zip_addon(path, addon_id, version, out_dir)
         shutil.copy2(addon_xml, os.path.join(out_dir, 'addon.xml'))
+        has_icon = False
         for icon_rel in ('icon.png', 'resources/icon.png'):
             icon_src = os.path.join(path, icon_rel)
             if os.path.isfile(icon_src):
                 shutil.copy2(icon_src, os.path.join(out_dir, 'icon.png'))
+                has_icon = True
                 break
         print(f'packaged {addon_id} {version} -> {os.path.relpath(zip_path, ROOT)}')
+
+        entries = [os.path.basename(zip_path), 'addon.xml']
+        if has_icon:
+            entries.append('icon.png')
+        write_index(out_dir, entries, addon_id)
+        addon_dirs.append(addon_id)
 
         xml_text = open(addon_xml, encoding='utf-8').read()
         xml_text = re.sub(r'<\?xml[^>]*\?>\s*', '', xml_text).strip()
@@ -96,6 +119,12 @@ def main():
         f.write(md5)
 
     print(f'wrote {os.path.relpath(addons_xml_path, ROOT)} (md5 {md5})')
+
+    write_index(ZIPS, [d + '/' for d in addon_dirs] + ['addons.xml', 'addons.xml.md5'], 'kodi-x96max-fixes repo')
+
+    # GitHub Pages must not run this through Jekyll, which ignores/mangles
+    # some file layouts by default -- .nojekyll disables that processing.
+    open(os.path.join(ROOT, '.nojekyll'), 'a').close()
 
 
 if __name__ == '__main__':
