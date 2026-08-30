@@ -47,6 +47,16 @@ every folder under `zips/` so Kodi's browser can see what's there.
   already applied, and it refuses to touch anything if the skin isn't
   installed or the target file looks different than expected.
 
+- **`script.xderecx.networkwatchdog`** — small Program add-on, not a
+  Kodi/skin fix but a system-level one delivered the same way. Run it
+  once from **Add-ons → Program add-ons**: it installs a systemd
+  oneshot service + script to `/storage/.config/` that waits up to 60s
+  after boot for a `192.168.x.x` LAN IP (ignoring WireGuard/OpenVPN/PPP
+  tunnel interfaces) and restarts `connman` if none shows up. Fixes
+  boots where the network never comes up on its own. Confirmed working
+  on x96max+. Re-running it is a no-op if already installed and
+  enabled.
+
 ## Manual-install fallback (no addon)
 
 - **`skin-overrides/aeon-nox-5/`** — the same one-file skin fix as

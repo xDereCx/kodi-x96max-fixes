@@ -66,6 +66,25 @@
 		<news>1.0.3: added missing icon declaration. 1.0.2: fixed extension point (was the invalid bare "xbmc.python", now "xbmc.python.script" - that bare string is only valid in a requires/import, not as an addon's own type). 1.0.1: fixed repository install (bundled skin file was confusing Kodi's addon-type detection inside the zip). 1.0.0: initial release.</news>
 	</extension>
 </addon>
+<addon id="script.xderecx.networkwatchdog" name="CoreELEC: Network watchdog (connman restart on boot)" version="1.0.0" provider-name="xDereCx">
+	<requires>
+		<import addon="xbmc.python" version="3.0.0"/>
+	</requires>
+	<extension point="xbmc.python.script" library="default.py"/>
+	<extension point="xbmc.addon.metadata">
+		<summary lang="en_US">Restarts connman if no LAN IP shows up within 60s of boot</summary>
+		<summary lang="sk_SK">Reštartuje connman, ak sa do 60s od bootu neobjaví LAN IP</summary>
+		<description lang="en_US">Run this once from Program add-ons. Installs a systemd oneshot service (network-watchdog.service) and its script to /storage/.config/ on this CoreELEC box. At every boot it waits up to 60s for a 192.168.x.x LAN IP (ignoring WireGuard/OpenVPN/PPP tunnel interfaces); if none appears, it restarts connman and checks again. Fixes boots where the network never comes up on its own. Idempotent - running it again just confirms the files are already installed and the service enabled. Not a Kodi/skin fix - a system-level boot reliability fix, same delivery mechanism (a one-time Program add-on) as the other patches in this repo.</description>
+		<description lang="sk_SK">Spusti raz z Program add-ons. Nainštaluje systemd oneshot službu (network-watchdog.service) a jej skript do /storage/.config/ na tomto CoreELEC boxe. Pri každom boote počká až 60s na 192.168.x.x LAN IP (ignoruje WireGuard/OpenVPN/PPP tunelové rozhrania); ak sa neobjaví, reštartuje connman a skontroluje znova. Rieši booty, kde sieť sama nenabehne. Idempotentné - opätovné spustenie len potvrdí, že súbory sú už nainštalované a služba povolená. Nie je to oprava Kodi/skinu, ale systémová oprava spoľahlivosti bootu, doručená rovnakým spôsobom (jednorazový Program add-on) ako ostatné patche v tomto repozitári.</description>
+		<platform>all</platform>
+		<license>CC-BY-NC-SA-4.0</license>
+		<source>https://github.com/xDereCx/kodi-x96max-fixes</source>
+		<assets>
+			<icon>icon.png</icon>
+		</assets>
+		<news>1.0.0: initial release - packages the network-watchdog systemd service confirmed working on x96max+.</news>
+	</extension>
+</addon>
 <addon id="service.xderecx.musicfanart" name="DC Artist Artwork DL" version="1.0.0" provider-name="xDereCx">
 	<requires>
 		<import addon="xbmc.python" version="3.0.0"/>
