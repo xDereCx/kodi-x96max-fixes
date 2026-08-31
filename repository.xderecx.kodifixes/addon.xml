@@ -9,9 +9,7 @@
 	</extension>
 	<extension point="xbmc.addon.metadata">
 		<summary lang="en_US">Repository of small, hand-picked Kodi addon fixes</summary>
-		<summary lang="sk_SK">Repozitár malých, ručne vybraných oprav Kodi addonov</summary>
-		<description lang="en_US">Hosts addons that have been forked and patched for a specific CoreELEC/Aeon Nox 5 setup. Currently: CU LRC Lyrics (Fixed), with an OK-button/OSD interaction fix.</description>
-		<description lang="sk_SK">Hostuje addony, ktoré boli forknuté a opravené pre konkrétny CoreELEC/Aeon Nox 5 setup. Zatiaľ: CU LRC Lyrics (Fixed), s opravou OK tlačidla/OSD.</description>
+		<description lang="en_US">Hosts addons that have been forked and patched for a specific CoreELEC/Aeon Nox 5 setup. Currently: CU LRC Lyrics (Fixed) - lyrics sync/scraper/OK-OSD fixes; DC Artist Artwork DL - rotating artist fanart background service; Aeon Nox 5 lyrics topbar fix; and a network watchdog for boots where the LAN doesn't come up on its own. See the repository README for the full list, plus manual-install skin overrides and remote keymaps that aren't installable addons.</description>
 		<platform>all</platform>
 		<license>GPL-2.0-only</license>
 		<source>https://github.com/xDereCx/kodi-x96max-fixes</source>

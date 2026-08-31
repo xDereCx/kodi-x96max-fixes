@@ -29,14 +29,40 @@ every folder under `zips/` so Kodi's browser can see what's there.
 
 - **`script.cu.lrclyrics.fixed`** — fork of
   [CU LRC Lyrics](https://gitlab.com/ronie/script.cu.lrclyrics/)
-  (original by Taxigps/ronie, GPL-2.0-only) with two fixes:
+  (original by Taxigps/ronie, GPL-2.0-only) with several fixes on top:
   - OK button on the remote no longer gets swallowed by the lyrics
-    dialog's stolen input focus.
-  - OK now shows the music OSD/menu, and the lyrics view automatically
-    reopens (via the addon's own `culrc.force` mechanism) once the OSD
-    is closed, instead of requiring a full navigation reset.
+    dialog's stolen input focus; OK now shows the music OSD/menu, and
+    the lyrics view automatically reopens (via the addon's own
+    `culrc.force` mechanism) once the OSD is closed, instead of
+    requiring a full navigation reset.
+  - Manual sync offset correction (up/down while timed lyrics are
+    showing) restored after the focus change above had silently broken
+    it - the offset is saved into the `.lrc` file itself, so it sticks
+    across replays.
+  - Plain (untimed) txt lyrics no longer get stuck showing only the
+    first line forever (same focus-related regression).
+  - Several scraper reliability fixes: a crash in the lrclib.net
+    scraper that could silently abort the entire remaining fallback
+    chain; a Music163 false positive that returned songwriter-credit
+    text as if it were real lyrics; and duration-aware filtering so a
+    title/artist match to a different edit (radio edit, remix,
+    extended version) is rejected instead of producing badly
+    out-of-sync lyrics.
   - Disable/uninstall the original `script.cu.lrclyrics` first — both
     can't run as the music lyrics service at once.
+  - See the addon's own version history (`addon.xml` news) for the
+    full per-version breakdown.
+
+- **`service.xderecx.musicfanart`** ("DC Artist Artwork DL") — a
+  lightweight replacement for Artist Slideshow. Looks up TheAudioDB /
+  fanart.tv / Deezer for the currently playing artist and rotates
+  through the results as a background image roughly every 12s, saved
+  permanently into the artist's own music folder (`Fanart/` subfolder)
+  so repeat plays don't re-download. Runs as a proper Kodi background
+  service (started once at Kodi startup) instead of a re-invoked
+  script. Needs the paired `skin-overrides/aeon-nox-5/` files (or
+  equivalent skin wiring) to actually display the rotating image - see
+  that folder's README for why two separate skin files are involved.
 
 - **`script.xderecx.aeonnox5lyricsfix`** — small Program add-on. Run it
   once from **Add-ons → Program add-ons** (needs `skin.aeon.nox.5`
@@ -59,17 +85,37 @@ every folder under `zips/` so Kodi's browser can see what's there.
 
 ## Manual-install fallback (no addon)
 
-- **`skin-overrides/aeon-nox-5/`** — the same one-file skin fix as
-  `script.xderecx.aeonnox5lyricsfix` above, but as a plain file to
-  copy by hand if you'd rather not run a script, or the program addon
-  refuses to apply because the skin file layout changed. See
-  [skin-overrides/aeon-nox-5/README.md](skin-overrides/aeon-nox-5/README.md).
+- **`skin-overrides/aeon-nox-5/`** — one-file/manual Aeon Nox 5 patches
+  that aren't installable Kodi addons:
+  - The same `script-cu-lrclyrics-main.xml` topbar fix as
+    `script.xderecx.aeonnox5lyricsfix` above, plus a background image
+    control needed for `service.xderecx.musicfanart`'s rotating fanart
+    to actually display (the lyrics dialog is what's usually on screen
+    during playback, and Kodi doesn't keep redrawing the window
+    underneath an open dialog).
+  - `MusicVisualisation.xml` - hides the skin's own static
+    `Player.Art(fanart)` background so it can't cover the rotating
+    fanart image.
+  - `Font.xml` - fixes missing Slovak/Czech diacritics (Č, Ď, Ľ, Ĺ, Ň,
+    Š, Ť, Ž) in 2 of the 5 decorative fonts the lyrics dialog
+    auto-selects between depending on line length.
+
+  See [skin-overrides/aeon-nox-5/README.md](skin-overrides/aeon-nox-5/README.md)
+  for what changed and manual install steps.
+
+- **`keymaps/hisense-blue-contextmenu/`** — a `custom_remote.xml` for
+  `/storage/.kodi/userdata/keymaps/` that remaps the blue button on a
+  Hisense TV remote (received over HDMI-CEC) to open Kodi's
+  ContextMenu, since the TV's own dedicated Menu button doesn't pass
+  through CEC at all on this hardware. See
+  [keymaps/hisense-blue-contextmenu/README.md](keymaps/hisense-blue-contextmenu/README.md).
 
 ## Repo layout / adding a new addon later
 
 ```
 <addon-id>/          addon source, one folder per addon (must contain addon.xml)
 skin-overrides/      manual-install-only skin files, not real Kodi addons
+keymaps/             manual-install-only remote.xml overrides, not real Kodi addons
 zips/                generated repository payload — do not hand-edit
 build_repo.py        regenerates zips/ from the addon source folders
 ```
@@ -88,7 +134,11 @@ the repository (or via Settings → Add-ons → Check for updates).
 
 - `script.cu.lrclyrics.fixed/` keeps the original addon's
   GPL-2.0-only license (see its `LICENSE.txt`).
-- `skin-overrides/aeon-nox-5/` is a modified copy of an Aeon Nox 5
-  file, under the skin's own CC BY-NC-SA 4.0 license.
+- `service.xderecx.musicfanart/` is MIT.
+- `skin-overrides/aeon-nox-5/` is a modified copy of Aeon Nox 5 files,
+  under the skin's own CC BY-NC-SA 4.0 license.
+- `keymaps/` files are plain Kodi keymap XML, released the same way as
+  the rest of this repo (CC BY-NC-SA 4.0) - not a modified copy of
+  anything third-party.
 - `repository.xderecx.kodifixes/` (the repository addon itself) is
   GPL-2.0-only.

@@ -10,9 +10,7 @@
 	</extension>
 	<extension point="xbmc.addon.metadata">
 		<summary lang="en_US">Repository of small, hand-picked Kodi addon fixes</summary>
-		<summary lang="sk_SK">Repozitár malých, ručne vybraných oprav Kodi addonov</summary>
-		<description lang="en_US">Hosts addons that have been forked and patched for a specific CoreELEC/Aeon Nox 5 setup. Currently: CU LRC Lyrics (Fixed), with an OK-button/OSD interaction fix.</description>
-		<description lang="sk_SK">Hostuje addony, ktoré boli forknuté a opravené pre konkrétny CoreELEC/Aeon Nox 5 setup. Zatiaľ: CU LRC Lyrics (Fixed), s opravou OK tlačidla/OSD.</description>
+		<description lang="en_US">Hosts addons that have been forked and patched for a specific CoreELEC/Aeon Nox 5 setup. Currently: CU LRC Lyrics (Fixed) - lyrics sync/scraper/OK-OSD fixes; DC Artist Artwork DL - rotating artist fanart background service; Aeon Nox 5 lyrics topbar fix; and a network watchdog for boots where the LAN doesn't come up on its own. See the repository README for the full list, plus manual-install skin overrides and remote keymaps that aren't installable addons.</description>
 		<platform>all</platform>
 		<license>GPL-2.0-only</license>
 		<source>https://github.com/xDereCx/kodi-x96max-fixes</source>
@@ -33,10 +31,8 @@
 	<extension point="xbmc.python.lyrics" library="default.py"/>
 	<extension point="xbmc.service" library="default.py"/>
 	<extension point="xbmc.addon.metadata">
-		<summary lang="en_US">CU LRC Lyrics, with OK/OSD fix (fork)</summary>
-		<summary lang="sk_SK">CU LRC Lyrics, s opravou OK/OSD (fork)</summary>
-		<description lang="en_US">Fork of CU LRC Lyrics 6.7.1 (original by Taxigps/ronie, https://gitlab.com/ronie/script.cu.lrclyrics/) with two fixes applied: (1) the OK button on the remote no longer gets swallowed by the lyrics dialog's stolen input focus, and (2) pressing OK now shows the music OSD/menu, and the lyrics view automatically reopens (via the addon's own culrc.force mechanism) once the OSD is closed, instead of requiring a full navigation reset. See this repository's README for details.</description>
-		<description lang="sk_SK">Fork CU LRC Lyrics 6.7.1 (originál od Taxigps/ronie, https://gitlab.com/ronie/script.cu.lrclyrics/) s dvoma opravami: (1) tlačidlo OK na diaľkovom ovládači už nie je "zhltnuté" ukradnutým fokusom dialógu s textami, (2) stlačenie OK teraz zobrazí OSD menu a texty piesní sa automaticky znova otvoria (cez vlastný culrc.force mechanizmus addonu) po zatvorení OSD, bez nutnosti kompletného navigačného resetu. Podrobnosti v README tohto repozitára.</description>
+		<summary lang="en_US">CU LRC Lyrics, fork with OK/OSD, sync, and scraper reliability fixes</summary>
+		<description lang="en_US">Fork of CU LRC Lyrics 6.7.1 (original by Taxigps/ronie, https://gitlab.com/ronie/script.cu.lrclyrics/) with several fixes applied on top: (1) the OK button on the remote no longer gets swallowed by the lyrics dialog's stolen input focus, and pressing OK now shows the music OSD/menu, with the lyrics view automatically reopening afterwards instead of requiring a full navigation reset; (2) manual sync offset correction (up/down during timed lyrics) restored after that same focus change had silently broken it; (3) plain (untimed) txt lyrics no longer get stuck showing only the first line forever; (4) several scraper reliability fixes - a crash in the lrclib.net scraper that could silently abort the entire remaining fallback chain, a Music163 false-positive that returned songwriter-credit-only text as if it were real lyrics, and duration-aware filtering so a title/artist match to a different edit (radio edit, remix, extended version) gets rejected instead of producing badly out-of-sync lyrics. See this repository's README and the version history below for details.</description>
 		<platform>all</platform>
 		<license>GPL-2.0-only</license>
 		<forum>https://forum.kodi.tv/showthread.php?tid=147340</forum>
@@ -54,9 +50,7 @@
 	<extension point="xbmc.python.script" library="default.py"/>
 	<extension point="xbmc.addon.metadata">
 		<summary lang="en_US">Fixes a dark band over lyrics text in Aeon Nox 5</summary>
-		<summary lang="sk_SK">Opravuje tmavý pruh cez texty piesní v Aeon Nox 5</summary>
 		<description lang="en_US">Run this once from Program add-ons. It patches skin.aeon.nox.5's own CU LRC Lyrics override file (1080i/script-cu-lrclyrics-main.xml) to hide the topbar.png control that overlays a dark band on top of the lyrics text during music playback. Requires skin.aeon.nox.5 to already be installed. Makes a one-time backup of the original file (.bak) before patching; running it again is a no-op if already patched. Restart Kodi afterwards for the change to take effect.</description>
-		<description lang="sk_SK">Spusti raz z Program add-ons. Opraví vlastný CU LRC Lyrics súbor skinu skin.aeon.nox.5 (1080i/script-cu-lrclyrics-main.xml) tak, aby sa skryl topbar.png kontrolka, ktorá cez texty piesní prekrýva tmavý pruh. Vyžaduje už nainštalovaný skin.aeon.nox.5. Pred úpravou raz zálohuje pôvodný súbor (.bak); opätovné spustenie po oprave nič nerobí. Po spustení treba reštartovať Kodi.</description>
 		<platform>all</platform>
 		<license>CC-BY-NC-SA-4.0</license>
 		<source>https://github.com/xDereCx/kodi-x96max-fixes</source>
@@ -73,9 +67,7 @@
 	<extension point="xbmc.python.script" library="default.py"/>
 	<extension point="xbmc.addon.metadata">
 		<summary lang="en_US">Restarts connman if no LAN IP shows up within 60s of boot</summary>
-		<summary lang="sk_SK">Reštartuje connman, ak sa do 60s od bootu neobjaví LAN IP</summary>
 		<description lang="en_US">Run this once from Program add-ons. Installs a systemd oneshot service (network-watchdog.service) and its script to /storage/.config/ on this CoreELEC box. At every boot it waits up to 60s for a 192.168.x.x LAN IP (ignoring WireGuard/OpenVPN/PPP tunnel interfaces); if none appears, it restarts connman and checks again. Fixes boots where the network never comes up on its own. Idempotent - running it again just confirms the files are already installed and the service enabled. Not a Kodi/skin fix - a system-level boot reliability fix, same delivery mechanism (a one-time Program add-on) as the other patches in this repo.</description>
-		<description lang="sk_SK">Spusti raz z Program add-ons. Nainštaluje systemd oneshot službu (network-watchdog.service) a jej skript do /storage/.config/ na tomto CoreELEC boxe. Pri každom boote počká až 60s na 192.168.x.x LAN IP (ignoruje WireGuard/OpenVPN/PPP tunelové rozhrania); ak sa neobjaví, reštartuje connman a skontroluje znova. Rieši booty, kde sieť sama nenabehne. Idempotentné - opätovné spustenie len potvrdí, že súbory sú už nainštalované a služba povolená. Nie je to oprava Kodi/skinu, ale systémová oprava spoľahlivosti bootu, doručená rovnakým spôsobom (jednorazový Program add-on) ako ostatné patche v tomto repozitári.</description>
 		<platform>all</platform>
 		<license>CC-BY-NC-SA-4.0</license>
 		<source>https://github.com/xDereCx/kodi-x96max-fixes</source>
