@@ -716,6 +716,15 @@ class GUI(xbmcgui.WindowXMLDialog):
         # file has changed, remove it from memory
         self.remove(self.lyrics)
 
+    def scroll_txt(self, actionId):
+        pos = self.text.getSelectedPosition()
+        nums = self.text.size()
+        if actionId in (3, 105, 111, 603):  # up-ish actions
+            pos = max(pos - 1, 0)
+        else:  # down-ish actions
+            pos = min(pos + 1, nums - 1)
+        self.text.selectItem(pos)
+
     def context_menu(self):
         labels = ()
         functions = ()
@@ -800,6 +809,14 @@ class GUI(xbmcgui.WindowXMLDialog):
             xbmc.executebuiltin('Action(PlayerProcessInfo)')
         elif (actionId in ACTION_UPDOWN) and (self.controlId == 110) and WIN.getProperty('culrc.islrc') == 'true':
             self.scrolltosync()
+        elif (actionId in ACTION_UPDOWN) and WIN.getProperty('culrc.islrc') != 'true':
+            # Plain (untimed) txt lyrics have no auto-scroll timer, and the
+            # list never gets native focus (disabled as part of the OK
+            # button/OSD fix, see setFocus comments above), so onFocus()
+            # never fires and self.controlId never becomes 110 - up/down
+            # would otherwise do nothing and only the first line ever shows.
+            # Move the selection ourselves instead of relying on focus.
+            self.scroll_txt(actionId)
 
 class MyPlayer(xbmc.Player):
     def __init__(self, *args, **kwargs):
