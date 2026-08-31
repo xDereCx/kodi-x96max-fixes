@@ -264,6 +264,10 @@ class MusicMonitor(xbmc.Player):
         try:
             if not self.isPlayingAudio():
                 return
+            # jump to the visualisation screen (rotating fanart + lyrics)
+            # whenever audio playback starts, instead of leaving whichever
+            # library/browsing screen was open before playback began
+            xbmc.executebuiltin('ActivateWindow(visualisation)')
             tag = self.getMusicInfoTag()
             artist = tag.getArtist()
             playing_file = get_real_playing_file() or self.getPlayingFile()
