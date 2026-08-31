@@ -168,8 +168,15 @@ class Song:
         song.embed = xbmc.getInfoLabel('MusicPlayer%s.Lyrics' % offset_str)
         song.source = xbmc.getInfoLabel('MusicPlayer%s.Property(culrc.source)' % offset_str)
         # used by scrapers to reject lyrics timed for a different edit/remix
-        # of the same title (different duration = different recording)
-        duration_label = xbmc.getInfoLabel('MusicPlayer%s.Duration' % offset_str)
+        # of the same title (different duration = different recording).
+        # Only fetched for the current song (offset 0): a Kodi crash was
+        # observed (SIGSEGV inside CGUIInfoManager::GetMultiInfoLabel,
+        # called via xbmc.getInfoLabel from Python) shortly after this
+        # info label was queried with a non-zero offset - "MusicPlayer.
+        # Duration" alone is a very well-established info label, but
+        # combining it with ".offset(N)" is not, so avoid that combination
+        # entirely rather than trying to root-cause a native crash.
+        duration_label = xbmc.getInfoLabel('MusicPlayer.Duration') if offset == 0 else ''
         parts = duration_label.split(':') if duration_label else []
         try:
             secs = 0
