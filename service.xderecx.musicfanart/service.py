@@ -169,11 +169,20 @@ class Rotator(threading.Thread):
     def run(self):
         idx = 0
         while not self.monitor.abortRequested():
-            with self.lock:
-                images = list(self.images)
-            if images:
-                WINDOW.setProperty(PROPERTY, images[idx % len(images)])
-                idx += 1
+            try:
+                with self.lock:
+                    images = list(self.images)
+                if images:
+                    idx = idx % len(images)
+                    WINDOW.setProperty(PROPERTY, images[idx])
+                    idx += 1
+            except Exception as e:
+                # an unhandled exception here (e.g. a stale path from a
+                # race with a fresh download) would otherwise silently
+                # kill this thread for the rest of the Kodi session,
+                # permanently freezing the display on whatever image was
+                # last set - log and keep the rotation loop alive instead
+                log('rotator error, continuing: %s' % e)
             if self.monitor.waitForAbort(ROTATE_SECONDS):
                 break
 
