@@ -4,4 +4,44 @@
       <blue>ContextMenu</blue>
     </remote>
   </global>
+  <TVRecordings>
+    <remote>
+      <blue>ContextMenu</blue>
+    </remote>
+  </TVRecordings>
+  <TVTimers>
+    <remote>
+      <blue>ContextMenu</blue>
+    </remote>
+  </TVTimers>
+  <TVTimerRules>
+    <remote>
+      <blue>ContextMenu</blue>
+    </remote>
+  </TVTimerRules>
+  <RadioRecordings>
+    <remote>
+      <blue>ContextMenu</blue>
+    </remote>
+  </RadioRecordings>
+  <RadioTimers>
+    <remote>
+      <blue>ContextMenu</blue>
+    </remote>
+  </RadioTimers>
+  <RadioTimerRules>
+    <remote>
+      <blue>ContextMenu</blue>
+    </remote>
+  </RadioTimerRules>
+  <Teletext>
+    <remote>
+      <blue>ContextMenu</blue>
+    </remote>
+  </Teletext>
+  <Addon>
+    <remote>
+      <blue>ContextMenu</blue>
+    </remote>
+  </Addon>
 </keymap>
