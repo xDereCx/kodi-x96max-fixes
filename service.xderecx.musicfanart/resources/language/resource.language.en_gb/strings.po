@@ -1,0 +1,19 @@
+# Kodi Media Center language file
+msgid ""
+msgstr ""
+
+msgctxt "#30000"
+msgid "fanart.tv API key (optional, used as fallback)"
+msgstr ""
+
+msgctxt "#30001"
+msgid "Save images permanently in the artist's own music folder"
+msgstr ""
+
+msgctxt "#30002"
+msgid "Subfolder name inside the artist folder"
+msgstr ""
+
+msgctxt "#30003"
+msgid "Maximum images to collect per artist"
+msgstr ""
