@@ -100,6 +100,7 @@ class Song:
         self.filepath = ''
         self.embed = ''
         self.source = ''
+        self.duration = 0
         self.analyze_safe = True
         self.SETTING_SAVE_FILENAME_FORMAT = kwargs['opt']['save_filename_format']
         self.SETTING_SAVE_LYRICS_PATH = kwargs['opt']['save_lyrics_path']
@@ -166,6 +167,17 @@ class Song:
         song.artist = xbmc.getInfoLabel('MusicPlayer%s.Artist' % offset_str).replace('\\', ' & ').replace('/', ' & ').replace('  ',' ').replace(':','-').strip('.')
         song.embed = xbmc.getInfoLabel('MusicPlayer%s.Lyrics' % offset_str)
         song.source = xbmc.getInfoLabel('MusicPlayer%s.Property(culrc.source)' % offset_str)
+        # used by scrapers to reject lyrics timed for a different edit/remix
+        # of the same title (different duration = different recording)
+        duration_label = xbmc.getInfoLabel('MusicPlayer%s.Duration' % offset_str)
+        parts = duration_label.split(':') if duration_label else []
+        try:
+            secs = 0
+            for p in parts:
+                secs = secs * 60 + int(p)
+            song.duration = secs
+        except ValueError:
+            song.duration = 0
         # some third party addons may insert the tracknumber in the song title
         regex = re.compile('\d\d\.\s')
         match = regex.match(song.title)

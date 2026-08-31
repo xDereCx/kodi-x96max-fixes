@@ -716,6 +716,16 @@ class GUI(xbmcgui.WindowXMLDialog):
         # file has changed, remove it from memory
         self.remove(self.lyrics)
 
+    def manual_sync(self, actionId):
+        step = 0.5
+        if actionId in (3, 105, 111, 603):  # up-ish actions: make lyrics appear later (delay)
+            self.syncadjust -= step
+        else:  # down-ish actions: make lyrics appear earlier (advance)
+            self.syncadjust += step
+        xbmcgui.Dialog().notification('CU LRC Lyrics', 'Sync offset: %.1fs' % self.syncadjust, time=1000, sound=False)
+        self.save(self.lyrics, self.syncadjust)
+        self.remove(self.lyrics)
+
     def scroll_txt(self, actionId):
         pos = self.text.getSelectedPosition()
         nums = self.text.size()
@@ -807,8 +817,14 @@ class GUI(xbmcgui.WindowXMLDialog):
                 self.exit_gui("quit")
         elif (actionId in ACTION_CODEC):
             xbmc.executebuiltin('Action(PlayerProcessInfo)')
-        elif (actionId in ACTION_UPDOWN) and (self.controlId == 110) and WIN.getProperty('culrc.islrc') == 'true':
-            self.scrolltosync()
+        elif (actionId in ACTION_UPDOWN) and WIN.getProperty('culrc.islrc') == 'true':
+            # The old scrolltosync() depended on the list having native
+            # focus (self.controlId == 110) to read a manually-navigated
+            # selection's timestamp - dead ever since focus was disabled
+            # for the OK button/OSD fix (self.controlId never becomes 110
+            # anymore). Nudge the offset directly instead: up/down now
+            # delays/advances the whole synced lyric by a fixed step.
+            self.manual_sync(actionId)
         elif (actionId in ACTION_UPDOWN) and WIN.getProperty('culrc.islrc') != 'true':
             # Plain (untimed) txt lyrics have no auto-scroll timer, and the
             # list never gets native focus (disabled as part of the OK

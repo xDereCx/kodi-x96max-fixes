@@ -54,8 +54,17 @@ class LyricsFetcher:
             songid = item.get('id')
             if not artistname or not songtitle or songid is None:
                 continue
-            if (difflib.SequenceMatcher(None, song.artist.lower(), artistname.lower()).ratio() > 0.8) and (difflib.SequenceMatcher(None, song.title.lower(), songtitle.lower()).ratio() > 0.8):
-                links.append((artistname + ' - ' + songtitle, self.LYRIC_URL % songid, artistname, songtitle))
+            if not ((difflib.SequenceMatcher(None, song.artist.lower(), artistname.lower()).ratio() > 0.8) and (difflib.SequenceMatcher(None, song.title.lower(), songtitle.lower()).ratio() > 0.8)):
+                continue
+            # a title/artist match can still be the wrong edit (radio edit,
+            # remix, extended version, etc.) with different lyric timing,
+            # which is a common cause of out-of-sync lyrics; reject
+            # candidates whose reported duration is too far from ours
+            item_duration = item.get('duration')
+            if song.duration and item_duration and abs(item_duration - song.duration) > 3:
+                log('%s: skipping duration mismatch for %s - %s (theirs %ss, ours %ss)' % (__title__, artistname, songtitle, item_duration, song.duration), debug=self.DEBUG)
+                continue
+            links.append((artistname + ' - ' + songtitle, self.LYRIC_URL % songid, artistname, songtitle))
         if len(links) == 0:
             return None
         elif len(links) > 1:
