@@ -54,10 +54,21 @@ class LyricsFetcher:
             lyrics.list = links
         for link in links:
             lyr = self.get_lyrics_from_list(link)
-            if lyr and lyr.startswith('['):
+            if lyr and lyr.startswith('[') and self._has_real_content(lyr):
                 lyrics.lyrics = lyr
                 return lyrics
         return None
+
+    # music163 sometimes only has songwriter/composer credit lines in its
+    # lyric DB (e.g. "[00:00.00-1] 作词 : ..." / "作曲 : ...") with no
+    # actual lyrics, but still returns them as a normal-looking lrc, so the
+    # plain startswith('[') check above accepts them as a false positive.
+    CREDIT_LINE = re.compile(r'^\[[\d:.\-]+\]\s*(作词|作曲|编曲|演唱|制作人|混音|母带|和声|监制|录音)\s*[:：].*$', re.MULTILINE)
+
+    def _has_real_content(self, lyr):
+        stripped = self.CREDIT_LINE.sub('', lyr)
+        stripped = re.sub(r'\[[\d:.\-]+\]', '', stripped)
+        return bool(stripped.strip())
 
     def get_lyrics_from_list(self, link):
         title,url,artist,song = link
