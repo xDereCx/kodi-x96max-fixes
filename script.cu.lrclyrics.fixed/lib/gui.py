@@ -167,7 +167,15 @@ class MAIN():
         # search lrc lyrics by scrapers
         for scraper in self.scrapers:
             if scraper[3] and self.proceed():
-                lyrics = scraper[1].get_lyrics(song)
+                try:
+                    lyrics = scraper[1].get_lyrics(song)
+                except Exception as e:
+                    # a single scraper raising (bad API response shape,
+                    # site layout change, etc.) must not abort every
+                    # remaining scraper in the fallback chain - log and
+                    # move on to the next one instead.
+                    log('scraper error (%s), skipping: %s' % (scraper[0], e), debug=self.DEBUG)
+                    lyrics = None
                 if (lyrics):
                     log('found lrc lyrics online', debug=self.DEBUG)
                     self.save_lyrics_to_file(lyrics)
@@ -192,7 +200,11 @@ class MAIN():
         # search txt lyrics by scrapers
         for scraper in self.scrapers:
             if not scraper[3] and self.proceed():
-                lyrics = scraper[1].get_lyrics(song)
+                try:
+                    lyrics = scraper[1].get_lyrics(song)
+                except Exception as e:
+                    log('scraper error (%s), skipping: %s' % (scraper[0], e), debug=self.DEBUG)
+                    lyrics = None
                 if (lyrics):
                     log('found txt lyrics online', debug=self.DEBUG)
                     self.save_lyrics_to_file(lyrics)

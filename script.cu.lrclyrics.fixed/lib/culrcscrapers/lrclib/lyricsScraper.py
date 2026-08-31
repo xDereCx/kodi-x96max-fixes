@@ -9,6 +9,7 @@ https://github.com/rtcq/syncedlyrics
 
 import requests
 import difflib
+import urllib.parse
 from lib.utils import *
 
 __title__ = "lrclib"
@@ -30,16 +31,29 @@ class LyricsFetcher:
         lyrics.source = __title__
         lyrics.lrc = __lrc__
         try:
-            url = self.SEARCH_URL % (song.artist, song.title)
+            url = self.SEARCH_URL % (urllib.parse.quote(song.artist), urllib.parse.quote(song.title))
             response = requests.get(url, timeout=10)
             result = response.json()
         except:
             return None
+        # lrclib.net returns a JSON *object* (e.g. an error/rate-limit
+        # response) instead of the expected array of results for some
+        # queries (observed for artist/title strings with diacritics) -
+        # iterating a dict yields its string keys, so `item['artistName']`
+        # below would crash with "string indices must be integers" and
+        # silently abort every remaining scraper in the fallback chain.
+        if not isinstance(result, list):
+            log('%s: unexpected response (not a list), skipping' % __title__, debug=self.DEBUG)
+            return None
         links = []
-        for item in result: 
-            artistname = item['artistName']
-            songtitle = item['name']
-            songid = item['id']
+        for item in result:
+            if not isinstance(item, dict):
+                continue
+            artistname = item.get('artistName')
+            songtitle = item.get('name')
+            songid = item.get('id')
+            if not artistname or not songtitle or songid is None:
+                continue
             if (difflib.SequenceMatcher(None, song.artist.lower(), artistname.lower()).ratio() > 0.8) and (difflib.SequenceMatcher(None, song.title.lower(), songtitle.lower()).ratio() > 0.8):
                 links.append((artistname + ' - ' + songtitle, self.LYRIC_URL % songid, artistname, songtitle))
         if len(links) == 0:
