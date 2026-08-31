@@ -85,7 +85,7 @@
 		<news>1.0.0: initial release - packages the network-watchdog systemd service confirmed working on x96max+.</news>
 	</extension>
 </addon>
-<addon id="service.xderecx.musicfanart" name="DC Artist Artwork DL" version="1.1.0" provider-name="xDereCx">
+<addon id="service.xderecx.musicfanart" name="DC Artist Artwork DL" version="1.2.0" provider-name="xDereCx">
 	<requires>
 		<import addon="xbmc.python" version="3.0.0"/>
 	</requires>
@@ -96,7 +96,7 @@
 		<platform>all</platform>
 		<license>MIT</license>
 		<source>https://github.com/xDereCx/kodi-x96max-fixes</source>
-		<news>1.1.0: added Deezer as a third image source (no API key needed) - mainly helps Slovak/Czech and other regional artists that TheAudioDB/fanart.tv don't have at all. Added an on-screen "searching for fanart..." notification on first fetch for a new artist, so it's clear something is happening during the initial download delay. 1.0.0: initial release.</news>
+		<news>1.2.0: fixed a real bug - xbmc.Player().getPlayingFile() returns a musicdb://songs/... virtual URL (not a real path) when a track is played from the Kodi music library view, which silently broke library-folder saving (it always fell back to the private cache instead). Now resolves the real on-disk path via Player.GetItem's "file" property first. 1.1.0: added Deezer as a third image source (no API key needed) - mainly helps Slovak/Czech and other regional artists that TheAudioDB/fanart.tv don't have at all. Added an on-screen "searching for fanart..." notification on first fetch for a new artist, so it's clear something is happening during the initial download delay. 1.0.0: initial release.</news>
 	</extension>
 </addon>
 </addons>

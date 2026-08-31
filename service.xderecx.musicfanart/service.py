@@ -118,6 +118,27 @@ def fetch_deezer(artist):
         return []
 
 
+def get_real_playing_file():
+    # xbmc.Player().getPlayingFile() returns a musicdb://songs/... virtual
+    # URL (not a real filesystem path) when the track was started from the
+    # Kodi music library view, rather than played directly from a file
+    # browser. Player.GetItem's "file" property resolves to the actual
+    # on-disk path in that case, so prefer it and only fall back to
+    # getPlayingFile() (e.g. for non-library playback) if it's unavailable.
+    try:
+        req = json.dumps({
+            'jsonrpc': '2.0', 'id': 1, 'method': 'Player.GetItem',
+            'params': {'playerid': 0, 'properties': ['file']}
+        })
+        resp = json.loads(xbmc.executeJSONRPC(req))
+        f = resp.get('result', {}).get('item', {}).get('file')
+        if f and not f.startswith('musicdb://'):
+            return f
+    except Exception as e:
+        log('Player.GetItem error: %s' % e)
+    return None
+
+
 def download(url, dest):
     try:
         req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
@@ -184,7 +205,7 @@ class MusicMonitor(xbmc.Player):
                 return
             tag = self.getMusicInfoTag()
             artist = tag.getArtist()
-            playing_file = self.getPlayingFile()
+            playing_file = get_real_playing_file() or self.getPlayingFile()
         except Exception:
             return
         if not artist or artist == self.current_artist:
