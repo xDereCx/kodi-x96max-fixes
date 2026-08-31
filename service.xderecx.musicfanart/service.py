@@ -95,6 +95,29 @@ def fetch_fanarttv(artist_mbid):
         return []
 
 
+def fetch_deezer(artist):
+    # No API key needed. Mainly useful as a fallback for Slovak/Czech and
+    # other regional artists that TheAudioDB/fanart.tv (English-language,
+    # MusicBrainz-ID-based) tend not to have at all. Deezer only gives a
+    # single square artist photo (not a wide fanart background), but a
+    # decent photo beats a blank background.
+    try:
+        url = 'https://api.deezer.com/search/artist?q=%s' % urllib.parse.quote(artist)
+        data = http_get_json(url)
+        results = data.get('data') or []
+        if not results:
+            return []
+        a = results[0]
+        for key in ('picture_xl', 'picture_big'):
+            v = a.get(key)
+            if v:
+                return [v]
+        return []
+    except Exception as e:
+        log('deezer error for %s: %s' % (artist, e))
+        return []
+
+
 def download(url, dest):
     try:
         req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
@@ -234,13 +257,24 @@ class MusicMonitor(xbmc.Player):
         if len(existing) >= max_images:
             return
 
+        if not existing:
+            xbmcgui.Dialog().notification(
+                'DC Artist Artwork DL',
+                'Hľadám fanart pre %s...' % artist,
+                icon=xbmcgui.NOTIFICATION_INFO, time=4000, sound=False)
+
         urls = fetch_theaudiodb(artist)
         mbid = get_mbid(artist)
         urls += fetch_fanarttv(mbid) if mbid else []
+        urls += fetch_deezer(artist)
 
         if not urls:
             if not existing:
                 log('no fanart found for %s' % artist)
+                xbmcgui.Dialog().notification(
+                    'DC Artist Artwork DL',
+                    'Nič sa nenašlo pre %s' % artist,
+                    icon=xbmcgui.NOTIFICATION_INFO, time=3000, sound=False)
             return
 
         # already-downloaded URLs are tracked in a sidecar file so re-runs

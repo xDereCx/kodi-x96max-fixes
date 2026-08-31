@@ -1,13 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<addon id="service.xderecx.musicfanart" name="DC Artist Artwork DL" version="1.0.0" provider-name="xDereCx">
+<addon id="service.xderecx.musicfanart" name="DC Artist Artwork DL" version="1.1.0" provider-name="xDereCx">
 	<requires>
 		<import addon="xbmc.python" version="3.0.0"/>
 	</requires>
 	<extension point="xbmc.service" library="service.py" start="startup"/>
 	<extension point="xbmc.addon.metadata">
 		<summary lang="en_GB">Real fanart backgrounds for the currently playing music artist</summary>
-		<description lang="en_GB">Lightweight replacement for Artist Slideshow. Looks up TheAudioDB / fanart.tv for the currently playing artist and exposes the result via Window(Visualisation).Property(ArtistSlideshow.Image), compatible with the existing Aeon Nox 5 MusicVisualisation.xml patch. Runs as a proper Kodi background service (started once at Kodi startup) instead of a re-invoked script, avoiding the stuck/zombie "already running" issue.</description>
+		<description lang="en_GB">Lightweight replacement for Artist Slideshow. Looks up TheAudioDB / fanart.tv / Deezer for the currently playing artist and exposes the result via Window(Visualisation).Property(ArtistSlideshow.Image), compatible with the existing Aeon Nox 5 MusicVisualisation.xml patch. Runs as a proper Kodi background service (started once at Kodi startup) instead of a re-invoked script, avoiding the stuck/zombie "already running" issue.</description>
 		<platform>all</platform>
 		<license>MIT</license>
+		<source>https://github.com/xDereCx/kodi-x96max-fixes</source>
+		<news>1.1.0: added Deezer as a third image source (no API key needed) - mainly helps Slovak/Czech and other regional artists that TheAudioDB/fanart.tv don't have at all. Added an on-screen "searching for fanart..." notification on first fetch for a new artist, so it's clear something is happening during the initial download delay. 1.0.0: initial release.</news>
 	</extension>
 </addon>
