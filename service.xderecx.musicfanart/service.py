@@ -154,11 +154,49 @@ def download(url, dest):
         return False
 
 
+def set_artist_fanart(artistid, path):
+    # Writing our rotating image to our own custom Window property is not
+    # enough: the visible screen during playback is usually the CU LRC
+    # Lyrics dialog (script-cu-lrclyrics-main.xml), and Kodi freezes a
+    # snapshot of whatever was behind a dialog at the moment it opened
+    # instead of continuing to redraw it live - so our property kept
+    # changing correctly underneath while the screen stayed stuck on
+    # whichever image happened to be showing when the dialog last opened.
+    # Player.Art(fanart) is a native, continuously live-bound Kodi info
+    # label that keeps updating correctly behind an open dialog, so we
+    # push our image into the Kodi library's own fanart field for the
+    # artist instead of only relying on our custom property.
+    try:
+        req = json.dumps({
+            'jsonrpc': '2.0', 'id': 1, 'method': 'AudioLibrary.SetArtistDetails',
+            'params': {'artistid': artistid, 'art': {'fanart': path}}
+        })
+        xbmc.executeJSONRPC(req)
+    except Exception as e:
+        log('set_artist_fanart error: %s' % e)
+
+
+def get_artist_id(artist):
+    try:
+        req = json.dumps({
+            'jsonrpc': '2.0', 'id': 1, 'method': 'AudioLibrary.GetArtists',
+            'params': {'filter': {'field': 'artist', 'operator': 'is', 'value': artist}, 'properties': []}
+        })
+        resp = json.loads(xbmc.executeJSONRPC(req))
+        artists = resp.get('result', {}).get('artists') or []
+        if artists:
+            return artists[0]['artistid']
+    except Exception as e:
+        log('get_artist_id error for %s: %s' % (artist, e))
+    return None
+
+
 class Rotator(threading.Thread):
     def __init__(self, monitor):
         super(Rotator, self).__init__()
         self.monitor = monitor
         self.images = []
+        self.artistid = None
         self.lock = threading.Lock()
         self.daemon = True
 
@@ -166,15 +204,28 @@ class Rotator(threading.Thread):
         with self.lock:
             self.images = images
 
+    def set_artist_id(self, artistid):
+        with self.lock:
+            self.artistid = artistid
+
     def run(self):
         idx = 0
         while not self.monitor.abortRequested():
             try:
                 with self.lock:
                     images = list(self.images)
+                    artistid = self.artistid
                 if images:
                     idx = idx % len(images)
-                    WINDOW.setProperty(PROPERTY, images[idx])
+                    image = images[idx]
+                    WINDOW.setProperty(PROPERTY, image)
+                    if artistid is not None:
+                        # re-applied every cycle on purpose: a Kodi library
+                        # rescan can run its own scraper and overwrite this
+                        # field with a different (static) fanart at any
+                        # time, so we can't just set it once - keep
+                        # reasserting our own rotation on top of it
+                        set_artist_fanart(artistid, image)
                     idx += 1
             except Exception as e:
                 # an unhandled exception here (e.g. a stale path from a
@@ -204,6 +255,7 @@ class MusicMonitor(xbmc.Player):
         self.current_artist = None
         WINDOW.setProperty(PROPERTY, '')
         self.rotator.set_images([])
+        self.rotator.set_artist_id(None)
 
     def onPlayBackEnded(self):
         self.onPlayBackStopped()
@@ -220,6 +272,7 @@ class MusicMonitor(xbmc.Player):
         if not artist or artist == self.current_artist:
             return
         self.current_artist = artist
+        self.rotator.set_artist_id(get_artist_id(artist))
         threading.Thread(target=self._fetch_and_set, args=(artist, playing_file), daemon=True).start()
 
     def _guess_artist_folder(self, playing_file):
