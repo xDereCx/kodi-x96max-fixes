@@ -1142,5 +1142,52 @@
 				</focusedlayout>
 			</control>
 		</control>
+		<control type="group" id="140">
+			<description>Seek OSD - transient progress bar shown on left/right seek, since this modal dialog otherwise swallows Kodi's own video-style seek OSD entirely</description>
+			<visible>String.IsEqual(Window(10000).Property(culrc.seekosd),true)</visible>
+			<animation effect="fade" start="0" end="100" time="150">Visible</animation>
+			<animation effect="fade" start="100" end="0" time="200">Hidden</animation>
+			<control type="image">
+				<left>45</left>
+				<top>20</top>
+				<width>1830</width>
+				<height>150</height>
+				<texture colordiffuse="C0000000">black.png</texture>
+			</control>
+			<control type="label">
+				<description>Seek direction/amount, e.g. "+10s" or "-1:00"</description>
+				<left>85</left>
+				<top>35</top>
+				<width>1750</width>
+				<height>40</height>
+				<align>center</align>
+				<font>font_sync</font>
+				<textcolor>white</textcolor>
+				<label>$INFO[Window(10000).Property(culrc.seekdelta)]</label>
+			</control>
+			<control type="progress">
+				<left>85</left>
+				<top>80</top>
+				<width>1750</width>
+				<height>30</height>
+				<texturebg border="1">osd/texturebg_cache.png</texturebg>
+				<lefttexture />
+				<midtexture border="2">osd/midtexture.png</midtexture>
+				<righttexture />
+				<overlaytexture />
+				<info>Player.Progress</info>
+			</control>
+			<control type="label">
+				<description>Elapsed / total track time</description>
+				<left>85</left>
+				<top>115</top>
+				<width>1750</width>
+				<height>35</height>
+				<align>center</align>
+				<font>font_sync</font>
+				<textcolor>white</textcolor>
+				<label>$INFO[Player.Time] / $INFO[Player.Duration]</label>
+			</control>
+		</control>
 	</controls>
 </window>

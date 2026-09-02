@@ -5,8 +5,6 @@ from mutagen.oggvorbis import OggVorbis
 from mutagen.apev2 import APEv2
 from lib.utils import *
 
-LANGUAGE = ADDON.getLocalizedString
-
 
 class BinaryFile(xbmcvfs.File):
     def read(self, numBytes):

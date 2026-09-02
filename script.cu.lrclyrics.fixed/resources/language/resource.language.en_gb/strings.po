@@ -126,7 +126,39 @@ msgctxt "#32184"
 msgid "Hide translation"
 msgstr ""
 
-# empty strings from id 32013 to 32100 (except 32171-32181 above)
+msgctxt "#32185"
+msgid "Interface & translation language"
+msgstr ""
+
+msgctxt "#32186"
+msgid "Language used for this add-on's own menus, notifications and dialogs, and as the default lyrics translation target language. Kodi's own Settings screen for this add-on still follows Kodi's system language, not this setting."
+msgstr ""
+
+msgctxt "#32187"
+msgid "English"
+msgstr ""
+
+msgctxt "#32188"
+msgid "Español"
+msgstr ""
+
+msgctxt "#32189"
+msgid "Deutsch"
+msgstr ""
+
+msgctxt "#32190"
+msgid "Slovenčina"
+msgstr ""
+
+msgctxt "#32191"
+msgid "Čeština"
+msgstr ""
+
+msgctxt "#32192"
+msgid "Lyrics already appear to be in English - no translation needed"
+msgstr ""
+
+# empty strings from id 32013 to 32100 (except 32171-32191 above)
 # Settings labels
 
 msgctxt "#32100"

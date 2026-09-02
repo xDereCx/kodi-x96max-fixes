@@ -28,54 +28,65 @@ NEW_FILES = [
 ]
 
 
-def find_skin_root():
-    try:
-        skin_addon = xbmcaddon.Addon('skin.aeon.nox.5')
-    except RuntimeError:
-        return None
-    return xbmcvfs.translatePath(skin_addon.getAddonInfo('path'))
+# Aeon Nox 5 keeps a second, independent copy of itself installed as its own
+# addon (skin.aeon.nox.5.skinbase) purely so its own "reset skin to default"
+# feature has a pristine copy to restore from. It is not just a backup file
+# sitting inside the live skin's folder - Kodi can make it the active skin's
+# source of truth again at any time, so every patch/new-file here must be
+# kept in sync on BOTH copies or a skin reset silently reverts every fix.
+SKIN_IDS = ['skin.aeon.nox.5', 'skin.aeon.nox.5.skinbase']
+
+
+def find_skin_roots():
+    roots = []
+    for skin_id in SKIN_IDS:
+        try:
+            skin_addon = xbmcaddon.Addon(skin_id)
+        except RuntimeError:
+            continue
+        roots.append((skin_id, xbmcvfs.translatePath(skin_addon.getAddonInfo('path'))))
+    return roots
 
 
 def main():
-    skin_root = find_skin_root()
-    if not skin_root:
+    skin_roots = find_skin_roots()
+    if not skin_roots:
         DIALOG.ok('Aeon Nox 5 Skin Fixes', 'skin.aeon.nox.5 is not installed. Install/enable it first, then run this again.')
         return
 
-    pending = []
-    for bundled_name, rel_path, desc in PATCHES:
-        bundled = os.path.join(SKINFILE_DIR, bundled_name)
-        target = os.path.join(skin_root, rel_path)
-        if not os.path.isfile(bundled):
-            xbmc.log('[aeonnox5skinfix] bundled file missing, reinstall this addon: %s' % bundled, xbmc.LOGERROR)
-            continue
-        if not os.path.isfile(target):
-            xbmc.log('[aeonnox5skinfix] expected skin file not found, skin layout may have changed: %s' % target, xbmc.LOGWARNING)
-            continue
-        with open(bundled, 'rb') as f:
-            fixed = f.read()
-        with open(target, 'rb') as f:
-            current = f.read()
-        if current != fixed:
-            pending.append(('patch', bundled, target, rel_path, desc))
-
-    new_pending = []
-    for bundled_name, rel_path, desc in NEW_FILES:
-        bundled = os.path.join(SKINFILE_DIR, bundled_name)
-        target = os.path.join(skin_root, rel_path)
-        if not os.path.isfile(bundled):
-            xbmc.log('[aeonnox5skinfix] bundled file missing, reinstall this addon: %s' % bundled, xbmc.LOGERROR)
-            continue
-        with open(bundled, 'rb') as f:
-            fixed = f.read()
-        current = None
-        if os.path.isfile(target):
+    all_pending = []
+    for skin_id, skin_root in skin_roots:
+        for bundled_name, rel_path, desc in PATCHES:
+            bundled = os.path.join(SKINFILE_DIR, bundled_name)
+            target = os.path.join(skin_root, rel_path)
+            if not os.path.isfile(bundled):
+                xbmc.log('[aeonnox5skinfix] bundled file missing, reinstall this addon: %s' % bundled, xbmc.LOGERROR)
+                continue
+            if not os.path.isfile(target):
+                xbmc.log('[aeonnox5skinfix] expected skin file not found, skin layout may have changed: %s' % target, xbmc.LOGWARNING)
+                continue
+            with open(bundled, 'rb') as f:
+                fixed = f.read()
             with open(target, 'rb') as f:
                 current = f.read()
-        if current != fixed:
-            new_pending.append(('new', bundled, target, rel_path, desc))
+            if current != fixed:
+                all_pending.append(('patch', bundled, target, '%s: %s' % (skin_id, rel_path), desc))
 
-    all_pending = pending + new_pending
+        for bundled_name, rel_path, desc in NEW_FILES:
+            bundled = os.path.join(SKINFILE_DIR, bundled_name)
+            target = os.path.join(skin_root, rel_path)
+            if not os.path.isfile(bundled):
+                xbmc.log('[aeonnox5skinfix] bundled file missing, reinstall this addon: %s' % bundled, xbmc.LOGERROR)
+                continue
+            with open(bundled, 'rb') as f:
+                fixed = f.read()
+            current = None
+            if os.path.isfile(target):
+                with open(target, 'rb') as f:
+                    current = f.read()
+            if current != fixed:
+                all_pending.append(('new', bundled, target, '%s: %s' % (skin_id, rel_path), desc))
+
     if not all_pending:
         DIALOG.notification('Aeon Nox 5 Skin Fixes', 'Already applied, nothing to do', icon=xbmcgui.NOTIFICATION_INFO)
         return

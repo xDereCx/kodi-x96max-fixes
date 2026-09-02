@@ -126,7 +126,39 @@ msgctxt "#32184"
 msgid "Hide translation"
 msgstr "Skryť preklad"
 
-# empty strings from id 32013 to 32100 (except 32171-32184 above)
+msgctxt "#32185"
+msgid "Interface & translation language"
+msgstr "Jazyk rozhrania a prekladu"
+
+msgctxt "#32186"
+msgid "Language used for this add-on's own menus, notifications and dialogs, and as the default lyrics translation target language. Kodi's own Settings screen for this add-on still follows Kodi's system language, not this setting."
+msgstr "Jazyk, ktorý tento doplnok používa vo vlastných menu, oznámeniach a dialógoch, a zároveň predvolený cieľový jazyk prekladu textov piesní. Samotná obrazovka Nastavení tohto doplnku v Kodi sa naďalej riadi systémovým jazykom Kodi, nie týmto nastavením."
+
+msgctxt "#32187"
+msgid "English"
+msgstr "English"
+
+msgctxt "#32188"
+msgid "Español"
+msgstr "Español"
+
+msgctxt "#32189"
+msgid "Deutsch"
+msgstr "Deutsch"
+
+msgctxt "#32190"
+msgid "Slovenčina"
+msgstr "Slovenčina"
+
+msgctxt "#32191"
+msgid "Čeština"
+msgstr "Čeština"
+
+msgctxt "#32192"
+msgid "Lyrics already appear to be in English - no translation needed"
+msgstr "Text piesne už je v angličtine - preklad nie je potrebný"
+
+# empty strings from id 32013 to 32100 (except 32171-32191 above)
 # Settings labels
 msgctxt "#32100"
 msgid "Search for and save lrc lyrics in separate lyrics folder"

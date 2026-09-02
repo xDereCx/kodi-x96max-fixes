@@ -4,7 +4,7 @@ import time
 from threading import Timer
 from lib.utils import *
 from lib.embedlrc import *
-from lib.translate import strip_lrc_tags, translate_text, translate_lines
+from lib.translate import strip_lrc_tags, translate_text, translate_lines, looks_like_english
 
 # how many lines ahead of the current one to force into view, so the
 # translation panel shows more upcoming context instead of piling up
@@ -14,6 +14,11 @@ TRANSLATION_SCROLL_LOOKAHEAD = 1
 # rapid-repeat left/right seek acceleration, same idea as Kodi's video OSD
 SEEK_STREAK_WINDOW = 1.5
 SEEK_STEPS = [10, 30, 60]
+
+# how long the seek progress-bar overlay stays visible after the last
+# left/right press before it auto-hides itself, same idea as Kodi's own
+# video seek OSD
+SEEK_OSD_HOLD = 1.5
 
 
 class MAIN():
@@ -65,7 +70,11 @@ class MAIN():
         self.SETTING_CLEAN_TITLE = ADDON.getSettingBool('clean_title')
         self.SETTING_INTERNETRADIO = ADDON.getSettingBool('internetradio')
         self.SETTING_TRANSLATE = ADDON.getSettingBool('translate_enabled')
-        self.SETTING_TRANSLATE_LANG = ADDON.getSettingString('translate_lang')
+        # translation target language now follows the single addon_language
+        # choice (also drives this addon's own menus/notifications, see
+        # lib/localization.py) instead of its own separate free-text
+        # setting - one language choice for the whole addon
+        self.SETTING_TRANSLATE_LANG = current_interface_language()
         self.SETTING_DEEPL_KEY = ADDON.getSettingString('deepl_api_key')
         self.SETTING_LINGVA_INSTANCE = ADDON.getSettingString('lingva_instance') or 'lingva.ml'
         self.lyricssettings = {}
@@ -576,6 +585,7 @@ class GUI(xbmcgui.WindowXMLDialog):
         self._seek_last_press_time = 0
         self._seek_last_action = None
         self._seek_streak = 0
+        self._seek_hide_timer = None
 
     def get_page_lines(self):
         # we need to close the OSD else we can't get control 110
@@ -804,6 +814,14 @@ class GUI(xbmcgui.WindowXMLDialog):
         # asked for translation to be something they trigger for whatever
         # they're currently playing and curious about, not a background
         # job that burns API quota on every track
+        # skip pointlessly translating English lyrics into English (burns
+        # DeepL/Google/Lingva quota for no visible change) - only checked
+        # for an English target, see looks_like_english()'s own comment
+        # for why this isn't done for the other target languages too
+        if self.TRANSLATE_LANG == 'en' and looks_like_english(strip_lrc_tags(self.lyrics.lyrics)):
+            xbmcgui.Dialog().notification(ADDONNAME, LANGUAGE(32192), icon=ADDONICON, time=3000, sound=False)
+            return
+
         # cache the translation wherever this box actually saves lyrics
         # (next to the music file if save_lyrics2 is on, else the
         # addon's own lyrics folder), not a fixed location that might be
@@ -955,6 +973,35 @@ class GUI(xbmcgui.WindowXMLDialog):
         except Exception as e:
             log('failed to save translation: %s' % e, debug=self.DEBUG)
 
+    def _show_seek_osd(self, delta):
+        # a translucent progress bar + elapsed/total time, same idea as
+        # Kodi's own video seek OSD - this modal dialog swallows that one
+        # entirely (see the left/right handling in onAction), so without
+        # this there is no visual feedback at all for where a seek landed.
+        # Player.Progress/Player.Time/Player.Duration are built-in Kodi
+        # infolabels the skin control binds to directly, so no per-frame
+        # polling is needed here - only show/hide and the delta text are
+        # driven from Python.
+        WIN.setProperty('culrc.seekdelta', self._format_seek_delta(delta))
+        WIN.setProperty('culrc.seekosd', 'true')
+        if self._seek_hide_timer:
+            self._seek_hide_timer.cancel()
+        self._seek_hide_timer = Timer(SEEK_OSD_HOLD, self._hide_seek_osd)
+        self._seek_hide_timer.daemon = True
+        self._seek_hide_timer.start()
+
+    def _hide_seek_osd(self):
+        WIN.clearProperty('culrc.seekosd')
+        WIN.clearProperty('culrc.seekdelta')
+
+    @staticmethod
+    def _format_seek_delta(delta):
+        sign = '+' if delta > 0 else '-'
+        secs = abs(delta)
+        if secs >= 60:
+            return '%s%d:%02d' % (sign, secs // 60, secs % 60)
+        return '%s%ds' % (sign, secs)
+
     def open_sync_dialog(self):
         # reuse an already-open slider instead of stacking a new one on top
         # each time up/down is pressed while one is already showing
@@ -1054,6 +1101,11 @@ class GUI(xbmcgui.WindowXMLDialog):
                           and WIN.getProperty('culrc.translation.song') == fingerprint)
         if not already_shown and WIN.getProperty('culrc.translation.active') != 'true':
             return
+        # same English-into-English skip as show_translation() - "sticky"
+        # mode following into a song that's already in English shouldn't
+        # burn quota fetching a same-language "translation" either
+        if self.TRANSLATE_LANG == 'en' and looks_like_english(strip_lrc_tags(self.lyrics.lyrics)):
+            return
         if self.SAVE_LYRICS2:
             cache_path = self.lyrics.song.path2_translation(self.TRANSLATE_LANG)
         else:
@@ -1071,6 +1123,10 @@ class GUI(xbmcgui.WindowXMLDialog):
         self.allowtimer = False
         self.stop_refresh()
         self.showgui = False
+        if self._seek_hide_timer:
+            self._seek_hide_timer.cancel()
+        WIN.clearProperty('culrc.seekosd')
+        WIN.clearProperty('culrc.seekdelta')
         self.close()
 
     def onClick(self, controlId):
@@ -1080,6 +1136,13 @@ class GUI(xbmcgui.WindowXMLDialog):
                 item = self.text.getSelectedItem()
                 stamp = float(item.getProperty('time'))
                 xbmc.Player().seekTime(stamp)
+                # without this, the line highlight only catches up whenever
+                # the stale timer scheduled by the last refresh() call
+                # happens to fire (its wait time was computed for the OLD
+                # position) - could be several seconds, and looks like
+                # "lyrics didn't follow the seek" until it self-corrects
+                self.stop_refresh()
+                self.refresh()
             except:
                 pass
 
@@ -1112,6 +1175,14 @@ class GUI(xbmcgui.WindowXMLDialog):
                 step = SEEK_STEPS[self._seek_streak - 1]
                 delta = -step if actionId == 1 else step
                 player.seekTime(max(0, player.getTime() + delta))
+                self._show_seek_osd(delta)
+                # same reason as onClick's lyric-line jump: refresh() only
+                # reschedules itself for the NEXT line boundary each time it
+                # runs, so without an immediate resync here the highlighted
+                # line keeps following the pre-seek timeline until whatever
+                # stale timer was already pending happens to fire
+                self.stop_refresh()
+                self.refresh()
         elif (actionId in ACTION_OSD):
             if not self.blockOSD:
                 # mouse move constantly calls ACTION_OSD, process only once

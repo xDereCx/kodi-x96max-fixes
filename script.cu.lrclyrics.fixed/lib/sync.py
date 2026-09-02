@@ -2,7 +2,6 @@ import time
 from lib.utils import *
 
 ADDON = xbmcaddon.Addon()
-LANGUAGE = ADDON.getLocalizedString
 
 # Auto-close if the user hasn't touched the slider in a while, so it doesn't
 # stay parked on top of the lyrics indefinitely after a quick up/down nudge.

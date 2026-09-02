@@ -7,15 +7,14 @@ msgstr ""
 "Project-Id-Version: XBMC Addons\n"
 "Report-Msgid-Bugs-To: translations@kodi.tv\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"PO-Revision-Date: 2024-07-23 09:25+0000\n"
-"Last-Translator: roliverosc <roliverosc@hotmail.com>\n"
-"Language-Team: Spanish (Spain) <https://kodi.weblate.cloud/projects/kodi-add-ons-scripts/script-cu-lrclyrics/es_es/>\n"
+"PO-Revision-Date: 2026-09-02 00:00+0000\n"
+"Last-Translator: xDereCx\n"
+"Language-Team: Spanish\n"
 "Language: es_es\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.6.2\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 msgctxt "Addon Summary"
 msgid "CU LRC Lyrics"
@@ -23,7 +22,7 @@ msgstr "CU LRC Lyrics"
 
 msgctxt "Addon Description"
 msgid "CU LRC Lyrics is a lyrics script for Kodi. It supports regular as well as LRC Lyrics. The script can search synchronized/unsynchronized lyrics embedded, from file or by scrapers. It can read .lrc/.txt lyrics file saved at the same path by same file name with .mp3(or other type of music)."
-msgstr "CU LRC Lyrics es un script de letras para Kodi. Es compatible tanto con letra regular como LRC Lyrics. El script puede buscar desde archivo o a través de scrapers letras incrustadas sincronizadas o no sincronizadas. Puede leer archivos .lrc/.txt guardados en la misma carpeta con el mismo nombre del archivo *.mp3 (u otro tipo de archivo de audio)."
+msgstr "CU LRC Lyrics es un complemento de letras de canciones para Kodi. Admite letras normales y letras LRC. El complemento puede buscar letras sincronizadas/no sincronizadas incrustadas en el archivo, en un archivo aparte o mediante buscadores. Puede leer archivos de letras .lrc/.txt guardados en la misma ruta y con el mismo nombre que el archivo .mp3 (u otro tipo de archivo de música)."
 
 # Script labels
 msgctxt "#32000"
@@ -32,49 +31,141 @@ msgstr "Archivo"
 
 msgctxt "#32001"
 msgid "No lyrics found!"
-msgstr "¡Letra no encontrada!"
+msgstr "¡No se encontró la letra!"
 
 msgctxt "#32002"
 msgid "Embedded"
-msgstr "Incrustada"
+msgstr "Incrustado"
 
 msgctxt "#32003"
 msgid "Lyrics offset"
-msgstr "Compensar Letra"
+msgstr "Desfase de la letra"
 
 msgctxt "#32004"
 msgid "Searching lyrics..."
-msgstr "Buscando letra...."
+msgstr "Buscando letra..."
 
 msgctxt "#32005"
 msgid "Select lyrics:"
-msgstr "Selecciona las letras:"
+msgstr "Seleccionar letra:"
 
 msgctxt "#32006"
 msgid "Select different lyrics"
-msgstr "Seleccionar letra diferente"
+msgstr "Seleccionar otra letra"
 
 msgctxt "#32007"
 msgid "Manually sync lyrics"
 msgstr "Sincronizar letra manualmente"
 
 msgctxt "#32008"
-msgid "Delayed by: %ss"
-msgstr "Retrasar: %ss"
+msgid "Lyrics play %ss later"
+msgstr "La letra se reproduce %ss más tarde"
 
 msgctxt "#32009"
-msgid "Ahead by: %ss"
-msgstr "Adelantar: %ss"
+msgid "Lyrics play %ss earlier"
+msgstr "La letra se reproduce %ss antes"
 
-# empty strings from id 32010 to 32100
+msgctxt "#32010"
+msgid "LATER   <----   SYNC OFFSET   ---->   EARLIER"
+msgstr "MÁS TARDE   <----   DESFASE DE SINCRONIZACIÓN   ---->   ANTES"
+
+msgctxt "#32011"
+msgid "In sync"
+msgstr "Sincronizado"
+
+msgctxt "#32012"
+msgid "Up/Down adjusts the offset. Closes on its own after a few seconds idle."
+msgstr "Arriba/Abajo ajusta el desfase. Se cierra solo tras unos segundos de inactividad."
+
+msgctxt "#32171"
+msgid "Translation"
+msgstr "Traducción"
+
+msgctxt "#32172"
+msgid "Enable lyrics translation"
+msgstr "Activar traducción de letras"
+
+msgctxt "#32173"
+msgid "Target language (ISO code, e.g. sk, en, de)"
+msgstr "Idioma de destino (código ISO, p. ej. sk, en, de)"
+
+msgctxt "#32175"
+msgid "DeepL API key"
+msgstr "Clave de API de DeepL"
+
+msgctxt "#32176"
+msgid "Get a free key at deepl.com/pro-api"
+msgstr "Obtén una clave gratuita en deepl.com/pro-api"
+
+msgctxt "#32177"
+msgid "Show translation"
+msgstr "Mostrar traducción"
+
+msgctxt "#32178"
+msgid "Translation"
+msgstr "Traducción"
+
+msgctxt "#32179"
+msgid "Translating..."
+msgstr "Traduciendo..."
+
+msgctxt "#32181"
+msgid "Translation failed (tried DeepL and the free fallback) - check your settings and internet connection"
+msgstr "La traducción falló (se probó DeepL y la alternativa gratuita) - comprueba tu configuración y tu conexión a internet"
+
+msgctxt "#32182"
+msgid "Free fallback translator instance (used when no DeepL key is set, or DeepL fails)"
+msgstr "Instancia de traducción alternativa gratuita (se usa cuando no hay clave de DeepL configurada, o DeepL falla)"
+
+msgctxt "#32183"
+msgid "A public Lingva Translate instance (lingva.ml by default) - no key needed, auto-detects the source language. Change this if the default instance is down."
+msgstr "Una instancia pública de Lingva Translate (lingva.ml por defecto) - no necesita clave, detecta automáticamente el idioma de origen. Cámbiala si la instancia predeterminada no está disponible."
+
+msgctxt "#32184"
+msgid "Hide translation"
+msgstr "Ocultar traducción"
+
+msgctxt "#32185"
+msgid "Interface & translation language"
+msgstr "Idioma de interfaz y traducción"
+
+msgctxt "#32186"
+msgid "Language used for this add-on's own menus, notifications and dialogs, and as the default lyrics translation target language. Kodi's own Settings screen for this add-on still follows Kodi's system language, not this setting."
+msgstr "Idioma que usa este complemento en sus propios menús, notificaciones y diálogos, y como idioma de destino predeterminado para la traducción de letras. La propia pantalla de Ajustes de este complemento en Kodi sigue el idioma del sistema de Kodi, no esta opción."
+
+msgctxt "#32187"
+msgid "English"
+msgstr "English"
+
+msgctxt "#32188"
+msgid "Español"
+msgstr "Español"
+
+msgctxt "#32189"
+msgid "Deutsch"
+msgstr "Deutsch"
+
+msgctxt "#32190"
+msgid "Slovenčina"
+msgstr "Slovenčina"
+
+msgctxt "#32191"
+msgid "Čeština"
+msgstr "Čeština"
+
+msgctxt "#32192"
+msgid "Lyrics already appear to be in English - no translation needed"
+msgstr "La letra ya parece estar en inglés - no es necesaria la traducción"
+
+# empty strings from id 32013 to 32100 (except 32171-32191 above)
 # Settings labels
 msgctxt "#32100"
 msgid "Search for and save lrc lyrics in separate lyrics folder"
-msgstr "Buscar y guardar letras lrc en una carpeta de letras separada"
+msgstr "Buscar y guardar letras LRC en una carpeta de letras separada"
 
 msgctxt "#32101"
 msgid "Search for and save txt lyrics in separate lyrics folder"
-msgstr "Buscar y guardar letras txt en una carpeta de letras separada"
+msgstr "Buscar y guardar letras TXT en una carpeta de letras separada"
 
 msgctxt "#32102"
 msgid "- Lyrics folder"
@@ -82,7 +173,7 @@ msgstr "- Carpeta de letras"
 
 msgctxt "#32103"
 msgid "- Filename format"
-msgstr "Formato de archivo"
+msgstr "- Formato del nombre de archivo"
 
 msgctxt "#32104"
 msgid "%N %A - %T"
@@ -94,11 +185,11 @@ msgstr "%A\\%T"
 
 msgctxt "#32106"
 msgid "Use only filename for search"
-msgstr "Usar solo el nombre del archivo para buscar"
+msgstr "Usar solo el nombre de archivo para buscar"
 
 msgctxt "#32107"
 msgid "Filename format"
-msgstr "Formato para nombre de archivo al buscar"
+msgstr "Formato del nombre de archivo"
 
 msgctxt "#32108"
 msgid "%A - %T"
@@ -110,7 +201,7 @@ msgstr "%A\\%B\\%T"
 
 msgctxt "#32110"
 msgid "%A\\%B\\%N (-) %T"
-msgstr "%A\\%B\\%N (-) %T"
+msgstr "%A\\%B\\%N %T"
 
 msgctxt "#32111"
 msgid "- Lyrics are in a subfolder"
@@ -122,7 +213,7 @@ msgstr "-- Nombre de la subcarpeta"
 
 msgctxt "#32113"
 msgid "Search for and save lrc lyrics in song folder"
-msgstr "Buscar y guardar letras lrc en la carpeta de la canción"
+msgstr "Buscar y guardar letras LRC en la carpeta de la canción"
 
 msgctxt "#32114"
 msgid "%N - %A - %T"
@@ -130,7 +221,7 @@ msgstr "%N - %A - %T"
 
 msgctxt "#32115"
 msgid "Display options"
-msgstr "Opciones de pantalla"
+msgstr "Opciones de visualización"
 
 msgctxt "#32116"
 msgid "Search options"
@@ -138,7 +229,7 @@ msgstr "Opciones de búsqueda"
 
 msgctxt "#32117"
 msgid "Lyrics files"
-msgstr "Archivos Lyrics (letras)"
+msgstr "Archivos de letras"
 
 msgctxt "#32118"
 msgid "Debugging"
@@ -146,25 +237,24 @@ msgstr "Depuración"
 
 msgctxt "#32119"
 msgid "Search for and save txt lyrics in song folder"
-msgstr "Buscar y guardar letras txt en la carpeta de la canción"
+msgstr "Buscar y guardar letras TXT en la carpeta de la canción"
 
 msgctxt "#32120"
 msgid "%N. %A - %T"
-msgstr "%N. %A - %T"
+msgstr ""
 
 msgctxt "#32121"
 msgid "%A - %B - %N - %T"
-msgstr "%A - %B - %N - %T"
+msgstr ""
 
 # empty strings from id 32120 to 32146
 msgctxt "#32147"
 msgid "Search for local .txt lyrics files"
-msgstr "Buscar archivos de letras .txt locales"
+msgstr "Buscar archivos locales en formato TXT"
 
-# empty strings from id 32120 to 32147
 msgctxt "#32148"
 msgid "Hide dialog background, show lyrics only"
-msgstr "Ocultar fondo del diálogo, mostrar solo letras"
+msgstr "Ocultar el fondo del diálogo, mostrar solo la letra"
 
 msgctxt "#32149"
 msgid "Expert"
@@ -172,7 +262,7 @@ msgstr "Experto"
 
 msgctxt "#32150"
 msgid "Scrapers"
-msgstr "Scrapers"
+msgstr "Buscadores"
 
 msgctxt "#32151"
 msgid "Options"
@@ -180,31 +270,31 @@ msgstr "Opciones"
 
 msgctxt "#32152"
 msgid "Search for embedded lyrics"
-msgstr "Buscar letra incrustada"
+msgstr "Buscar letras incrustadas"
 
 msgctxt "#32153"
 msgid "Search for local .lrc lyrics files"
-msgstr "Buscar archivos de letras .lrc locales"
+msgstr "Buscar archivos locales en formato LRC"
 
 msgctxt "#32154"
 msgid "Synchronised lyrics scrapers"
-msgstr "Scraper para letra sincronizada"
+msgstr "Buscadores de letras sincronizadas"
 
 msgctxt "#32155"
 msgid "Regular lyrics scrapers"
-msgstr "Scraper para letra regular"
+msgstr "Buscadores de letras normales"
 
 msgctxt "#32156"
 msgid "Display lyrics automatically"
-msgstr "Mostrar letra automáticamente"
+msgstr "Mostrar la letra automáticamente"
 
 msgctxt "#32157"
 msgid "Clean song title (remove part in brackets)"
-msgstr "Limpiar título de la canción (quita partes entre paréntesis)"
+msgstr "Limpiar el título de la canción (quitar la parte entre paréntesis)"
 
 msgctxt "#32158"
 msgid "Script is already running!"
-msgstr "¡El script ya está en ejecución!"
+msgstr "¡El script ya se está ejecutando!"
 
 msgctxt "#32159"
 msgid "Enable debug logging"
@@ -216,27 +306,27 @@ msgstr "Ocultar notificaciones"
 
 msgctxt "#32161"
 msgid "Remove Chinese/Korean text from lyrics"
-msgstr "Quitar texto Chino/Coreano de la letra"
+msgstr "Eliminar texto chino/coreano de las letras"
 
 msgctxt "#32162"
 msgid "Scraper test"
-msgstr "Comprobar scrapers"
+msgstr "Prueba de buscadores"
 
 msgctxt "#32163"
 msgid "Testing: %s"
-msgstr "Comprobando: %s"
+msgstr "Probando: %s"
 
 msgctxt "#32164"
 msgid "All scrapers are working ok"
-msgstr "Todos los scrapers funcionan correctamente"
+msgstr "Todos los buscadores funcionan correctamente"
 
 msgctxt "#32165"
 msgid "Failed scrapers: %s"
-msgstr "Scrapers con error: %s"
+msgstr "Buscadores fallidos: %s"
 
 msgctxt "#32166"
 msgid "Time offset for synchronised lyrics"
-msgstr "Ajuste de tiempo para letras sincronizadas"
+msgstr "Desfase horario para letras sincronizadas"
 
 msgctxt "#32167"
 msgid "Delete lyrics"
@@ -244,7 +334,7 @@ msgstr "Eliminar letra"
 
 msgctxt "#32168"
 msgid "If you hide the Music OSD and the Now Playing info, the background of the lyrics dialog will be hidden as well."
-msgstr "Si ocultas el OSD de música y la información de reproducción en curso, también se ocultará el fondo del diálogo de letras."
+msgstr "Si ocultas el OSD de música y la información de reproducción actual, el fondo del diálogo de la letra también se ocultará."
 
 msgctxt "#32169"
 msgid "Sources"
@@ -252,12 +342,12 @@ msgstr "Fuentes"
 
 msgctxt "#32170"
 msgid "Get lyrics when listening to internet radio stations"
-msgstr "Obtén las letras de las canciones cuando escuches emisoras de radio por Internet"
+msgstr ""
 
 # Scrapers - do not translate!
 msgctxt "#32901"
 msgid "Lrclib"
-msgstr "Lrclib"
+msgstr ""
 
 msgctxt "#32902"
 msgid "MusixMatch"
@@ -265,7 +355,7 @@ msgstr "MusixMatch"
 
 msgctxt "#32903"
 msgid "Megalobiz"
-msgstr "Megalobiz"
+msgstr ""
 
 msgctxt "#32904"
 msgid "Music 163"
@@ -277,7 +367,7 @@ msgstr "Genius"
 
 msgctxt "#32913"
 msgid "Lyrics Mode"
-msgstr "Modo de letras"
+msgstr "Lyrics Mode"
 
 msgctxt "#32914"
 msgid "AZLyrics"
@@ -293,43 +383,8 @@ msgstr "Dark Lyrics"
 
 msgctxt "#32917"
 msgid "Super Music"
-msgstr "Super Music"
+msgstr ""
 
 msgctxt "#32918"
 msgid "RCLyricsBand"
-msgstr "RCLyricsBand"
-
-#~ msgctxt "#32905"
-#~ msgid "Lyricsify"
-#~ msgstr "Lyricsify"
-
-# Scrapers - do not translate!
-#~ msgctxt "#32901"
-#~ msgid "MiniLyrics"
-#~ msgstr "MiniLyrics"
-
-#~ msgctxt "#32903"
-#~ msgid "GomAudio"
-#~ msgstr "GomAudio"
-
-# empty strings from id 32010 to 32100
-# Settings labels
-#~ msgctxt "#32101"
-#~ msgid "Search for and save lyrics in separate lyrics folder"
-#~ msgstr "Buscar y guardar letra en una carpeta lyrics separada"
-
-#~ msgctxt "#32111"
-#~ msgid "Lyrics are in a subfolder"
-#~ msgstr "En subcarpeta"
-
-#~ msgctxt "#32112"
-#~ msgid "- Subfolder name"
-#~ msgstr "Nombre para subcarpeta"
-
-#~ msgctxt "#32113"
-#~ msgid "Search for and save lyrics in song folder"
-#~ msgstr "Buscar y guardar letra en carpeta de la canción"
-
-#~ msgctxt "#32153"
-#~ msgid "Search for local lyrics files"
-#~ msgstr "Buscar archivos lyrics en local"
+msgstr ""

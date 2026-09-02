@@ -9,6 +9,8 @@ import xbmcaddon
 import xbmcgui
 import xbmcvfs
 
+from lib.localization import get_string as LANGUAGE, INTERFACE_LANGS, current_language as current_interface_language
+
 ADDON = xbmcaddon.Addon()
 ADDONNAME = ADDON.getAddonInfo('name')
 ADDONICON = ADDON.getAddonInfo('icon')
@@ -16,7 +18,6 @@ ADDONVERSION = ADDON.getAddonInfo('version')
 ADDONID = ADDON.getAddonInfo('id')
 CWD = xbmcvfs.translatePath(ADDON.getAddonInfo('path'))
 PROFILE = xbmcvfs.translatePath(ADDON.getAddonInfo('profile'))
-LANGUAGE = ADDON.getLocalizedString
 
 CANCEL_DIALOG = (9, 10, 92, 216, 247, 257, 275, 61467, 61448,)
 ACTION_OSD = (107, 163,)

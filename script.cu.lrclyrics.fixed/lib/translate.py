@@ -10,6 +10,32 @@ TAG_RE = re.compile(r'\[\d+:\d+(?:[.:]\d+)?\]')
 
 LINGVA_INSTANCE_DEFAULT = 'lingva.ml'
 
+# cheap, English-only heuristic to skip pointlessly "translating" lyrics
+# that are already in English when the target language is also English -
+# not a real language detector (that would need work per target language,
+# e.g. Slovak/Czech/German/Spanish stopword lists, to do safely), just
+# common-word frequency, which is good enough for full-sentence lyrics
+# without an extra API call or dependency. Only ever consulted when
+# target_lang == 'en'.
+_EN_STOPWORDS = frozenset((
+    'the', 'and', 'you', 'i', 'to', 'a', 'of', 'in', 'is', 'it', 'for',
+    'that', 'with', 'on', 'my', 'me', 'your', 'we', 'this', 'be', 'are',
+    'was', 'have', 'not', 'but', 'all', 'so', 'just', 'know', 'like',
+    'what', 'no', 'when', 'if', 'can', 'do', 'don', 'never', 'will',
+    'now', 'they', 'she', 'he', 'her', 'him', 'our', 'us', 'up', 'out',
+))
+_WORD_RE = re.compile(r"[a-zA-Z']+")
+
+
+def looks_like_english(text, min_words=15, threshold=0.12):
+    words = _WORD_RE.findall(text.lower())
+    if len(words) < min_words:
+        # too short to trust the ratio either way - don't skip, let the
+        # real translation call happen
+        return False
+    hits = sum(1 for w in words if w in _EN_STOPWORDS)
+    return (hits / len(words)) >= threshold
+
 
 def strip_lrc_tags(text):
     return TAG_RE.sub('', text)
