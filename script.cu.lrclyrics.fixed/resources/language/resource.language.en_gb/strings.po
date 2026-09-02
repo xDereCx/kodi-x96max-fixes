@@ -75,7 +75,7 @@ msgid "In sync"
 msgstr ""
 
 msgctxt "#32012"
-msgid "Up/Down adjusts the offset. Closes on its own after a few seconds idle."
+msgid "Up/Down: lyric sync slider. Left/Right: seek the track."
 msgstr ""
 
 msgctxt "#32171"

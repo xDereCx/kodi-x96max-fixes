@@ -74,8 +74,8 @@ msgid "In sync"
 msgstr "Sincronizado"
 
 msgctxt "#32012"
-msgid "Up/Down adjusts the offset. Closes on its own after a few seconds idle."
-msgstr "Arriba/Abajo ajusta el desfase. Se cierra solo tras unos segundos de inactividad."
+msgid "Up/Down: lyric sync slider. Left/Right: seek the track."
+msgstr "Arriba/Abajo: control deslizante de sincronización de la letra. Izquierda/Derecha: avanzar o retroceder en la canción."
 
 msgctxt "#32171"
 msgid "Translation"

@@ -74,8 +74,8 @@ msgid "In sync"
 msgstr "Synchronizováno"
 
 msgctxt "#32012"
-msgid "Up/Down adjusts the offset. Closes on its own after a few seconds idle."
-msgstr "Nahoru/Dolů upravuje posun. Samo se zavře po pár sekundách nečinnosti."
+msgid "Up/Down: lyric sync slider. Left/Right: seek the track."
+msgstr "Nahoru/Dolů: posuvník synchronizace textu. Doleva/Doprava: posun ve skladbě."
 
 msgctxt "#32171"
 msgid "Translation"

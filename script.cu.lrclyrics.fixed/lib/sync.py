@@ -35,7 +35,7 @@ class GUI(xbmcgui.WindowXMLDialog):
         self.header.setLabel(LANGUAGE(32010))
         string = self._get_string(self.offset)
         self.label.setLabel(string)
-        self.slider.setFloat((self.offset * 1.0), -20.0, 0.5, 20.0)
+        self.slider.setFloat((self.offset * 1.0), -30.0, 0.5, 30.0)
 
     def _get_string(self, val):
         if val > 0.0:
