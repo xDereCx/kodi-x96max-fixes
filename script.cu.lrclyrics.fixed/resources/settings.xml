@@ -232,6 +232,55 @@
 				</setting>
 			</group>
 		</category>
+		<category id="32171" label="32171">
+			<group id="1">
+				<setting help="" id="translate_enabled" label="32172" type="boolean">
+					<level>0</level>
+					<default>false</default>
+					<control type="toggle"/>
+				</setting>
+				<setting help="" id="translate_lang" label="32173" type="string">
+					<level>0</level>
+					<default>sk</default>
+					<dependencies>
+						<dependency type="enable">
+							<condition operator="is" setting="translate_enabled">true</condition>
+						</dependency>
+					</dependencies>
+					<constraints>
+						<options>
+							<option>sk</option>
+							<option>cs</option>
+						</options>
+					</constraints>
+					<control format="string" type="spinner"/>
+				</setting>
+				<setting help="32176" id="deepl_api_key" label="32175" type="string">
+					<level>0</level>
+					<default></default>
+					<dependencies>
+						<dependency type="enable">
+							<condition operator="is" setting="translate_enabled">true</condition>
+						</dependency>
+					</dependencies>
+					<control format="string" type="edit">
+						<heading>32175</heading>
+					</control>
+				</setting>
+				<setting help="32183" id="lingva_instance" label="32182" type="string">
+					<level>0</level>
+					<default>lingva.ml</default>
+					<dependencies>
+						<dependency type="enable">
+							<condition operator="is" setting="translate_enabled">true</condition>
+						</dependency>
+					</dependencies>
+					<control format="string" type="edit">
+						<heading>32182</heading>
+					</control>
+				</setting>
+			</group>
+		</category>
 		<category id="32149" label="32149">
 			<group id="1">
 				<setting help="" id="offset" label="32166" type="number">

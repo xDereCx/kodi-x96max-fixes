@@ -158,6 +158,32 @@ class Song:
         else:
             return os.path.join(self.SETTING_SAVE_LYRICS_PATH, artist + ' - ' + title + ext)
 
+    def path1_translation(self, lang):
+        # mirrors path1() but for a cached translation - used when the
+        # addon's own lyrics folder (save_lyrics1) is the active save
+        # location
+        ext = '.%s.txt' % lang
+        artist = "".join(i for i in self.artist if i not in "\/:*?<>|")
+        title = "".join(i for i in self.title if i not in "\/:*?<>|")
+        if self.SETTING_SAVE_FILENAME_FORMAT == 0:
+            return os.path.join(self.SETTING_SAVE_LYRICS_PATH, artist, title + ext)
+        else:
+            return os.path.join(self.SETTING_SAVE_LYRICS_PATH, artist + ' - ' + title + ext)
+
+    def path2_translation(self, lang):
+        # mirrors path2() but for a cached translation - used when
+        # save_lyrics2 (next to the music file) is the active save
+        # location, so the translation lands in the same place as the
+        # actual lyrics instead of an addon folder nothing else uses
+        ext = '.%s.txt' % lang
+        dirname = os.path.dirname(self.filepath)
+        basename = os.path.basename(self.filepath)
+        filename = basename.rsplit('.', 1)[0]
+        if self.SETTING_SAVE_SUBFOLDER:
+            return os.path.join(dirname, self.SETTING_SAVE_SUBFOLDER_PATH, filename + ext)
+        else:
+            return os.path.join(dirname, filename + ext)
+
     def path2(self, lrc):
         if lrc:
             ext = '.lrc'

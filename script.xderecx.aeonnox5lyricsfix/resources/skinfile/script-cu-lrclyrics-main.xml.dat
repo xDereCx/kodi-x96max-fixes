@@ -1073,5 +1073,74 @@
 				</focusedlayout>
 			</control>
 		</control>
+		<control type="group">
+			<visible>!String.IsEmpty(Window(10000).Property(culrc.translation))</visible>
+			<control type="image">
+				<left>45</left>
+				<top>770</top>
+				<width>1830</width>
+				<height>270</height>
+				<texture colordiffuse="80000000">black.png</texture>
+			</control>
+			<control type="image">
+				<description>CU LRC Lyrics logo (placeholder), top of the left strip</description>
+				<left>53</left>
+				<top>790</top>
+				<width>260</width>
+				<height>130</height>
+				<aspectratio align="center" aligny="top">keep</aspectratio>
+				<texture>special://home/addons/script.cu.lrclyrics.fixed/resources/skins/Default/media/culrc-logo.png</texture>
+			</control>
+			<control type="label">
+				<description>Translation provider, bottom of the left strip</description>
+				<left>45</left>
+				<top>990</top>
+				<width>275</width>
+				<height>40</height>
+				<font>font_translation</font>
+				<textcolor>white</textcolor>
+				<align>center</align>
+				<label>$INFO[Window(10000).Property(culrc.translation.source)]</label>
+			</control>
+			<control type="image">
+				<description>divider between the logo/source strip and the translated text, tinted to match the text color</description>
+				<left>320</left>
+				<top>790</top>
+				<width>3</width>
+				<height>230</height>
+				<texture colordiffuse="white">special://home/addons/script.cu.lrclyrics.fixed/resources/skins/Default/media/culrc-white70.png</texture>
+			</control>
+			<control type="list" id="112">
+				<left>363</left>
+				<top>790</top>
+				<width>1492</width>
+				<height>230</height>
+				<onleft>112</onleft>
+				<onright>112</onright>
+				<onup>112</onup>
+				<ondown>112</ondown>
+				<scrolltime tween="quadratic" easing="out">500</scrolltime>
+				<itemlayout height="40">
+					<control type="label">
+						<width>1492</width>
+						<height>40</height>
+						<font>font_translation</font>
+						<textcolor>white</textcolor>
+						<align>left</align>
+						<label>$INFO[ListItem.Label]</label>
+					</control>
+				</itemlayout>
+				<focusedlayout height="120">
+					<control type="textbox">
+						<width>1492</width>
+						<height>120</height>
+						<font>font_translation_current</font>
+						<align>left</align>
+						<textcolor>white</textcolor>
+						<label fallback="--">$INFO[ListItem.Label]</label>
+					</control>
+				</focusedlayout>
+			</control>
+		</control>
 	</controls>
 </window>

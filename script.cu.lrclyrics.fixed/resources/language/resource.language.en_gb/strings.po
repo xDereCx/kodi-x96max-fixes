@@ -78,7 +78,55 @@ msgctxt "#32012"
 msgid "Up/Down adjusts the offset. Closes on its own after a few seconds idle."
 msgstr ""
 
-# empty strings from id 32013 to 32100
+msgctxt "#32171"
+msgid "Translation"
+msgstr ""
+
+msgctxt "#32172"
+msgid "Enable lyrics translation"
+msgstr ""
+
+msgctxt "#32173"
+msgid "Target language (ISO code, e.g. sk, en, de)"
+msgstr ""
+
+msgctxt "#32175"
+msgid "DeepL API key"
+msgstr ""
+
+msgctxt "#32176"
+msgid "Get a free key at deepl.com/pro-api"
+msgstr ""
+
+msgctxt "#32177"
+msgid "Show translation"
+msgstr ""
+
+msgctxt "#32178"
+msgid "Translation"
+msgstr ""
+
+msgctxt "#32179"
+msgid "Translating..."
+msgstr ""
+
+msgctxt "#32181"
+msgid "Translation failed (tried DeepL and the free fallback) - check your settings and internet connection"
+msgstr ""
+
+msgctxt "#32182"
+msgid "Free fallback translator instance (used when no DeepL key is set, or DeepL fails)"
+msgstr ""
+
+msgctxt "#32183"
+msgid "A public Lingva Translate instance (lingva.ml by default) - no key needed, auto-detects the source language. Change this if the default instance is down."
+msgstr ""
+
+msgctxt "#32184"
+msgid "Hide translation"
+msgstr ""
+
+# empty strings from id 32013 to 32100 (except 32171-32181 above)
 # Settings labels
 
 msgctxt "#32100"

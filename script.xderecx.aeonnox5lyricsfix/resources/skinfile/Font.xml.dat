@@ -300,6 +300,22 @@
 			<size>33</size>
 		</font>
 		<font>
+			<name>font_translation</name>
+			<filename>NotoSans-Regular.ttf</filename>
+			<size>28</size>
+		</font>
+		<font>
+			<name>font_translation_current</name>
+			<filename>NotoSans-Regular.ttf</filename>
+			<style>bold</style>
+			<size>48</size>
+		</font>
+		<font>
+			<name>font_sync</name>
+			<filename>NotoSans-Regular.ttf</filename>
+			<size>26</size>
+		</font>
+		<font>
 			<name>font15</name>
 			<filename>RobotoCondensed-Regular.ttf</filename>
 			<size>35</size>

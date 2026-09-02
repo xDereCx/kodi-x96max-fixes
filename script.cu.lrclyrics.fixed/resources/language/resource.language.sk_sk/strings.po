@@ -59,14 +59,74 @@ msgid "Manually sync lyrics"
 msgstr "Manuálne synchronizovať text"
 
 msgctxt "#32008"
-msgid "Delayed by: %ss"
-msgstr "Oneskorený o: %ss"
+msgid "Lyrics play %ss later"
+msgstr "Text sa prehráva o %ss neskôr"
 
 msgctxt "#32009"
-msgid "Ahead by: %ss"
-msgstr "Vpred o %ss"
+msgid "Lyrics play %ss earlier"
+msgstr "Text sa prehráva o %ss skôr"
 
-# empty strings from id 32010 to 32100
+msgctxt "#32010"
+msgid "LATER   <----   SYNC OFFSET   ---->   EARLIER"
+msgstr "NESKÔR   <----   POSUN SYNCHRONIZÁCIE   ---->   SKÔR"
+
+msgctxt "#32011"
+msgid "In sync"
+msgstr "Synchronizované"
+
+msgctxt "#32012"
+msgid "Up/Down adjusts the offset. Closes on its own after a few seconds idle."
+msgstr "Hore/Dole upravuje posun. Samo sa zavrie po pár sekundách nečinnosti."
+
+msgctxt "#32171"
+msgid "Translation"
+msgstr "Preklad"
+
+msgctxt "#32172"
+msgid "Enable lyrics translation"
+msgstr "Zapnúť preklad textov"
+
+msgctxt "#32173"
+msgid "Target language (ISO code, e.g. sk, en, de)"
+msgstr "Cieľový jazyk (ISO kód, napr. sk, en, de)"
+
+msgctxt "#32175"
+msgid "DeepL API key"
+msgstr "DeepL API kľúč"
+
+msgctxt "#32176"
+msgid "Get a free key at deepl.com/pro-api"
+msgstr "Bezplatný kľúč získate na deepl.com/pro-api"
+
+msgctxt "#32177"
+msgid "Show translation"
+msgstr "Zobraziť preklad"
+
+msgctxt "#32178"
+msgid "Translation"
+msgstr "Preklad"
+
+msgctxt "#32179"
+msgid "Translating..."
+msgstr "Prekladá sa..."
+
+msgctxt "#32181"
+msgid "Translation failed (tried DeepL and the free fallback) - check your settings and internet connection"
+msgstr "Preklad zlyhal (skúsený DeepL aj bezplatná záloha) - skontrolujte nastavenia a internetové pripojenie"
+
+msgctxt "#32182"
+msgid "Free fallback translator instance (used when no DeepL key is set, or DeepL fails)"
+msgstr "Bezplatná záložná prekladová inštancia (použije sa, ak nie je nastavený DeepL kľúč alebo DeepL zlyhá)"
+
+msgctxt "#32183"
+msgid "A public Lingva Translate instance (lingva.ml by default) - no key needed, auto-detects the source language. Change this if the default instance is down."
+msgstr "Verejná inštancia Lingva Translate (predvolene lingva.ml) - kľúč netreba, automaticky rozpozná zdrojový jazyk. Zmeňte, ak je predvolená inštancia nedostupná."
+
+msgctxt "#32184"
+msgid "Hide translation"
+msgstr "Skryť preklad"
+
+# empty strings from id 32013 to 32100 (except 32171-32184 above)
 # Settings labels
 msgctxt "#32100"
 msgid "Search for and save lrc lyrics in separate lyrics folder"

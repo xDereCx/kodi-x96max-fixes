@@ -56,6 +56,13 @@ every folder under `zips/` so Kodi's browser can see what's there.
     music lyrics service at once, and this used to be a manual step.
   - Declares `script.xderecx.aeonnox5lyricsfix` (below) as a real addon
     dependency, so Kodi installs it automatically alongside this one.
+  - Optional, off-by-default lyrics translation via the DeepL API
+    (context menu → "Show translation"), on-demand only - never
+    fetched automatically per song, so it doesn't burn API quota on
+    tracks you don't care about. Needs your own DeepL API key set in
+    this addon's settings; the result is cached as a plain text file
+    alongside the addon's own saved lyrics so each song only gets
+    translated once.
   - See the addon's own version history (`addon.xml` news) for the
     full per-version breakdown.
 

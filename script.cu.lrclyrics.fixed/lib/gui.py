@@ -4,6 +4,16 @@ import time
 from threading import Timer
 from lib.utils import *
 from lib.embedlrc import *
+from lib.translate import strip_lrc_tags, translate_text, translate_lines
+
+# how many lines ahead of the current one to force into view, so the
+# translation panel shows more upcoming context instead of piling up
+# already-sung lines above the focused one
+TRANSLATION_SCROLL_LOOKAHEAD = 1
+
+# rapid-repeat left/right seek acceleration, same idea as Kodi's video OSD
+SEEK_STREAK_WINDOW = 1.5
+SEEK_STEPS = [10, 30, 60]
 
 
 class MAIN():
@@ -54,6 +64,10 @@ class MAIN():
         self.SETTING_SAVE_SUBFOLDER_PATH = ADDON.getSettingString('save_subfolder_path')
         self.SETTING_CLEAN_TITLE = ADDON.getSettingBool('clean_title')
         self.SETTING_INTERNETRADIO = ADDON.getSettingBool('internetradio')
+        self.SETTING_TRANSLATE = ADDON.getSettingBool('translate_enabled')
+        self.SETTING_TRANSLATE_LANG = ADDON.getSettingString('translate_lang')
+        self.SETTING_DEEPL_KEY = ADDON.getSettingString('deepl_api_key')
+        self.SETTING_LINGVA_INSTANCE = ADDON.getSettingString('lingva_instance') or 'lingva.ml'
         self.lyricssettings = {}
         self.lyricssettings['debug'] = self.DEBUG
         self.lyricssettings['read_filename'] = self.SETTING_READ_FILENAME
@@ -114,6 +128,7 @@ class MAIN():
         WIN.clearProperty('culrc.haslist')
         WIN.clearProperty('culrc.running')
         WIN.clearProperty('culrc.hidedialog')
+        WIN.clearProperty('culrc.translation')
 
     def get_lyrics(self, song, prefetch):
         log('searching memory for lyrics', debug=self.DEBUG)
@@ -261,22 +276,25 @@ class MAIN():
             lyr = lyrics.lyrics
         else:
             lyr = lyrics.lyrics
-        if adjust:
-            # save our manual sync offset to file
+        if adjust is not None:
+            # the slider (and parser_lyrics, which now seeds self.syncadjust
+            # from this same tag) always deals in absolute offset values, not
+            # deltas - so the incoming adjust here already IS the final
+            # value to persist, not something to add on top of what's
+            # already in the file
             adjust = int(adjust * 1000)
-            # check if there's an existing offset tag
             found = re.search(r'\[offset:(.*?)\]', lyr, flags=re.DOTALL)
             if found:
-                # get the sum of both values
-                try:
-                    adjust = int(found.group(1)) + adjust
-                except:
-                    # offset tag without value
-                    pass
-                # remove the existing offset tag
                 lyr = lyr.replace(found.group(0) + '\n','')
-            # write our new offset tag
             lyr = '[offset:%i]\n' % adjust + lyr
+            # also update the in-memory copy, not just the file - if this
+            # exact object is still sitting in MAIN's fetchedLyrics cache
+            # when the OK/OSD reopen re-shows this song (very common,
+            # since remove_lyrics_from_memory() below isn't guaranteed to
+            # win the race against that reopen), a stale copy without the
+            # offset tag would make parser_lyrics() re-derive offset=0
+            # and silently undo the adjustment
+            lyrics.lyrics = lyr
         if (self.SETTING_SAVE_LYRICS1LRC and lyrics.lrc) or (self.SETTING_SAVE_LYRICS1TXT and not lyrics.lrc):
             file_path = lyrics.song.path1(lyrics.lrc)
             success = self.write_lyrics_file(file_path, lyr)
@@ -349,12 +367,26 @@ class MAIN():
                     # signal the gui thread to display the next lyrics
                     self.CULRC_NOLYRICS = False
                     self.CULRC_NEWLYRICS = True
-                    # double-check if we're still on the visualisation screen and check if gui is already running
+                    # double-check if we're still on the visualisation screen and check if gui is already running.
+                    # A fast local .lrc lookup can finish before the PREVIOUS
+                    # song's guiThread has cleared this flag (it only clears
+                    # it after its doModal() call returns, slightly after the
+                    # skin's own Window Deinit) - wait briefly for that
+                    # instead of silently giving up, which used to skip
+                    # showing lyrics/translation entirely for fast lookups.
+                    if self.proceed():
+                        for _ in range(20):
+                            if WIN.getProperty('culrc.guirunning') != 'TRUE':
+                                break
+                            xbmc.sleep(100)
                     if self.proceed() and not WIN.getProperty('culrc.guirunning') == 'TRUE':
                         WIN.setProperty('culrc.guirunning', 'TRUE')
                         self.kwargs = {'service':self.SETTING_SERVICE, 'save':self.save_lyrics_to_file, 'remove':self.remove_lyrics_from_memory, 'delete':self.delete_lyrics, \
                                        'function':self.return_time, 'callback':self.callback, 'monitor':self.Monitor, 'offset':self.SETTING_OFFSET, 'strip':self.SETTING_STRIP, \
-                                       'debug':self.DEBUG, 'settings':self.lyricssettings}
+                                       'debug':self.DEBUG, 'settings':self.lyricssettings, 'translate':self.SETTING_TRANSLATE, \
+                                       'translate_lang':self.SETTING_TRANSLATE_LANG, 'deepl_key':self.SETTING_DEEPL_KEY, \
+                                       'lingva_instance':self.SETTING_LINGVA_INSTANCE, \
+                                       'save_lyrics2':(self.SETTING_SAVE_LYRICS2LRC or self.SETTING_SAVE_LYRICS2TXT)}
                         gui = guiThread(opt=self.kwargs)
                         gui.start()
                 else:
@@ -399,6 +431,14 @@ class MAIN():
         WIN.clearProperty('culrc.islrc')
         WIN.clearProperty('culrc.source')
         WIN.clearProperty('culrc.haslist')
+        # deliberately NOT clearing culrc.translation(.source/.song) here -
+        # the OK/OSD reopen trick calls this same clear() by resetting
+        # current_lyrics to force myPlayerChanged() to treat the SAME song
+        # as "changed", which would wipe the translation state before the
+        # new GUI instance's _maybe_restore_translation() ever gets to
+        # check it. The GUI's reset_controls() does the real
+        # same-song-vs-different-song comparison and clears it there
+        # instead, once it actually knows which song is being shown.
 
     def return_time(self):
         return self.customtimer, self.starttime
@@ -428,7 +468,10 @@ class syncThread(threading.Thread):
 
     def run(self):
         from lib import sync
-        dialog = sync.GUI('DialogSlider.xml' , CWD, 'Default', offset=self.adjust, function=self.function, monitor=self.Monitor)
+        # dedicated window instead of the skin's shared DialogSlider.xml
+        # (used for volume/seek/brightness too) - keeps our wider layout
+        # from affecting anything else in Kodi
+        dialog = sync.GUI('script-cu-lrclyrics-sync.xml' , CWD, 'Default', offset=self.adjust, function=self.function, monitor=self.Monitor)
         dialog.doModal()
         adjust = dialog.val
         del dialog
@@ -451,12 +494,18 @@ class GUI(xbmcgui.WindowXMLDialog):
         self.SETTING_STRIP = kwargs['opt']['strip']
         self.DEBUG = kwargs['opt']['debug']
         self.lyricssettings = kwargs['opt']['settings']
+        self.SETTING_TRANSLATE = kwargs['opt']['translate']
+        self.TRANSLATE_LANG = kwargs['opt']['translate_lang']
+        self.DEEPL_KEY = kwargs['opt']['deepl_key']
+        self.LINGVA_INSTANCE = kwargs['opt']['lingva_instance']
+        self.SAVE_LYRICS2 = kwargs['opt']['save_lyrics2']
         self.dialog = xbmcgui.Dialog()
 
     def onInit(self):
         self.matchlist = ['@', r'www\.(.*?)\.(.*?)', 'QQ(.*?)[1-9]', 'artist ?: ?.', 'album ?: ?.', 'title ?: ?.', 'song ?: ?.', 'by ?: ?.']
         self.text = self.getControl(110)
         self.label = self.getControl(200)
+        self.text2 = self.getControl(112)
         self.setup_gui()
         self.process_lyrics()
         # we have processed the lyrics, reset the new lyrics bool, else we do it again when entering the main loop
@@ -465,6 +514,9 @@ class GUI(xbmcgui.WindowXMLDialog):
 
     def process_lyrics(self):
         global lyrics
+        # default for the no-lyrics-found case below; parser_lyrics()
+        # overrides this from the file's own [offset:N] tag whenever
+        # there actually are timed lyrics to show
         self.syncadjust = 0.0
         self.selectedlyric = 0
         self.lyrics = lyrics
@@ -472,6 +524,7 @@ class GUI(xbmcgui.WindowXMLDialog):
         self.reset_controls()
         if self.lyrics.lyrics:
             self.show_lyrics(self.lyrics)
+            self._maybe_restore_translation()
         else:
             WIN.setProperty('culrc.lyrics', LANGUAGE(32001))
             WIN.clearProperty('culrc.islrc')
@@ -519,6 +572,10 @@ class GUI(xbmcgui.WindowXMLDialog):
         self.showgui = True
         self.deleted = False
         self.sync_dialog = None
+        self.translation_synced = False
+        self._seek_last_press_time = 0
+        self._seek_last_action = None
+        self._seek_streak = 0
 
     def get_page_lines(self):
         # we need to close the OSD else we can't get control 110
@@ -560,6 +617,11 @@ class GUI(xbmcgui.WindowXMLDialog):
                 else:
                     self.text.selectItem(pos + self.scroll_line)
             self.text.selectItem(pos)
+            if self.translation_synced:
+                # translated lines are 1:1 with self.pOverlay (built from
+                # the exact same list, see show_translation), so the same
+                # index is always the right one - no separate search needed
+                self._select_translation_line(pos)
             # self.setFocus(self.text)  # disabled: focus-steal fix
             if (self.allowtimer and cur_time < (self.pOverlay[nums - 1][0] - self.syncadjust)):
                 waittime = (self.pOverlay[pos + 1][0] - self.syncadjust) - cur_time
@@ -594,9 +656,13 @@ class GUI(xbmcgui.WindowXMLDialog):
             WIN.setProperty('culrc.islrc', 'true')
             # sync is only meaningful for timed (lrc) lyrics, and a
             # first-time user has no way to know up/down does anything at
-            # all here - a quick corner popup on successful load tells them
-            # without requiring they stumble onto it themselves
-            xbmcgui.Dialog().notification(ADDONNAME, LANGUAGE(32012), icon=ADDONICON, time=4000, sound=False)
+            # all here - a quick corner popup tells them once. Only once
+            # per Kodi session (not per song, not on every OK/OSD reopen,
+            # which also creates a fresh GUI instance) - WIN properties
+            # reset naturally on the next real Kodi restart
+            if not WIN.getProperty('culrc.synctip.shown'):
+                xbmcgui.Dialog().notification(ADDONNAME, LANGUAGE(32012), icon=ADDONICON, time=3000, sound=False)
+                WIN.setProperty('culrc.synctip.shown', 'true')
             self.parser_lyrics(lyrics.lyrics)
             for num, (time, line) in enumerate(self.pOverlay):
                 cleanline = line.strip()
@@ -642,10 +708,16 @@ class GUI(xbmcgui.WindowXMLDialog):
         return result
 
     def parser_lyrics(self, lyrics):
-        offset = 0.00
         found = re.search(r'\[offset:\s?(-?\d+)\]', lyrics)
-        if found:
-            offset = float(found.group(1)) / 1000
+        # self.syncadjust is the one source of truth for the current
+        # offset (used live by refresh() and shown as the slider's
+        # starting position) - previously this file-tag value was instead
+        # baked directly into each line's time below, while self.syncadjust
+        # got hard-reset to 0.0 in process_lyrics() for every new GUI
+        # instance (including the OK/OSD reopen of the same song), so the
+        # slider always looked reset even though the tag was still applied
+        # via a *different* code path. Single source now avoids that split.
+        self.syncadjust = float(found.group(1)) / 1000 if found else 0.0
         self.pOverlay = []
         tag1 = re.compile(r'\[(\d+):(\d\d)[\.:](\d\d)\]')
         tag2 = re.compile(r'\[(\d+):(\d\d)([\.:]\d+|)\]')
@@ -659,7 +731,7 @@ class GUI(xbmcgui.WindowXMLDialog):
             times = []
             if (match1):
                 while (match1): # [xx:yy.zz]
-                    times.append(float(match1.group(1)) * 60 + float(match1.group(2)) + (float(match1.group(3))/100) + self.SETTING_OFFSET - offset)
+                    times.append(float(match1.group(1)) * 60 + float(match1.group(2)) + (float(match1.group(3))/100) + self.SETTING_OFFSET)
                     y = 6 + len(match1.group(1)) + len(match1.group(3))
                     x = x[y:]
                     match1 = tag1.match(x)
@@ -667,7 +739,7 @@ class GUI(xbmcgui.WindowXMLDialog):
                     self.pOverlay.append((time, x))
             elif (match2): # [xx:yy]
                 while (match2):
-                    times.append(float(match2.group(1)) * 60 + float(match2.group(2)) + self.SETTING_OFFSET - offset)
+                    times.append(float(match2.group(1)) * 60 + float(match2.group(2)) + self.SETTING_OFFSET)
                     y = 5 + len(match2.group(1)) + len(match2.group(3))
                     x = x[y:]
                     match2 = tag2.match(x)
@@ -715,6 +787,174 @@ class GUI(xbmcgui.WindowXMLDialog):
                 self.show_lyrics(self.lyrics)
                 self.save(self.lyrics)
 
+    def show_translation(self):
+        # toggle: a second selection while the panel is already showing
+        # just hides it again, instead of always re-fetching/re-showing
+        if WIN.getProperty('culrc.translation'):
+            WIN.clearProperty('culrc.translation')
+            WIN.clearProperty('culrc.translation.source')
+            WIN.clearProperty('culrc.translation.song')
+            # explicit user close - stop auto-restoring on future tracks
+            # too, until they turn it on again
+            WIN.clearProperty('culrc.translation.active')
+            self.text2.reset()
+            self.translation_synced = False
+            return
+        # on-demand only, never fetched automatically per song - the user
+        # asked for translation to be something they trigger for whatever
+        # they're currently playing and curious about, not a background
+        # job that burns API quota on every track
+        # cache the translation wherever this box actually saves lyrics
+        # (next to the music file if save_lyrics2 is on, else the
+        # addon's own lyrics folder), not a fixed location that might be
+        # dead/unused on a given setup
+        if self.SAVE_LYRICS2:
+            cache_path = self.lyrics.song.path2_translation(self.TRANSLATE_LANG)
+        else:
+            cache_path = self.lyrics.song.path1_translation(self.TRANSLATE_LANG)
+
+        if self.lyrics.lrc:
+            self._show_translation_synced(cache_path)
+        else:
+            self._show_translation_block(cache_path)
+
+    def _show_translation_synced(self, cache_path):
+        # timed lyrics: translate line-by-line so each translated line can
+        # be highlighted in step with the original via the exact same
+        # timestamps (self.pOverlay), instead of one static block of text
+        original_lines = [line for _, line in self.pOverlay]
+        translated_lines = None
+        source = None
+        if xbmcvfs.exists(cache_path):
+            cached = get_textfile(cache_path)
+            if cached is not None:
+                # first line is the provider name (see write_translation_file)
+                parts = cached.split('\n')
+                if parts:
+                    cached_source, candidate = parts[0], parts[1:]
+                    if len(candidate) == len(original_lines):
+                        # a DeepL key now being available upgrades a cache
+                        # that was only ever a Google/Lingva fallback
+                        # result (e.g. saved while the key was missing) -
+                        # re-fetch instead of settling for the lower-quality
+                        # cached version once the better provider is back
+                        if cached_source == 'DeepL' or not self.DEEPL_KEY:
+                            translated_lines = candidate
+                            source = cached_source
+        if translated_lines is not None:
+            # cache hit - already have everything, show it all at once
+            self._populate_translation_list(translated_lines)
+            self.translation_synced = True
+            self._select_translation_line(self.text.getSelectedPosition())
+            WIN.setProperty('culrc.translation', 'shown')
+            WIN.setProperty('culrc.translation.source', source or '')
+            WIN.setProperty('culrc.translation.song', self._song_fingerprint(self.lyrics.song))
+            WIN.setProperty('culrc.translation.active', 'true')
+            return
+
+        xbmcgui.Dialog().notification(ADDONNAME, LANGUAGE(32179), icon=ADDONICON, time=3000, sound=False)
+        # show the panel immediately with the original-language lines as
+        # placeholders, then fill each one in as it arrives - DeepL's
+        # single batch call resolves this almost instantly anyway, but
+        # Google/Lingva have no batch endpoint (one request per line) and
+        # used to leave the whole panel blank for 20-30s on a full song
+        self._populate_translation_list(original_lines)
+        self.translation_synced = True
+        self._select_translation_line(self.text.getSelectedPosition())
+        WIN.setProperty('culrc.translation', 'shown')
+        WIN.setProperty('culrc.translation.song', self._song_fingerprint(self.lyrics.song))
+        WIN.setProperty('culrc.translation.active', 'true')
+
+        def _on_line(i, text, src):
+            item = self.text2.getListItem(i)
+            if item:
+                item.setLabel(text.strip())
+            # show which provider is actually being used as soon as the
+            # first line succeeds, instead of leaving it blank for the
+            # whole fetch (which can take 20-30s on Google/Lingva)
+            if src and WIN.getProperty('culrc.translation.source') != src:
+                WIN.setProperty('culrc.translation.source', src)
+
+        def _fetch():
+            lines, src = translate_lines(original_lines, self.TRANSLATE_LANG, self.DEEPL_KEY, lingva_instance=self.LINGVA_INSTANCE, debug=self.DEBUG, on_line=_on_line)
+            if lines:
+                self.write_translation_file(cache_path, src, '\n'.join(lines))
+                WIN.setProperty('culrc.translation.source', src or '')
+                # DeepL's single batch call never invokes on_line (that's
+                # only used for the Google/Lingva per-line fallback), so
+                # the list would otherwise keep showing the original-text
+                # placeholders forever - make sure the final result always
+                # lands regardless of which provider actually served it
+                self._populate_translation_list(lines)
+                if self.translation_synced:
+                    self._select_translation_line(self.text.getSelectedPosition())
+            else:
+                self.dialog.ok(LANGUAGE(32178), LANGUAGE(32181))
+
+        threading.Thread(target=_fetch, daemon=True).start()
+
+    def _populate_translation_list(self, lines):
+        self.text2.reset()
+        for line in lines:
+            self.text2.addItem(xbmcgui.ListItem(line.strip(), offscreen=True))
+
+    def _select_translation_line(self, pos):
+        # plain selectItem(pos) only scrolls the minimum needed to reveal
+        # pos, which (since it only ever moves forward one line at a time)
+        # leaves already-sung lines piling up above the current one and
+        # nothing shown below - select further ahead first to force the
+        # viewport to scroll past that point, then land on the real
+        # position, same trick self.scroll_line already uses for the main
+        # lyrics list
+        nums = self.text2.size()
+        if nums == 0:
+            return
+        lookahead = min(pos + TRANSLATION_SCROLL_LOOKAHEAD, nums - 1)
+        self.text2.selectItem(lookahead)
+        self.text2.selectItem(pos)
+
+    def _show_translation_block(self, cache_path):
+        # untimed lyrics have nothing to sync against (no per-line
+        # timestamps exist for the original either), so just show the
+        # whole translated text as a static list, same as before
+        text = None
+        source = None
+        if xbmcvfs.exists(cache_path):
+            cached = get_textfile(cache_path)
+            if cached is not None:
+                # first line is the provider name (see write_translation_file)
+                cached_source, _, cached_text = cached.partition('\n')
+                # see _show_translation_synced for why DeepL becoming
+                # available invalidates an older fallback-sourced cache
+                if cached_source == 'DeepL' or not self.DEEPL_KEY:
+                    source, text = cached_source, cached_text
+        if not text:
+            xbmcgui.Dialog().notification(ADDONNAME, LANGUAGE(32179), icon=ADDONICON, time=3000, sound=False)
+            text, source = translate_text(self.lyrics.lyrics, self.TRANSLATE_LANG, self.DEEPL_KEY, lingva_instance=self.LINGVA_INSTANCE, debug=self.DEBUG)
+            if not text:
+                self.dialog.ok(LANGUAGE(32178), LANGUAGE(32181))
+                return
+            self.write_translation_file(cache_path, source, text)
+
+        self.text2.reset()
+        for line in text.splitlines():
+            self.text2.addItem(xbmcgui.ListItem(line.strip(), offscreen=True))
+        self.translation_synced = False
+        WIN.setProperty('culrc.translation', 'shown')
+        WIN.setProperty('culrc.translation.source', source or '')
+        WIN.setProperty('culrc.translation.song', self._song_fingerprint(self.lyrics.song))
+        WIN.setProperty('culrc.translation.active', 'true')
+
+    def write_translation_file(self, path, source, text):
+        try:
+            if not xbmcvfs.exists(os.path.dirname(path)):
+                xbmcvfs.mkdirs(os.path.dirname(path))
+            f = xbmcvfs.File(path, 'w')
+            f.write((source or '') + '\n' + text)
+            f.close()
+        except Exception as e:
+            log('failed to save translation: %s' % e, debug=self.DEBUG)
+
     def open_sync_dialog(self):
         # reuse an already-open slider instead of stacking a new one on top
         # each time up/down is pressed while one is already showing
@@ -757,6 +997,9 @@ class GUI(xbmcgui.WindowXMLDialog):
         if lyrics.source != LANGUAGE(32002):
             labels += (LANGUAGE(32167),)
             functions += ('delete',)
+        if self.SETTING_TRANSLATE and self.lyrics.lyrics:
+            labels += (LANGUAGE(32184) if WIN.getProperty('culrc.translation') else LANGUAGE(32177),)
+            functions += ('translate',)
         if labels:
             selection = self.dialog.contextmenu(labels)
             if selection >= 0:
@@ -769,6 +1012,8 @@ class GUI(xbmcgui.WindowXMLDialog):
                     self.reset_controls()
                     self.deleted = True
                     self.delete(self.lyrics)
+                elif functions[selection] == 'translate':
+                    self.show_translation()
 
     def reset_controls(self):
         self.text.reset()
@@ -776,6 +1021,47 @@ class GUI(xbmcgui.WindowXMLDialog):
         WIN.clearProperty('culrc.lyrics')
         WIN.clearProperty('culrc.islrc')
         WIN.clearProperty('culrc.source')
+        self.text2.reset()
+        self.translation_synced = False
+        # a fresh GUI instance for the OK/OSD reopen of the SAME song
+        # would otherwise wipe out a translation the user had showing -
+        # only clear it here for a genuinely different song; a matching
+        # song has its panel silently restored from cache afterwards, see
+        # _maybe_restore_translation()
+        if WIN.getProperty('culrc.translation.song') != self._song_fingerprint(self.lyrics.song):
+            WIN.clearProperty('culrc.translation')
+            WIN.clearProperty('culrc.translation.source')
+            WIN.clearProperty('culrc.translation.song')
+
+    def _song_fingerprint(self, song):
+        return '%s|%s' % (song.artist, song.title)
+
+    def _maybe_restore_translation(self):
+        # called after a fresh GUI instance shows lyrics again - either the
+        # OK/OSD reopen of the same song (culrc.translation survived, see
+        # clear()'s comment), or a genuinely new/next song. Translation is
+        # "sticky" for the rest of the session once turned on
+        # (culrc.translation.active): a new song reuses its cache if one
+        # exists, or fetches a fresh one if not - same as pressing "Show
+        # translation" manually, just automatic while the mode is on.
+        # Never triggers on a fresh Kodi start with no prior track, and
+        # stops once the user explicitly closes it (see toggle-off in
+        # show_translation, which clears culrc.translation.active).
+        if not self.SETTING_TRANSLATE or not self.lyrics.lyrics:
+            return
+        fingerprint = self._song_fingerprint(self.lyrics.song)
+        already_shown = (WIN.getProperty('culrc.translation') == 'shown'
+                          and WIN.getProperty('culrc.translation.song') == fingerprint)
+        if not already_shown and WIN.getProperty('culrc.translation.active') != 'true':
+            return
+        if self.SAVE_LYRICS2:
+            cache_path = self.lyrics.song.path2_translation(self.TRANSLATE_LANG)
+        else:
+            cache_path = self.lyrics.song.path1_translation(self.TRANSLATE_LANG)
+        if self.lyrics.lrc:
+            self._show_translation_synced(cache_path)
+        else:
+            self._show_translation_block(cache_path)
 
     def exit_gui(self, action):
         # in manual mode, we also need to quit the script when the user cancels the gui or music has ended
@@ -807,6 +1093,25 @@ class GUI(xbmcgui.WindowXMLDialog):
             self.exit_gui('quit')
         elif (actionId == 101) or (actionId == 117): # ACTION_MOUSE_RIGHT_CLICK / ACTION_CONTEXT_MENU
             self.context_menu()
+        elif actionId in (1, 2):  # ACTION_MOVE_LEFT / ACTION_MOVE_RIGHT - seek
+            # this modal dialog swallows all remote input, including the
+            # left/right seek that would normally work during playback
+            # with no dialog open at all - forward it manually instead of
+            # leaving seeking dead the whole time lyrics are on screen.
+            # Same rapid-repeat acceleration as Kodi's video seek OSD:
+            # 1st press 10s, 2nd (within SEEK_STREAK_WINDOW) 30s, 3rd+ 1min
+            player = xbmc.Player()
+            if player.isPlayingAudio():
+                now = time.time()
+                if actionId == self._seek_last_action and (now - self._seek_last_press_time) <= SEEK_STREAK_WINDOW:
+                    self._seek_streak = min(self._seek_streak + 1, len(SEEK_STEPS))
+                else:
+                    self._seek_streak = 1
+                self._seek_last_press_time = now
+                self._seek_last_action = actionId
+                step = SEEK_STEPS[self._seek_streak - 1]
+                delta = -step if actionId == 1 else step
+                player.seekTime(max(0, player.getTime() + delta))
         elif (actionId in ACTION_OSD):
             if not self.blockOSD:
                 # mouse move constantly calls ACTION_OSD, process only once

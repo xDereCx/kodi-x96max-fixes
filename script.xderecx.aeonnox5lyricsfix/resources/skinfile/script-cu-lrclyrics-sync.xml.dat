@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<window>
+	<defaultcontrol>11</defaultcontrol>
+	<coordinates>
+		<system>1</system>
+	</coordinates>
+	<controls>
+		<control type="image">
+			<left>360</left>
+			<top>100</top>
+			<width>1200</width>
+			<height>150</height>
+			<texture colordiffuse="C0000000">black.png</texture>
+		</control>
+		<control type="label" id="10">
+			<description>Dialog header</description>
+			<left>400</left>
+			<top>115</top>
+			<width>1120</width>
+			<height>40</height>
+			<align>center</align>
+			<font>font_sync</font>
+			<textcolor>white</textcolor>
+		</control>
+		<control type="slider" id="11">
+			<description>Slider</description>
+			<left>400</left>
+			<top>160</top>
+			<width>1120</width>
+			<height>30</height>
+			<texturesliderbar>osd_slider_bg_2.png</texturesliderbar>
+			<textureslidernib>osd_slider_nibNF.png</textureslidernib>
+			<textureslidernibfocus>osd_slider_nib.png</textureslidernibfocus>
+			<onup>11</onup>
+			<ondown>11</ondown>
+			<onleft>11</onleft>
+			<onright>11</onright>
+		</control>
+		<control type="label" id="12">
+			<description>Slider value</description>
+			<left>400</left>
+			<top>195</top>
+			<width>1120</width>
+			<height>35</height>
+			<align>center</align>
+			<font>font_sync</font>
+			<textcolor>white</textcolor>
+		</control>
+	</controls>
+</window>
