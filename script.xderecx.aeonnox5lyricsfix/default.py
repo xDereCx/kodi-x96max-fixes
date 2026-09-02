@@ -7,59 +7,70 @@ import xbmcvfs
 
 ADDON = xbmcaddon.Addon()
 ADDON_PATH = xbmcvfs.translatePath(ADDON.getAddonInfo('path'))
-BUNDLED_FIX = os.path.join(ADDON_PATH, 'resources', 'skinfile', 'script-cu-lrclyrics-main.xml.dat')
+SKINFILE_DIR = os.path.join(ADDON_PATH, 'resources', 'skinfile')
 DIALOG = xbmcgui.Dialog()
 
+# (bundled .dat filename, skin-relative path, one-line description shown in the confirm dialog)
+PATCHES = [
+    ('script-cu-lrclyrics-main.xml.dat', os.path.join('1080i', 'script-cu-lrclyrics-main.xml'),
+     'hides the topbar.png dark band over lyrics text, adds the rotating-fanart background control'),
+    ('MusicVisualisation.xml.dat', os.path.join('1080i', 'MusicVisualisation.xml'),
+     'hides the static Player.Art(fanart) background so it cannot cover the rotating fanart image'),
+    ('Font.xml.dat', os.path.join('1080i', 'Font.xml'),
+     'fixes missing Slovak/Czech diacritics in 2 of 5 lyrics display fonts'),
+]
 
-def find_skin_target():
+
+def find_skin_root():
     try:
         skin_addon = xbmcaddon.Addon('skin.aeon.nox.5')
     except RuntimeError:
         return None
-    skin_path = xbmcvfs.translatePath(skin_addon.getAddonInfo('path'))
-    return os.path.join(skin_path, '1080i', 'script-cu-lrclyrics-main.xml')
+    return xbmcvfs.translatePath(skin_addon.getAddonInfo('path'))
 
 
 def main():
-    if not os.path.isfile(BUNDLED_FIX):
-        DIALOG.notification('Aeon Nox 5 fix', 'Bundled fix file missing, reinstall this addon', icon=xbmcgui.NOTIFICATION_ERROR)
+    skin_root = find_skin_root()
+    if not skin_root:
+        DIALOG.ok('Aeon Nox 5 Skin Fixes', 'skin.aeon.nox.5 is not installed. Install/enable it first, then run this again.')
         return
 
-    target = find_skin_target()
-    if not target:
-        DIALOG.ok('Aeon Nox 5 fix', 'skin.aeon.nox.5 is not installed. Install/enable it first, then run this again.')
+    pending = []
+    for bundled_name, rel_path, desc in PATCHES:
+        bundled = os.path.join(SKINFILE_DIR, bundled_name)
+        target = os.path.join(skin_root, rel_path)
+        if not os.path.isfile(bundled):
+            xbmc.log('[aeonnox5skinfix] bundled file missing, reinstall this addon: %s' % bundled, xbmc.LOGERROR)
+            continue
+        if not os.path.isfile(target):
+            xbmc.log('[aeonnox5skinfix] expected skin file not found, skin layout may have changed: %s' % target, xbmc.LOGWARNING)
+            continue
+        with open(bundled, 'rb') as f:
+            fixed = f.read()
+        with open(target, 'rb') as f:
+            current = f.read()
+        if current != fixed:
+            pending.append((bundled, target, rel_path, desc))
+
+    if not pending:
+        DIALOG.notification('Aeon Nox 5 Skin Fixes', 'Already applied, nothing to do', icon=xbmcgui.NOTIFICATION_INFO)
         return
 
-    if not os.path.isfile(target):
-        DIALOG.ok('Aeon Nox 5 fix', 'Expected skin file not found:\n%s\n\nThe skin layout may have changed; this fix may be out of date.' % target)
-        return
-
-    with open(target, 'rb') as f:
-        current = f.read()
-
-    with open(BUNDLED_FIX, 'rb') as f:
-        fixed = f.read()
-
-    if current == fixed:
-        DIALOG.notification('Aeon Nox 5 fix', 'Already applied, nothing to do', icon=xbmcgui.NOTIFICATION_INFO)
-        return
-
+    listing = '\n'.join('- %s' % rel_path for _, _, rel_path, _ in pending)
     if not DIALOG.yesno(
-        'Aeon Nox 5: CU LRC Lyrics fix',
-        'This will patch:\n%s\n\nto hide the topbar.png control that draws a dark band '
-        'over lyrics text. A backup (.bak) of the current file will be kept if one '
-        'does not already exist. Continue?' % target
+        'Aeon Nox 5 Skin Fixes',
+        'This will patch %d skin file(s):\n%s\n\nA backup (.bak) of each original is kept if one does not already exist. Continue?' % (len(pending), listing)
     ):
         return
 
-    backup = target + '.bak'
-    if not os.path.isfile(backup):
-        shutil.copy2(target, backup)
+    for bundled, target, rel_path, desc in pending:
+        backup = target + '.bak'
+        if not os.path.isfile(backup):
+            shutil.copy2(target, backup)
+        shutil.copy2(bundled, target)
+        xbmc.log('[aeonnox5skinfix] patched %s (%s)' % (target, desc), xbmc.LOGINFO)
 
-    shutil.copy2(BUNDLED_FIX, target)
-
-    xbmc.log('[aeonnox5lyricsfix] patched %s' % target, xbmc.LOGINFO)
-    DIALOG.ok('Aeon Nox 5 fix', 'Applied. Restart Kodi for it to take effect.')
+    DIALOG.ok('Aeon Nox 5 Skin Fixes', 'Applied %d patch(es). Restart Kodi for it to take effect.' % len(pending))
 
 
 if __name__ == '__main__':

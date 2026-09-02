@@ -1,4 +1,5 @@
 import chardet
+import json
 import os
 import re
 import sys
@@ -28,6 +29,37 @@ def log(*args, **kwargs):
     if kwargs['debug']:
         message = '%s: %s' % (ADDONID, args[0])
         xbmc.log(msg=message, level=xbmc.LOGDEBUG)
+
+CONFLICTING_ADDON_ID = 'script.cu.lrclyrics'
+
+def disable_conflicting_addon():
+    # The original (unfixed) addon and this fork can't both run as the
+    # music lyrics service - whichever Kodi picks second silently loses.
+    # If the original is installed and enabled, disable it automatically
+    # instead of leaving the user to discover and resolve the conflict
+    # themselves.
+    try:
+        req = json.dumps({
+            'jsonrpc': '2.0', 'id': 1, 'method': 'Addons.GetAddonDetails',
+            'params': {'addonid': CONFLICTING_ADDON_ID, 'properties': ['enabled']}
+        })
+        resp = json.loads(xbmc.executeJSONRPC(req))
+        addon = resp.get('result', {}).get('addon')
+        if not addon or not addon.get('enabled'):
+            return
+        xbmc.executeJSONRPC(json.dumps({
+            'jsonrpc': '2.0', 'id': 1, 'method': 'Addons.SetAddonEnabled',
+            'params': {'addonid': CONFLICTING_ADDON_ID, 'enabled': False}
+        }))
+        xbmc.log('%s: disabled conflicting %s (both can\'t run as the lyrics service)' % (ADDONID, CONFLICTING_ADDON_ID), xbmc.LOGINFO)
+        xbmcgui.Dialog().notification(
+            ADDONNAME, 'Disabled original CU LRC Lyrics (conflicts with this fork)',
+            icon=ADDONICON, time=5000, sound=False)
+    except Exception as e:
+        # most common case: script.cu.lrclyrics simply isn't installed,
+        # which GetAddonDetails reports as a JSON-RPC error, not an empty
+        # result - nothing to do either way
+        xbmc.log('%s: conflicting-addon check skipped: %s' % (ADDONID, e), xbmc.LOGDEBUG)
 
 def deAccent(str):
     return unicodedata.normalize('NFKD', str).replace('"', '')

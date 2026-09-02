@@ -518,6 +518,7 @@ class GUI(xbmcgui.WindowXMLDialog):
         self.scroll_line = int(self.get_page_lines() / 2)
         self.showgui = True
         self.deleted = False
+        self.sync_dialog = None
 
     def get_page_lines(self):
         # we need to close the OSD else we can't get control 110
@@ -591,6 +592,11 @@ class GUI(xbmcgui.WindowXMLDialog):
         self.label.setLabel(source)
         if lyrics.lrc:
             WIN.setProperty('culrc.islrc', 'true')
+            # sync is only meaningful for timed (lrc) lyrics, and a
+            # first-time user has no way to know up/down does anything at
+            # all here - a quick corner popup on successful load tells them
+            # without requiring they stumble onto it themselves
+            xbmcgui.Dialog().notification(ADDONNAME, LANGUAGE(32012), icon=ADDONICON, time=4000, sound=False)
             self.parser_lyrics(lyrics.lyrics)
             for num, (time, line) in enumerate(self.pOverlay):
                 cleanline = line.strip()
@@ -709,6 +715,14 @@ class GUI(xbmcgui.WindowXMLDialog):
                 self.show_lyrics(self.lyrics)
                 self.save(self.lyrics)
 
+    def open_sync_dialog(self):
+        # reuse an already-open slider instead of stacking a new one on top
+        # each time up/down is pressed while one is already showing
+        if self.sync_dialog and self.sync_dialog.is_alive():
+            return
+        self.sync_dialog = syncThread(adjust=self.syncadjust, function=self.set_synctime, save=self.save, lyrics=self.lyrics, remove=self.remove, monitor=self.Monitor)
+        self.sync_dialog.start()
+
     def set_synctime(self, adjust):
         self.syncadjust = adjust
 
@@ -720,16 +734,6 @@ class GUI(xbmcgui.WindowXMLDialog):
         # safe new offset to file
         self.save(self.lyrics, self.syncadjust)
         # file has changed, remove it from memory
-        self.remove(self.lyrics)
-
-    def manual_sync(self, actionId):
-        step = 0.5
-        if actionId in (3, 105, 111, 603):  # up-ish actions: make lyrics appear later (delay)
-            self.syncadjust -= step
-        else:  # down-ish actions: make lyrics appear earlier (advance)
-            self.syncadjust += step
-        xbmcgui.Dialog().notification('CU LRC Lyrics', 'Sync offset: %.1fs' % self.syncadjust, time=1000, sound=False)
-        self.save(self.lyrics, self.syncadjust)
         self.remove(self.lyrics)
 
     def scroll_txt(self, actionId):
@@ -759,8 +763,7 @@ class GUI(xbmcgui.WindowXMLDialog):
                 if functions[selection] == 'select':
                     self.reshow_choices()
                 elif functions[selection] == 'sync':
-                    sync = syncThread(adjust=self.syncadjust, function=self.set_synctime, save=self.save, lyrics=self.lyrics, remove=self.remove, monitor=self.Monitor)
-                    sync.start()
+                    self.open_sync_dialog()
                 elif functions[selection] == 'delete':
                     self.lyrics.lyrics = ''
                     self.reset_controls()
@@ -824,13 +827,13 @@ class GUI(xbmcgui.WindowXMLDialog):
         elif (actionId in ACTION_CODEC):
             xbmc.executebuiltin('Action(PlayerProcessInfo)')
         elif (actionId in ACTION_UPDOWN) and WIN.getProperty('culrc.islrc') == 'true':
-            # The old scrolltosync() depended on the list having native
-            # focus (self.controlId == 110) to read a manually-navigated
-            # selection's timestamp - dead ever since focus was disabled
-            # for the OK button/OSD fix (self.controlId never becomes 110
-            # anymore). Nudge the offset directly instead: up/down now
-            # delays/advances the whole synced lyric by a fixed step.
-            self.manual_sync(actionId)
+            # Up/down used to just nudge a hidden offset and pop a
+            # notification (unclear which direction did what). Now it opens
+            # the same slider dialog as the context menu's "Sync" option
+            # instead - once it's open, Kodi's native slider control handles
+            # further up/down presses itself (it becomes the focused
+            # window), showing live which way is earlier vs. later.
+            self.open_sync_dialog()
         elif (actionId in ACTION_UPDOWN) and WIN.getProperty('culrc.islrc') != 'true':
             # Plain (untimed) txt lyrics have no auto-scroll timer, and the
             # list never gets native focus (disabled as part of the OK

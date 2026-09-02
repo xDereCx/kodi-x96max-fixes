@@ -19,9 +19,9 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 ZIPS = os.path.join(ROOT, 'zips')
 
 # Folders at repo root that are Kodi addons (have addon.xml at their top level).
-# Anything else (README.md, skin-overrides/, build_repo.py, zips/, .git/) is skipped
+# Anything else (README.md, keymaps/, build_repo.py, zips/, .git/) is skipped
 # automatically since we only look for addon.xml presence.
-EXCLUDE_DIRS = {'zips', '.git', 'skin-overrides'}
+EXCLUDE_DIRS = {'zips', '.git'}
 
 
 def find_addons():

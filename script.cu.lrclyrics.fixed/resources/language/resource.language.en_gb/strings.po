@@ -59,14 +59,26 @@ msgid "Manually sync lyrics"
 msgstr ""
 
 msgctxt "#32008"
-msgid "Delayed by: %ss"
+msgid "Lyrics play %ss later"
 msgstr ""
 
 msgctxt "#32009"
-msgid "Ahead by: %ss"
+msgid "Lyrics play %ss earlier"
 msgstr ""
 
-# empty strings from id 32010 to 32100
+msgctxt "#32010"
+msgid "LATER   <----   SYNC OFFSET   ---->   EARLIER"
+msgstr ""
+
+msgctxt "#32011"
+msgid "In sync"
+msgstr ""
+
+msgctxt "#32012"
+msgid "Up/Down adjusts the offset. Closes on its own after a few seconds idle."
+msgstr ""
+
+# empty strings from id 32013 to 32100
 # Settings labels
 
 msgctxt "#32100"

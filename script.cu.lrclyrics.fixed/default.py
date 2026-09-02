@@ -2,6 +2,12 @@ from lib.utils import *
 
 log('script version %s started' % ADDONVERSION, debug=True)
 
+# kodi startup: check once per boot for the conflicting original addon,
+# regardless of whether our own service setting is on - if the original is
+# left enabled, it's what actually ends up running as the lyrics service
+if sys.argv == ['']:
+    disable_conflicting_addon()
+
 # kodi startup, service is disabled, exit
 if sys.argv == [''] and not ADDON.getSettingBool('service'):
     log('service not enabled', debug=True)

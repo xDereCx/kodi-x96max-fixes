@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="script.xderecx.aeonnox5lyricsfix" name="Aeon Nox 5: CU LRC Lyrics topbar fix" version="1.0.3" provider-name="xDereCx">
+<addon id="script.xderecx.aeonnox5lyricsfix" name="Aeon Nox 5 Skin Fixes (Lyrics + Fanart)" version="1.1.0" provider-name="xDereCx">
 	<requires>
 		<import addon="xbmc.python" version="3.0.0"/>
 	</requires>
 	<extension point="xbmc.python.script" library="default.py"/>
 	<extension point="xbmc.addon.metadata">
-		<summary lang="en_US">Fixes a dark band over lyrics text in Aeon Nox 5</summary>
-		<description lang="en_US">Run this once from Program add-ons. It patches skin.aeon.nox.5's own CU LRC Lyrics override file (1080i/script-cu-lrclyrics-main.xml) to hide the topbar.png control that overlays a dark band on top of the lyrics text during music playback. Requires skin.aeon.nox.5 to already be installed. Makes a one-time backup of the original file (.bak) before patching; running it again is a no-op if already patched. Restart Kodi afterwards for the change to take effect.</description>
+		<summary lang="en_US">Patches Aeon Nox 5 for CU LRC Lyrics + DC Artist Artwork DL compatibility</summary>
+		<description lang="en_US">Run this once from Program add-ons (after skin.aeon.nox.5 and, ideally, script.cu.lrclyrics.fixed / service.xderecx.musicfanart are installed). Patches up to 3 of skin.aeon.nox.5's own files: (1) 1080i/script-cu-lrclyrics-main.xml - hides the topbar.png control that draws a dark band over lyrics text, and adds the rotating-fanart background control used by DC Artist Artwork DL; (2) 1080i/MusicVisualisation.xml - hides the skin's own static fanart background so it can't cover the rotating one; (3) 1080i/Font.xml - fixes missing Slovak/Czech diacritics in 2 of the 5 lyrics display fonts. Each file gets a one-time backup (.bak) before patching; re-running is a no-op for anything already applied. Restart Kodi afterwards for the changes to take effect.</description>
 		<platform>all</platform>
 		<license>CC-BY-NC-SA-4.0</license>
 		<source>https://github.com/xDereCx/kodi-x96max-fixes</source>
 		<assets>
 			<icon>icon.png</icon>
 		</assets>
-		<news>1.0.3: added missing icon declaration. 1.0.2: fixed extension point (was the invalid bare "xbmc.python", now "xbmc.python.script" - that bare string is only valid in a requires/import, not as an addon's own type). 1.0.1: fixed repository install (bundled skin file was confusing Kodi's addon-type detection inside the zip). 1.0.0: initial release.</news>
+		<news>1.1.0: now patches all 3 skin files this repo ships overrides for (script-cu-lrclyrics-main.xml, MusicVisualisation.xml, Font.xml) in one run with a single combined confirmation, instead of only the lyrics topbar file - the other two were previously manual-copy-only (skin-overrides/) and easy to miss, and script.cu.lrclyrics.fixed / service.xderecx.musicfanart now declare this addon as a real &lt;requires&gt; dependency so Kodi installs it alongside them automatically. 1.0.3: added missing icon declaration. 1.0.2: fixed extension point (was the invalid bare "xbmc.python", now "xbmc.python.script" - that bare string is only valid in a requires/import, not as an addon's own type). 1.0.1: fixed repository install (bundled skin file was confusing Kodi's addon-type detection inside the zip). 1.0.0: initial release.</news>
 	</extension>
 </addon>
