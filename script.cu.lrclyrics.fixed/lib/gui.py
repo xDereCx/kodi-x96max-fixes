@@ -329,6 +329,12 @@ class MAIN():
             song = Song.current(opt=self.lyricssettings)
             if song and (self.current_lyrics.song != song):
                 songchanged = True
+                # clear the previous song's lyrics from the screen right away -
+                # get_lyrics() below can take a few seconds (scraper lookups),
+                # and until now the old lyrics stayed visible the whole time
+                # since the WIN properties were only overwritten once the new
+                # lyrics were actually found.
+                self.clear()
                 if xbmc.getCondVisibility('Player.IsInternetStream') and not xbmc.getInfoLabel('MusicPlayer.TimeRemaining'):
                     # internet stream that does not provide time, we need our own timer to sync lrc lyrics
                     self.starttime = time.time()
