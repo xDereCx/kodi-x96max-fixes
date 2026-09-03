@@ -5,6 +5,7 @@ from threading import Timer
 from lib.utils import *
 from lib.embedlrc import *
 from lib.translate import strip_lrc_tags, translate_text, translate_lines, looks_like_english
+from lib.humantranslate import fetch_human_translation, is_human_source
 
 # how many lines ahead of the current one to force into view, so the
 # translation panel shows more upcoming context instead of piling up
@@ -851,12 +852,14 @@ class GUI(xbmcgui.WindowXMLDialog):
                 if parts:
                     cached_source, candidate = parts[0], parts[1:]
                     if len(candidate) == len(original_lines):
-                        # a DeepL key now being available upgrades a cache
-                        # that was only ever a Google/Lingva fallback
-                        # result (e.g. saved while the key was missing) -
-                        # re-fetch instead of settling for the lower-quality
-                        # cached version once the better provider is back
-                        if cached_source == 'DeepL' or not self.DEEPL_KEY:
+                        # only ever trust a cached HUMAN translation as
+                        # final - it's already the best tier available. Any
+                        # machine-sourced cache (DeepL/Google/Lingva) is
+                        # always re-attempted instead, since a human
+                        # translation (or a DeepL upgrade over an old
+                        # Google/Lingva fallback result) might be available
+                        # now even if it wasn't when this was cached
+                        if is_human_source(cached_source):
                             translated_lines = candidate
                             source = cached_source
         if translated_lines is not None:
@@ -893,8 +896,35 @@ class GUI(xbmcgui.WindowXMLDialog):
             if src and WIN.getProperty('culrc.translation.source') != src:
                 WIN.setProperty('culrc.translation.source', src)
 
+        # self.pOverlay (and therefore original_lines) includes blank
+        # entries for bare timing markers with no lyric text - a scraped
+        # human translation never has those, so the line count to compare
+        # against is the non-empty subset, not the full array. Matching
+        # human lines get spliced back into their original (non-empty)
+        # positions so blank timing-marker slots stay blank and every
+        # index still lines up with self.pOverlay's timestamps.
+        non_empty_idx = [i for i, l in enumerate(original_lines) if l.strip()]
+
         def _fetch():
-            lines, src = translate_lines(original_lines, self.TRANSLATE_LANG, self.DEEPL_KEY, lingva_instance=self.LINGVA_INSTANCE, debug=self.DEBUG, on_line=_on_line)
+            # human translation first (LyricsTranslate, KaraokeTexty.sk/.cz)
+            # - only usable here if it lines up 1:1 with the non-empty
+            # original lines, since a human translator doesn't preserve
+            # line boundaries the way a machine translation of this exact
+            # array does. A mismatched count falls through to machine
+            # translation instead of forcing a mis-synced human result
+            # onto the timestamps.
+            human_lines, human_src = fetch_human_translation(
+                self.lyrics.song.artist, self.lyrics.song.title, self.TRANSLATE_LANG, debug=self.DEBUG)
+            if human_lines and len(human_lines) == len(non_empty_idx):
+                log('using human translation from %s (%d lines, matches original)' % (human_src, len(human_lines)), debug=self.DEBUG)
+                lines = list(original_lines)
+                for idx, translated in zip(non_empty_idx, human_lines):
+                    lines[idx] = translated
+                src = human_src
+            else:
+                if human_lines:
+                    log('human translation from %s has %d lines, original has %d non-empty - falling back to machine translation' % (human_src, len(human_lines), len(non_empty_idx)), debug=self.DEBUG)
+                lines, src = translate_lines(original_lines, self.TRANSLATE_LANG, self.DEEPL_KEY, lingva_instance=self.LINGVA_INSTANCE, debug=self.DEBUG, on_line=_on_line)
             if lines:
                 self.write_translation_file(cache_path, src, '\n'.join(lines))
                 WIN.setProperty('culrc.translation.source', src or '')
@@ -942,13 +972,22 @@ class GUI(xbmcgui.WindowXMLDialog):
             if cached is not None:
                 # first line is the provider name (see write_translation_file)
                 cached_source, _, cached_text = cached.partition('\n')
-                # see _show_translation_synced for why DeepL becoming
-                # available invalidates an older fallback-sourced cache
-                if cached_source == 'DeepL' or not self.DEEPL_KEY:
+                # see _show_translation_synced for why only a cached human
+                # translation is trusted - any machine-sourced cache is
+                # always re-attempted in case a better tier is available now
+                if is_human_source(cached_source):
                     source, text = cached_source, cached_text
         if not text:
             xbmcgui.Dialog().notification(ADDONNAME, LANGUAGE(32179), icon=ADDONICON, time=3000, sound=False)
-            text, source = translate_text(self.lyrics.lyrics, self.TRANSLATE_LANG, self.DEEPL_KEY, lingva_instance=self.LINGVA_INSTANCE, debug=self.DEBUG)
+            # untimed lyrics have no per-line sync requirement, so any
+            # human translation line count is usable - just join it back
+            # into one block
+            human_lines, human_src = fetch_human_translation(
+                self.lyrics.song.artist, self.lyrics.song.title, self.TRANSLATE_LANG, debug=self.DEBUG)
+            if human_lines:
+                text, source = '\n'.join(human_lines), human_src
+            else:
+                text, source = translate_text(self.lyrics.lyrics, self.TRANSLATE_LANG, self.DEEPL_KEY, lingva_instance=self.LINGVA_INSTANCE, debug=self.DEBUG)
             if not text:
                 self.dialog.ok(LANGUAGE(32178), LANGUAGE(32181))
                 return
