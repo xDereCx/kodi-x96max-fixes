@@ -158,6 +158,14 @@ msgctxt "#32192"
 msgid "Lyrics already appear to be in English - no translation needed"
 msgstr ""
 
+msgctxt "#32193"
+msgid "Translation: %s - please support them by visiting %s"
+msgstr ""
+
+msgctxt "#32194"
+msgid "Translation: %s by %s - please support them by visiting %s"
+msgstr ""
+
 # empty strings from id 32013 to 32100 (except 32171-32191 above)
 # Settings labels
 

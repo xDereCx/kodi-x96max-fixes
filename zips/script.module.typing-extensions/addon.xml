@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="script.module.typing-extensions" name="typing_extensions" version="4.16.0" provider-name="Python Software Foundation">
+  <requires>
+    <import addon="xbmc.python" version="3.0.0"/>
+  </requires>
+  <extension point="xbmc.python.module" library="lib" />
+  <extension point="xbmc.addon.metadata">
+    <summary lang="en_GB">Backported and experimental type hints for Python.</summary>
+    <description lang="en_GB">Backported and experimental type hints for Python. New runtime dependency of beautifulsoup4 4.13+ (script.module.beautifulsoup4) - bs4's own _typing.py imports it unconditionally at module load, not just under TYPE_CHECKING.</description>
+    <license>PSF-2.0</license>
+    <platform>all</platform>
+    <website>https://github.com/python/typing_extensions</website>
+    <source>https://github.com/python/typing_extensions</source>
+    <assets>
+      <icon>resources/icon.png</icon>
+    </assets>
+  </extension>
+</addon>

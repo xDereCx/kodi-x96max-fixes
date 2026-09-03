@@ -157,6 +157,14 @@ msgctxt "#32192"
 msgid "Lyrics already appear to be in English - no translation needed"
 msgstr "Der Songtext scheint bereits auf Englisch zu sein - keine Übersetzung nötig"
 
+msgctxt "#32193"
+msgid "Translation: %s - please support them by visiting %s"
+msgstr "Übersetzung: %s - unterstütze sie mit einem Besuch auf %s"
+
+msgctxt "#32194"
+msgid "Translation: %s by %s - please support them by visiting %s"
+msgstr "Übersetzung: %s von %s - unterstütze sie mit einem Besuch auf %s"
+
 # empty strings from id 32013 to 32100 (except 32171-32191 above)
 # Settings labels
 msgctxt "#32100"

@@ -305,6 +305,11 @@
 			<size>28</size>
 		</font>
 		<font>
+			<name>font_translation_source</name>
+			<filename>NotoSans-Regular.ttf</filename>
+			<size>20</size>
+		</font>
+		<font>
 			<name>font_translation_current</name>
 			<filename>NotoSans-Regular.ttf</filename>
 			<style>bold</style>

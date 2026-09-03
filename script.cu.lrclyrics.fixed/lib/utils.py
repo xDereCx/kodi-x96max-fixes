@@ -163,6 +163,17 @@ class Song:
         # mirrors path1() but for a cached translation - used when the
         # addon's own lyrics folder (save_lyrics1) is the active save
         # location
+        # lang here is always the addon's configured target-language
+        # SETTING (self.TRANSLATE_LANG / current_interface_language()),
+        # never the actually-detected content language of whatever text
+        # ended up in the file - both the write and the read side compute
+        # this same path from that one setting, so a mismatch (e.g. a
+        # KaraokeTexty cross-fallback or a mislabeled source site serving
+        # Czech content under a Slovak "sk" target) is cosmetic only, not
+        # a bug: naming the file after the setting is what lets this
+        # addon find its own cache back on the next read at all. See
+        # lib/humantranslate.py's human_translation_lang() for the
+        # separate, correct place actual content language is detected.
         ext = '.%s.txt' % lang
         artist = "".join(i for i in self.artist if i not in "\/:*?<>|")
         title = "".join(i for i in self.title if i not in "\/:*?<>|")
@@ -176,6 +187,17 @@ class Song:
         # save_lyrics2 (next to the music file) is the active save
         # location, so the translation lands in the same place as the
         # actual lyrics instead of an addon folder nothing else uses
+        # lang here is always the addon's configured target-language
+        # SETTING (self.TRANSLATE_LANG / current_interface_language()),
+        # never the actually-detected content language of whatever text
+        # ended up in the file - both the write and the read side compute
+        # this same path from that one setting, so a mismatch (e.g. a
+        # KaraokeTexty cross-fallback or a mislabeled source site serving
+        # Czech content under a Slovak "sk" target) is cosmetic only, not
+        # a bug: naming the file after the setting is what lets this
+        # addon find its own cache back on the next read at all. See
+        # lib/humantranslate.py's human_translation_lang() for the
+        # separate, correct place actual content language is detected.
         ext = '.%s.txt' % lang
         dirname = os.path.dirname(self.filepath)
         basename = os.path.basename(self.filepath)

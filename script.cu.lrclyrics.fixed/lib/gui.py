@@ -5,7 +5,7 @@ from threading import Timer
 from lib.utils import *
 from lib.embedlrc import *
 from lib.translate import strip_lrc_tags, translate_text, translate_lines, looks_like_english
-from lib.humantranslate import fetch_human_translation, is_human_source
+from lib.humantranslate import fetch_human_translation, fetch_human_translation_synced, is_human_source, is_fully_human_source, credit_domain_for_source, human_translation_lang
 
 # how many lines ahead of the current one to force into view, so the
 # translation panel shows more upcoming context instead of piling up
@@ -20,6 +20,10 @@ SEEK_STEPS = [10, 30, 60]
 # left/right press before it auto-hides itself, same idea as Kodi's own
 # video seek OSD
 SEEK_OSD_HOLD = 1.5
+
+# how long the "translation by X, support them at Y" credit stays on
+# screen after the last timed lyric line has passed, human sources only
+CREDIT_DISPLAY_SECONDS = 25
 
 
 class MAIN():
@@ -348,14 +352,21 @@ class MAIN():
             log('failed to delete file', debug=self.DEBUG)
             return False
 
-    def myPlayerChanged(self):
+    def myPlayerChanged(self, force=False):
         if not self.CULRC_FIRSTRUN:
             return
         global lyrics
         songchanged = False
         for cnt in range(5):
             song = Song.current(opt=self.lyricssettings)
-            if song and (self.current_lyrics.song != song):
+            # force=True means this call came from onAVStarted - a new
+            # playback stream genuinely just started, even if it's the
+            # exact same track as before (e.g. repeat-one, or a short
+            # playlist looping back to it). Song.__eq__ only compares
+            # artist/title, so without this a same-song repeat would look
+            # identical to "nothing changed" and silently skip re-showing
+            # lyrics/translation entirely - confirmed live.
+            if song and (force or self.current_lyrics.song != song):
                 songchanged = True
                 # clear the previous song's lyrics from the screen right away -
                 # get_lyrics() below can take a few seconds (scraper lookups),
@@ -396,7 +407,8 @@ class MAIN():
                                        'debug':self.DEBUG, 'settings':self.lyricssettings, 'translate':self.SETTING_TRANSLATE, \
                                        'translate_lang':self.SETTING_TRANSLATE_LANG, 'deepl_key':self.SETTING_DEEPL_KEY, \
                                        'lingva_instance':self.SETTING_LINGVA_INSTANCE, \
-                                       'save_lyrics2':(self.SETTING_SAVE_LYRICS2LRC or self.SETTING_SAVE_LYRICS2TXT)}
+                                       'save_lyrics2':(self.SETTING_SAVE_LYRICS2LRC or self.SETTING_SAVE_LYRICS2TXT), \
+                                       'song_restarted':force}
                         gui = guiThread(opt=self.kwargs)
                         gui.start()
                 else:
@@ -509,6 +521,12 @@ class GUI(xbmcgui.WindowXMLDialog):
         self.DEEPL_KEY = kwargs['opt']['deepl_key']
         self.LINGVA_INSTANCE = kwargs['opt']['lingva_instance']
         self.SAVE_LYRICS2 = kwargs['opt']['save_lyrics2']
+        # True only when this GUI instance exists because onAVStarted just
+        # fired (a new playback stream genuinely started, even if it's the
+        # exact same track repeating) - False for the OK/OSD "force" reopen
+        # of a still-playing song, which deliberately wants translation
+        # state preserved instead of reset. See reset_controls().
+        self.SONG_RESTARTED = kwargs['opt']['song_restarted']
         self.dialog = xbmcgui.Dialog()
 
     def onInit(self):
@@ -587,6 +605,8 @@ class GUI(xbmcgui.WindowXMLDialog):
         self._seek_last_action = None
         self._seek_streak = 0
         self._seek_hide_timer = None
+        self._credit_hide_timer = None
+        self._credit_shown_for_song = False
 
     def get_page_lines(self):
         # we need to close the OSD else we can't get control 110
@@ -641,6 +661,7 @@ class GUI(xbmcgui.WindowXMLDialog):
                 self.timer.start()
             else:
                 self.refreshing = False
+                self._maybe_show_translation_credit()
 #            self.lock.release()
         except:
             pass
@@ -859,7 +880,7 @@ class GUI(xbmcgui.WindowXMLDialog):
                         # translation (or a DeepL upgrade over an old
                         # Google/Lingva fallback result) might be available
                         # now even if it wasn't when this was cached
-                        if is_human_source(cached_source):
+                        if is_fully_human_source(cached_source):
                             translated_lines = candidate
                             source = cached_source
         if translated_lines is not None:
@@ -869,6 +890,15 @@ class GUI(xbmcgui.WindowXMLDialog):
             self._select_translation_line(self.text.getSelectedPosition())
             WIN.setProperty('culrc.translation', 'shown')
             WIN.setProperty('culrc.translation.source', source or '')
+            # a cache-hit is only ever reached for a fully-human source
+            # (is_fully_human_source gates what gets cached this way), so
+            # the cached source name doubles as the credit name directly -
+            # no percentages/DeepL suffix are ever part of it
+            WIN.setProperty('culrc.translation.credit_source', source or '')
+            # translator credit isn't part of the cache file, so a
+            # cache-hit replay never has one - clear any stale value left
+            # over from a previous song's live fetch
+            WIN.clearProperty('culrc.translation.translator')
             WIN.setProperty('culrc.translation.song', self._song_fingerprint(self.lyrics.song))
             WIN.setProperty('culrc.translation.active', 'true')
             return
@@ -904,30 +934,92 @@ class GUI(xbmcgui.WindowXMLDialog):
         # positions so blank timing-marker slots stay blank and every
         # index still lines up with self.pOverlay's timestamps.
         non_empty_idx = [i for i, l in enumerate(original_lines) if l.strip()]
+        non_empty_lines = [original_lines[i] for i in non_empty_idx]
 
         def _fetch():
             # human translation first (LyricsTranslate, KaraokeTexty.sk/.cz)
-            # - only usable here if it lines up 1:1 with the non-empty
-            # original lines, since a human translator doesn't preserve
-            # line boundaries the way a machine translation of this exact
-            # array does. A mismatched count falls through to machine
-            # translation instead of forcing a mis-synced human result
-            # onto the timestamps.
-            human_lines, human_src = fetch_human_translation(
-                self.lyrics.song.artist, self.lyrics.song.title, self.TRANSLATE_LANG, debug=self.DEBUG)
-            if human_lines and len(human_lines) == len(non_empty_idx):
-                log('using human translation from %s (%d lines, matches original)' % (human_src, len(human_lines)), debug=self.DEBUG)
+            # - KaraokeTexty results are content-aligned against our own
+            # non-empty original lines (see align_by_content), so a
+            # verbatim repeated chorus still resolves correctly even if
+            # the fan site only wrote it out fewer times than it's
+            # actually sung. LyricsTranslate has no easy access to its own
+            # original-language column (loaded separately via AJAX), so it
+            # still only qualifies on an exact total-count match. Nothing
+            # usable here falls through to machine translation.
+            human_lines, human_src, human_translator, human_complete = fetch_human_translation_synced(
+                self.lyrics.song.artist, self.lyrics.song.title, self.TRANSLATE_LANG, non_empty_lines, debug=self.DEBUG)
+            # credit_src is the bare human source name only (e.g.
+            # "KaraokeTexty (CS)") - used for the end-of-song credit
+            # message, which should never mention DeepL or a coverage
+            # percentage even for a hybrid result. Kept separate from
+            # `src` (below), which is the display/cache string and, for a
+            # hybrid result, gains the "+ DeepL" part and a 2-line
+            # percentage breakdown for the skin's source strip.
+            credit_src = human_src
+            if human_lines:
+                if not human_complete:
+                    # a handful of genuinely missing lines (e.g. a chorus
+                    # the fan site never wrote out in the original
+                    # language at all, so there was nothing to match
+                    # against) shouldn't throw away an otherwise-good
+                    # human translation for the rest of the song - machine
+                    # translate only the specific gaps and splice them in
+                    gap_pos = [i for i, t in enumerate(human_lines) if not t]
+                    gap_originals = [non_empty_lines[i] for i in gap_pos]
+                    total_lines = len(non_empty_lines)
+                    covered = total_lines - len(gap_pos)
+                    log('human translation from %s covers %d/%d lines - machine-filling %d gap(s)' % (human_src, covered, total_lines, len(gap_pos)), debug=self.DEBUG)
+                    # gap-fill must land in the SAME language as the human
+                    # lines it's supplementing, not always self.TRANSLATE_LANG -
+                    # a KaraokeTexty cross-fallback result (human_src has a
+                    # "(CS)"/"(SK)" suffix) is in the OTHER of the two
+                    # languages, and mismatching here would mix e.g. Czech
+                    # human lines with Slovak machine-filled ones
+                    gap_lang = human_translation_lang(human_lines, human_src, self.TRANSLATE_LANG)
+                    gap_lines, gap_src = translate_lines(gap_originals, gap_lang, self.DEEPL_KEY, lingva_instance=self.LINGVA_INSTANCE, debug=self.DEBUG)
+                    if gap_lines:
+                        # "» " prefix marks a machine-filled line within an
+                        # otherwise-human hybrid result, so it's visible
+                        # per-line in the panel itself, not just as an
+                        # aggregate percentage in the source strip below
+                        # the logo. Only ever applied here, inside the
+                        # gap-fill branch - a fully human or fully machine
+                        # result never goes through this code path, so
+                        # neither ever gets marked. Not an actual emoji
+                        # (e.g. 🤖/⚙) - font_translation is NotoSans-Regular,
+                        # a text font with no color-emoji glyph and missing
+                        # several symbol glyphs too (confirmed via its own
+                        # cmap table: gear/star/diamond/lightning all
+                        # missing); guillemet is present.
+                        for gi, gline in zip(gap_pos, gap_lines):
+                            human_lines[gi] = '» ' + gline
+                        # shown 2-line in the skin's source strip (see
+                        # script-cu-lrclyrics-main.xml.dat, now a textbox
+                        # instead of a single-line label) via the [CR]
+                        # break - is_fully_human_source() detects this
+                        # hybrid case via the "[CR]+" marker (must stay in
+                        # sync with this format)
+                        human_pct = round(100 * covered / total_lines)
+                        gap_pct = 100 - human_pct
+                        human_src = '%s (%d%%)[CR]+ %s (%d%%)' % (human_src, human_pct, gap_src or 'DeepL', gap_pct)
+                    # if even the gap machine-translation failed, those
+                    # specific positions are left as '' rather than
+                    # discarding the human lines that DID come through
+                log('using human translation from %s (%d/%d lines)' % (human_src, len(human_lines), len(non_empty_lines)), debug=self.DEBUG)
                 lines = list(original_lines)
                 for idx, translated in zip(non_empty_idx, human_lines):
                     lines[idx] = translated
                 src = human_src
             else:
-                if human_lines:
-                    log('human translation from %s has %d lines, original has %d non-empty - falling back to machine translation' % (human_src, len(human_lines), len(non_empty_idx)), debug=self.DEBUG)
+                log('no usable human translation - falling back to machine translation', debug=self.DEBUG)
                 lines, src = translate_lines(original_lines, self.TRANSLATE_LANG, self.DEEPL_KEY, lingva_instance=self.LINGVA_INSTANCE, debug=self.DEBUG, on_line=_on_line)
+                human_translator = None
+                credit_src = None
             if lines:
                 self.write_translation_file(cache_path, src, '\n'.join(lines))
                 WIN.setProperty('culrc.translation.source', src or '')
+                WIN.setProperty('culrc.translation.translator', human_translator or '')
+                WIN.setProperty('culrc.translation.credit_source', credit_src or '')
                 # DeepL's single batch call never invokes on_line (that's
                 # only used for the Google/Lingva per-line fallback), so
                 # the list would otherwise keep showing the original-text
@@ -975,7 +1067,7 @@ class GUI(xbmcgui.WindowXMLDialog):
                 # see _show_translation_synced for why only a cached human
                 # translation is trusted - any machine-sourced cache is
                 # always re-attempted in case a better tier is available now
-                if is_human_source(cached_source):
+                if is_fully_human_source(cached_source):
                     source, text = cached_source, cached_text
         if not text:
             xbmcgui.Dialog().notification(ADDONNAME, LANGUAGE(32179), icon=ADDONICON, time=3000, sound=False)
@@ -1032,6 +1124,48 @@ class GUI(xbmcgui.WindowXMLDialog):
     def _hide_seek_osd(self):
         WIN.clearProperty('culrc.seekosd')
         WIN.clearProperty('culrc.seekdelta')
+
+    def _maybe_show_translation_credit(self):
+        # once the last timed line has passed, there's nothing left
+        # competing for the lyrics area - a good moment to thank whoever
+        # actually translated this (never for DeepL/Google/Lingva, only a
+        # real human translation) and point at the site so it stays worth
+        # scraping. Once per song, not re-shown on every refresh() call
+        # that lands past the end.
+        if self._credit_shown_for_song:
+            return
+        source = WIN.getProperty('culrc.translation.source')
+        if not is_human_source(source):
+            return
+        domain = credit_domain_for_source(source, self.TRANSLATE_LANG)
+        if not domain:
+            return
+        self._credit_shown_for_song = True
+        # a hybrid result (e.g. "KaraokeTexty (92%)[CR]+ DeepL (8%)", see
+        # _fetch()'s gap filling) still credits the human side only -
+        # DeepL filled in a few lines it couldn't find a human match for,
+        # it didn't do the translation, so neither it nor the coverage
+        # percentages belong in a thank-you message. culrc.translation.
+        # credit_source is set alongside .source specifically to carry
+        # this bare name, rather than parsing it back out of the more
+        # complex display string.
+        display_source = WIN.getProperty('culrc.translation.credit_source') or source
+        translator = WIN.getProperty('culrc.translation.translator')
+        if translator:
+            msg = LANGUAGE(32194) % (display_source, translator, domain)
+        else:
+            msg = LANGUAGE(32193) % (display_source, domain)
+        WIN.setProperty('culrc.creditmsg', msg)
+        WIN.setProperty('culrc.creditshow', 'true')
+        if self._credit_hide_timer:
+            self._credit_hide_timer.cancel()
+        self._credit_hide_timer = Timer(CREDIT_DISPLAY_SECONDS, self._hide_translation_credit)
+        self._credit_hide_timer.daemon = True
+        self._credit_hide_timer.start()
+
+    def _hide_translation_credit(self):
+        WIN.clearProperty('culrc.creditshow')
+        WIN.clearProperty('culrc.creditmsg')
 
     @staticmethod
     def _format_seek_delta(delta):
@@ -1113,11 +1247,24 @@ class GUI(xbmcgui.WindowXMLDialog):
         # would otherwise wipe out a translation the user had showing -
         # only clear it here for a genuinely different song; a matching
         # song has its panel silently restored from cache afterwards, see
-        # _maybe_restore_translation()
-        if WIN.getProperty('culrc.translation.song') != self._song_fingerprint(self.lyrics.song):
+        # _maybe_restore_translation(). self.SONG_RESTARTED forces a clear
+        # even when the fingerprint matches - the artist|title fingerprint
+        # alone can't tell "still the same playing instance" apart from
+        # "this same track just started playing again from the top" (e.g.
+        # repeat-one, or a short playlist looping back to it), confirmed
+        # live: without this, a same-song repeat left the translation
+        # panel stuck showing nothing on the new (empty) list control
+        # while the WIN properties still claimed one was already "shown".
+        if self.SONG_RESTARTED or WIN.getProperty('culrc.translation.song') != self._song_fingerprint(self.lyrics.song):
             WIN.clearProperty('culrc.translation')
             WIN.clearProperty('culrc.translation.source')
             WIN.clearProperty('culrc.translation.song')
+            # genuinely new song - allow the end-of-lyrics credit to show
+            # again (it's a once-per-song thing, see _maybe_show_translation_credit)
+            self._credit_shown_for_song = False
+            if self._credit_hide_timer:
+                self._credit_hide_timer.cancel()
+            self._hide_translation_credit()
 
     def _song_fingerprint(self, song):
         return '%s|%s' % (song.artist, song.title)
@@ -1267,7 +1414,10 @@ class MyPlayer(xbmc.Player):
     def onAVStarted(self):
         self.clear()
         if xbmc.getCondVisibility('Window.IsVisible(12006)'):
-            self.function()
+            # this event means a new playback stream genuinely just started
+            # (Kodi fires it again even when the exact same track repeats),
+            # so always treat it as a song change - see myPlayerChanged()
+            self.function(force=True)
 
     def onPlayBackStopped(self):
         self.clear()

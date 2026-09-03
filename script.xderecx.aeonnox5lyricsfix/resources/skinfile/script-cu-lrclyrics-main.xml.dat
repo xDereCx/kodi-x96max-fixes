@@ -1091,13 +1091,13 @@
 				<aspectratio align="center" aligny="top">keep</aspectratio>
 				<texture>special://home/addons/script.cu.lrclyrics.fixed/resources/skins/Default/media/culrc-logo.png</texture>
 			</control>
-			<control type="label">
-				<description>Translation provider, bottom of the left strip</description>
+			<control type="textbox">
+				<description>Translation provider, bottom of the left strip - up to 2 lines (source + hybrid machine-fill percentage, see culrc.translation.source)</description>
 				<left>45</left>
-				<top>990</top>
+				<top>940</top>
 				<width>275</width>
-				<height>40</height>
-				<font>font_translation</font>
+				<height>70</height>
+				<font>font_translation_source</font>
 				<textcolor>white</textcolor>
 				<align>center</align>
 				<label>$INFO[Window(10000).Property(culrc.translation.source)]</label>
@@ -1187,6 +1187,31 @@
 				<font>font_sync</font>
 				<textcolor>white</textcolor>
 				<label>$INFO[Player.Time] / $INFO[Player.Duration]</label>
+			</control>
+		</control>
+		<control type="group" id="141">
+			<description>Translation credit - thanks the human translator/site once the last timed line has passed, human sources only</description>
+			<visible>String.IsEqual(Window(10000).Property(culrc.creditshow),true)</visible>
+			<animation effect="fade" start="0" end="100" time="400">Visible</animation>
+			<animation effect="fade" start="100" end="0" time="400">Hidden</animation>
+			<control type="image">
+				<left>45</left>
+				<top>677</top>
+				<width>1830</width>
+				<height>62</height>
+				<texture colordiffuse="80000000">black.png</texture>
+			</control>
+			<control type="label">
+				<description>Translation credit text</description>
+				<left>85</left>
+				<top>677</top>
+				<width>1750</width>
+				<height>62</height>
+				<align>center</align>
+				<aligny>center</aligny>
+				<font>font_sync</font>
+				<textcolor>white</textcolor>
+				<label>$INFO[Window(10000).Property(culrc.creditmsg)]</label>
 			</control>
 		</control>
 	</controls>
