@@ -141,7 +141,7 @@ every folder under `zips/` so Kodi's browser can see what's there.
   through CEC at all on this hardware. See
   [keymaps/hisense-blue-contextmenu/README.md](keymaps/hisense-blue-contextmenu/README.md).
 
-## ⚠ Uninstalling: watch out for shared module dependencies
+## ⚠ Maintenance note: don't bulk-remove the vendored shared modules
 
 `script.module.beautifulsoup4`, `requests`, `urllib3`, `chardet`,
 `certifi`, `idna`, `soupsieve`, `typing-extensions` and `mutagen` are
@@ -151,18 +151,18 @@ own addons. **Other addons already on a box can be quietly using the
 exact same module IDs without declaring it as a real `<requires>`
 dependency in their own `addon.xml`.**
 
-Confirmed live: manually removing this repo's addons *and* these vendored
-modules together (to get back to a clean/original state for testing)
-broke an unrelated weather/RSS addon on the same box with
-`ModuleNotFoundError: No module named 'requests'` (and `chardet`,
-`urllib3`) - it had been relying on these vendored copies the whole time,
-completely independently of anything in this repo.
-
-If you ever uninstall `script.cu.lrclyrics.fixed` and Kodi's uninstall
-flow offers to also remove "unused" dependencies, **decline that** unless
-you're sure nothing else on the box needs them - Kodi's own dependency
-tracking only knows about addons that properly declare the module in
-their own `<requires>`, so it can't see a use that doesn't.
+This isn't a risk from Kodi's normal single-addon "Uninstall" button in
+the Add-ons browser - that just removes the one addon's own folder, no
+dependency graph cleanup involved. It only bit us during **manual,
+bulk removal via SSH** (deleting this repo's addons and these vendored
+modules together in one go, e.g. to reset a box to a clean baseline for
+testing): confirmed live, that broke an unrelated weather/RSS addon on
+the same box with `ModuleNotFoundError: No module named 'requests'`
+(and `chardet`, `urllib3`) - it had been relying on these vendored
+copies the whole time, completely independently of anything in this
+repo. If you're ever doing that kind of manual cleanup, remove this
+repo's own addon folders only and leave the `script.module.*` ones in
+place unless you've actually checked nothing else needs them.
 
 ## Repo layout / adding a new addon later
 
