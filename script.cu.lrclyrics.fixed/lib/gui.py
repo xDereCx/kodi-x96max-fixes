@@ -80,8 +80,21 @@ class MAIN():
         # lib/localization.py) instead of its own separate free-text
         # setting - one language choice for the whole addon
         self.SETTING_TRANSLATE_LANG = current_interface_language()
-        self.SETTING_DEEPL_KEY = ADDON.getSettingString('deepl_api_key')
-        self.SETTING_LINGVA_INSTANCE = ADDON.getSettingString('lingva_instance') or 'lingva.ml'
+        # a malformed empty <default></default> in settings.xml (fixed, but
+        # a stale/partially-regenerated addon_data/settings.xml on an
+        # existing install could still be missing this key) made Kodi throw
+        # TypeError: Invalid setting type instead of returning '' - this
+        # crashed MAIN.__init__() entirely, taking down lyrics display along
+        # with translation, confirmed live. Never let a single missing/bad
+        # setting take down the whole service again.
+        try:
+            self.SETTING_DEEPL_KEY = ADDON.getSettingString('deepl_api_key')
+        except TypeError:
+            self.SETTING_DEEPL_KEY = ''
+        try:
+            self.SETTING_LINGVA_INSTANCE = ADDON.getSettingString('lingva_instance') or 'lingva.ml'
+        except TypeError:
+            self.SETTING_LINGVA_INSTANCE = 'lingva.ml'
         self.lyricssettings = {}
         self.lyricssettings['debug'] = self.DEBUG
         self.lyricssettings['read_filename'] = self.SETTING_READ_FILENAME
@@ -472,7 +485,7 @@ class guiThread(threading.Thread):
         self.kwargs = kwargs['opt']
 
     def run(self):
-        ui = GUI('script-cu-lrclyrics-main.xml', CWD, 'Default', opt=self.kwargs)
+        ui = GUI('script-cu-lrclyrics-main.xml', CWD, 'Default', '1080i', opt=self.kwargs)
         ui.doModal()
         del ui
         WIN.clearProperty('culrc.guirunning')
@@ -1036,7 +1049,14 @@ class GUI(xbmcgui.WindowXMLDialog):
     def _populate_translation_list(self, lines):
         self.text2.reset()
         for line in lines:
-            self.text2.addItem(xbmcgui.ListItem(line.strip(), offscreen=True))
+            cleanline = line.strip()
+            listitem = xbmcgui.ListItem(cleanline, offscreen=True)
+            # same part1-4 split as the original lyrics list (get_parts()) -
+            # the bundled fallback dialog's multi-color current-line display
+            # reads these for the translation column too
+            for count, item in enumerate(self.get_parts(cleanline)):
+                listitem.setProperty('part%i' % (count + 1), item)
+            self.text2.addItem(listitem)
 
     def _select_translation_line(self, pos):
         # plain selectItem(pos) only scrolls the minimum needed to reveal

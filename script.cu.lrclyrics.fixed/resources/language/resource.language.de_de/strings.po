@@ -165,6 +165,26 @@ msgctxt "#32194"
 msgid "Translation: %s by %s - please support them by visiting %s"
 msgstr "Übersetzung: %s von %s - unterstütze sie mit einem Besuch auf %s"
 
+msgctxt "#32195"
+msgid "Current-line display"
+msgstr "Anzeige der aktuellen Zeile"
+
+msgctxt "#32196"
+msgid "Install decorative fonts into the active skin"
+msgstr "Dekorative Schriftarten im aktiven Skin installieren"
+
+msgctxt "#32197"
+msgid "Adds 3 bold display fonts (Exo2, Ranchers, Luckiest Guy - all free/redistributable, full Slovak/Czech diacritic support) to the currently active skin's own Font.xml, so the current-line display can use them. Backs up the original file first. Needs a Kodi restart to take effect. Only works if the active skin is on writable storage - not the OS-bundled default skin on some builds."
+msgstr "Fügt 3 fette Schriftarten (Exo2, Ranchers, Luckiest Guy - frei weitergebbar, volle slowakische/tschechische Diakritik-Unterstützung) zur Font.xml des aktiven Skins hinzu. Die Originaldatei wird vorher gesichert. Erfordert einen Kodi-Neustart. Funktioniert nur, wenn der aktive Skin auf beschreibbarem Speicher liegt."
+
+msgctxt "#32198"
+msgid "Remove decorative fonts"
+msgstr "Dekorative Schriftarten entfernen"
+
+msgctxt "#32199"
+msgid "Restores the active skin's original Font.xml from backup and removes the copied font files. Needs a Kodi restart to take effect."
+msgstr "Stellt die ursprüngliche Font.xml des aktiven Skins aus der Sicherung wieder her und entfernt die kopierten Schriftdateien. Erfordert einen Kodi-Neustart."
+
 # empty strings from id 32013 to 32100 (except 32171-32191 above)
 # Settings labels
 msgctxt "#32100"

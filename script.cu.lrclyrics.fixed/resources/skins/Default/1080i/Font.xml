@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Kept for reference/future use only - confirmed via repeated debug-log inspection that Kodi's
+     WindowXMLDialog never actually loads a Font.xml bundled with an addon (no LoadFontsFromFile
+     call for this path, ever, regardless of defaultRes/fontset id). None of the font names below
+     are currently referenced by script-cu-lrclyrics-main.xml - see lib/fontinstall.py instead,
+     which installs real decorative fonts directly into the ACTIVE skin's own Font.xml. -->
+<fonts>
+	<fontset id="CULRC">
+		<font>
+			<name>font_culrc_title</name>
+			<filename>NotoSans-Regular.ttf</filename>
+			<style>bold</style>
+			<size>34</size>
+		</font>
+		<font>
+			<name>font_culrc_line</name>
+			<filename>NotoSans-Regular.ttf</filename>
+			<size>42</size>
+		</font>
+		<font>
+			<name>font_culrc_current</name>
+			<filename>NotoSans-Regular.ttf</filename>
+			<style>bold</style>
+			<size>72</size>
+		</font>
+		<font>
+			<name>font_culrc_meta</name>
+			<filename>NotoSans-Regular.ttf</filename>
+			<size>20</size>
+		</font>
+	</fontset>
+</fonts>

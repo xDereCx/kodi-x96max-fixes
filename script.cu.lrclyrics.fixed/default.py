@@ -17,6 +17,26 @@ elif len(sys.argv) == 2 and sys.argv[1] == 'test':
     from lib.scrapertest import *
     test_scrapers()
 
+# install decorative fonts into the active skin, run from addon settings
+elif len(sys.argv) == 2 and sys.argv[1] == 'installfonts':
+    from lib import fontinstall
+    ok, result = fontinstall.install()
+    if ok and result:
+        xbmcgui.Dialog().ok(ADDONNAME, 'Installed decorative fonts into %d file(s) in the active skin. Restart Kodi for them to take effect.' % result)
+    elif ok:
+        xbmcgui.Dialog().ok(ADDONNAME, 'Decorative fonts were already installed for the active skin.')
+    else:
+        xbmcgui.Dialog().ok(ADDONNAME, 'Could not install decorative fonts: %s' % result)
+
+# remove previously installed decorative fonts, run from addon settings
+elif len(sys.argv) == 2 and sys.argv[1] == 'removefonts':
+    from lib import fontinstall
+    ok, result = fontinstall.remove()
+    if ok:
+        xbmcgui.Dialog().ok(ADDONNAME, 'Removed decorative fonts, restored %d skin file(s) from backup. Restart Kodi for it to take effect.' % result)
+    else:
+        xbmcgui.Dialog().ok(ADDONNAME, result)
+
 # kodi startup, service is enabled, start main loop
 elif not WIN.getProperty('culrc.running') == 'true':
     from lib import gui

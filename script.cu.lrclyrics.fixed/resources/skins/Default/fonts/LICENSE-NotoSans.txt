@@ -1,0 +1,8 @@
+NotoSans-Regular.ttf is part of Google's Noto Fonts project
+(https://fonts.google.com/noto), licensed under the SIL Open Font
+License, Version 1.1. Full license text: https://openfontlicense.org
+
+Bundled here so this addon's own fallback dialog (resources/skins/Default/)
+has consistent, guaranteed Slovak/Czech-diacritic-capable typography on
+any Kodi skin, instead of depending on whatever fonts the active skin
+happens to define.

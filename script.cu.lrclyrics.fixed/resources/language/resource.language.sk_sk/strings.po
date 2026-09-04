@@ -166,6 +166,26 @@ msgctxt "#32194"
 msgid "Translation: %s by %s - please support them by visiting %s"
 msgstr "Preklad: %s od %s - podporte ich návštevou %s"
 
+msgctxt "#32195"
+msgid "Current-line display"
+msgstr "Zobrazenie aktuálneho riadku"
+
+msgctxt "#32196"
+msgid "Install decorative fonts into the active skin"
+msgstr "Nainštalovať dekoratívne fonty do aktívneho skinu"
+
+msgctxt "#32197"
+msgid "Adds 3 bold display fonts (Exo2, Ranchers, Luckiest Guy - all free/redistributable, full Slovak/Czech diacritic support) to the currently active skin's own Font.xml, so the current-line display can use them. Backs up the original file first. Needs a Kodi restart to take effect. Only works if the active skin is on writable storage - not the OS-bundled default skin on some builds."
+msgstr "Pridá 3 tučné fonty (Exo2, Ranchers, Luckiest Guy - voľne šíriteľné, plná podpora SK/CZ diakritiky) do Font.xml aktívneho skinu. Pôvodný súbor sa najprv zálohuje. Vyžaduje reštart Kodi. Funguje len ak je aktívny skin na zapisovateľnom úložisku."
+
+msgctxt "#32198"
+msgid "Remove decorative fonts"
+msgstr "Odstrániť dekoratívne fonty"
+
+msgctxt "#32199"
+msgid "Restores the active skin's original Font.xml from backup and removes the copied font files. Needs a Kodi restart to take effect."
+msgstr "Obnoví pôvodný Font.xml aktívneho skinu zo zálohy a odstráni skopírované fonty. Vyžaduje reštart Kodi."
+
 # empty strings from id 32013 to 32100 (except 32171-32191 above)
 # Settings labels
 msgctxt "#32100"
