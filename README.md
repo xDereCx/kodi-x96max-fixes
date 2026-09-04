@@ -39,7 +39,7 @@ every folder under `zips/` so Kodi's browser can see what's there.
 
 ### Universal (any Kodi skin)
 
-- **`script.cu.lrclyrics.fixed`** — fork of
+- **`script.cu.lrclyrics.advanced`** — fork of
   [CU LRC Lyrics](https://gitlab.com/ronie/script.cu.lrclyrics/)
   (original by Taxigps/ronie, GPL-2.0-only) with several fixes on top:
   - OK button on the remote no longer gets swallowed by the lyrics
@@ -185,7 +185,7 @@ the repository (or via Settings → Add-ons → Check for updates).
 
 ## License
 
-- `script.cu.lrclyrics.fixed/` keeps the original addon's
+- `script.cu.lrclyrics.advanced/` keeps the original addon's
   GPL-2.0-only license (see its `LICENSE.txt`).
 - `service.xderecx.musicfanart/` is MIT.
 - `script.xderecx.aeonnox5lyricsfix/` bundles modified copies of Aeon

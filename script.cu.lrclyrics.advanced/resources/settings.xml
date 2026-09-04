@@ -304,19 +304,19 @@
 				</setting>
 				<setting help="" id="scraper_test" label="32162" type="action">
 					<level>0</level>
-					<data>RunScript(script.cu.lrclyrics.fixed,test)</data>
+					<data>RunScript(script.cu.lrclyrics.advanced,test)</data>
 					<control format="action" type="button"/>
 				</setting>
 			</group>
 			<group id="3" label="32195">
 				<setting help="32197" id="install_fonts" label="32196" type="action">
 					<level>0</level>
-					<data>RunScript(script.cu.lrclyrics.fixed,installfonts)</data>
+					<data>RunScript(script.cu.lrclyrics.advanced,installfonts)</data>
 					<control format="action" type="button"/>
 				</setting>
 				<setting help="32199" id="remove_fonts" label="32198" type="action">
 					<level>0</level>
-					<data>RunScript(script.cu.lrclyrics.fixed,removefonts)</data>
+					<data>RunScript(script.cu.lrclyrics.advanced,removefonts)</data>
 					<control format="action" type="button"/>
 				</setting>
 			</group>
