@@ -26,9 +26,9 @@ from lib.utils import ADDON, ADDONNAME, ADDONICON, CWD, PROFILE, log
 # and Geomancy were ruled out here - missing most caron/acute letters,
 # would reintroduce the exact diacritics bug this project already fixed)
 DECORATIVE_FONTS = (
-    ('culrc_exo2', 'Exo2-BlackItalic.ttf', 64),
-    ('culrc_ranchers', 'Ranchers-Regular.ttf', 70),
-    ('culrc_luckiestguy', 'Luckiest Guy.ttf', 60),
+    ('culrc_exo2', 'Exo2-BlackItalic.ttf', 86),
+    ('culrc_ranchers', 'Ranchers-Regular.ttf', 88),
+    ('culrc_luckiestguy', 'Luckiest Guy.ttf', 82),
 )
 
 SOURCE_DIR = os.path.join(CWD, 'resources', 'fonts', 'decorative')
