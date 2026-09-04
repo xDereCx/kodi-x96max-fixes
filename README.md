@@ -1,9 +1,19 @@
 # DereC Kodi Fixes
 
-A Kodi addon repository of small, hand-picked fixes for addons/skins used
-on a CoreELEC (Omega) box running skin **Aeon Nox 5**. Install the
-repository once, then install/update addons from it directly in Kodi as
-more get added over time.
+A Kodi addon repository of small, hand-picked addon fixes and additions.
+Install the repository once, then install/update addons from it directly
+in Kodi as more get added over time.
+
+Addons here fall into two clearly separate categories - see each addon's
+own entry below for which one it's in:
+
+- **Universal** - works on any Kodi skin out of the box, no dependency on
+  any specific skin. This is where ongoing development happens.
+- **Aeon Nox 5 special** - a self-contained, deliberately frozen branch
+  that patches `skin.aeon.nox.5`'s own files for a deeper, full-screen
+  integration. Built for and tested only on that one skin (itself no
+  longer actively developed, just kept working on Kodi Omega) - entirely
+  optional, and not the direction this repo is generally headed.
 
 ## Install (one-time, on any Kodi box)
 
@@ -26,6 +36,8 @@ be browsed at all. `build_repo.py` generates a tiny `index.html` in
 every folder under `zips/` so Kodi's browser can see what's there.
 
 ## What's in the repository
+
+### Universal (any Kodi skin)
 
 - **`script.cu.lrclyrics.fixed`** — fork of
   [CU LRC Lyrics](https://gitlab.com/ronie/script.cu.lrclyrics/)
@@ -54,15 +66,17 @@ every folder under `zips/` so Kodi's browser can see what's there.
   - Auto-disables the original `script.cu.lrclyrics` on every Kodi
     startup if it's found installed and enabled — both can't run as the
     music lyrics service at once, and this used to be a manual step.
-  - Declares `script.xderecx.aeonnox5lyricsfix` (below) as a real addon
-    dependency, so Kodi installs it automatically alongside this one.
   - Optional, off-by-default lyrics translation via the DeepL API
     (context menu → "Show translation"), on-demand only - never
     fetched automatically per song, so it doesn't burn API quota on
     tracks you don't care about. Needs your own DeepL API key set in
     this addon's settings; the result is cached as a plain text file
     alongside the addon's own saved lyrics so each song only gets
-    translated once.
+    translated once. The translation panel is built into this addon's
+    own bundled dialog (`resources/skins/Default/`), so it works on any
+    skin without installing anything else — Aeon Nox 5 users can
+    additionally, optionally, install `script.xderecx.aeonnox5lyricsfix`
+    (below) for a deeper full-screen version of the same panel.
   - See the addon's own version history (`addon.xml` news) for the
     full per-version breakdown.
 
@@ -73,16 +87,22 @@ every folder under `zips/` so Kodi's browser can see what's there.
   permanently into the artist's own music folder (`Fanart/` subfolder)
   so repeat plays don't re-download. Runs as a proper Kodi background
   service (started once at Kodi startup) instead of a re-invoked
-  script. Needs `script.xderecx.aeonnox5lyricsfix` (below) actually
-  *run* once — not just installed — to display anything at all; also
-  declared as a dependency so it installs automatically.
+  script. Exposes the result via the same
+  `Window(Visualisation).Property(ArtistSlideshow.Image)` convention
+  Artist Slideshow itself uses, which several skins already read
+  natively with nothing else needed. Aeon Nox 5 users can additionally,
+  optionally, install `script.xderecx.aeonnox5lyricsfix` (below) for a
+  rotating full-screen background bound to this same property.
+
+### Aeon Nox 5 special (optional, frozen — not being extended further)
 
 - **`script.xderecx.aeonnox5lyricsfix`** ("Aeon Nox 5 Skin Fixes") —
-  small Program add-on, and the real functional dependency behind both
-  addons above. Installed automatically alongside them, but still needs
-  to be **run once manually** from **Add-ons → Program add-ons** (after
-  `skin.aeon.nox.5` is installed) — patching a third-party skin's files
-  isn't something to do silently without asking. Patches up to 3
+  small Program add-on, install it separately (not a dependency of
+  either addon above) if you want the full-screen Aeon Nox 5 versions of
+  their panels. Needs to be **run once manually** from
+  **Add-ons → Program add-ons** (after `skin.aeon.nox.5` is installed) —
+  patching a third-party skin's files isn't something to do silently
+  without asking. Patches up to 3
   `skin.aeon.nox.5` files in one confirmation, each with a one-time
   `.bak` backup, no-op for anything already applied:
   - `1080i/script-cu-lrclyrics-main.xml` — hides the `topbar.png`
@@ -99,6 +119,8 @@ every folder under `zips/` so Kodi's browser can see what's there.
     auto-selects between depending on line length.
 
   Restart Kodi after running it for the changes to take effect.
+
+### System-level (not skin-related)
 
 - **`script.xderecx.networkwatchdog`** — small Program add-on, not a
   Kodi/skin fix but a system-level one delivered the same way. Run it
