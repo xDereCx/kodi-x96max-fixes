@@ -1,17 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <window>
 	<animation type="WindowOpen" reversible="false">
-		<effect type="zoom" start="80" end="100" center="960,540" delay="160" tween="back" time="240" />
-		<effect type="fade" delay="160" end="100" time="240" />
+		<effect type="fade" end="100" time="250" />
 	</animation>
 	<animation type="WindowClose" reversible="false">
-		<effect type="zoom" start="100" end="80" center="960,540" easing="in" tween="back" time="240" />
-		<effect type="fade" start="100" end="0" time="240" />
+		<effect type="fade" start="100" end="0" time="200" />
 	</animation>
 	<depth>0.50</depth>
 	<coordinates>
-		<left>300</left>
-		<top>80</top>
+		<left>10</left>
+		<top>40</top>
 	</coordinates>
 	<controls>
 		<control type="image">
@@ -26,34 +24,15 @@
 		</control>
 		<control type="group">
 			<animation effect="fade" start="100" end="0" time="200" condition="!String.IsEmpty(Window(Home).Property(culrc.hidedialog)) + ![Window.IsActive(musicosd) | Player.ShowInfo]">Conditional</animation>
+			<!-- one translucent full-width strip instead of a bordered/boxed dialog - closer to Aeon
+			     Nox 5's own minimal overlay panel than the original upstream popup-window chrome -->
 			<control type="image">
-				<description>background image</description>
+				<description>background strip</description>
 				<left>0</left>
 				<top>0</top>
-				<width>1320</width>
-				<height>820</height>
-				<texture border="2">culrc-dialog-bg-solid.png</texture>
-			</control>
-			<control type="image">
-				<description>Dialog Header image</description>
-				<left>0</left>
-				<top>0</top>
-				<width>1320</width>
-				<height>70</height>
-				<texture colordiffuse="FF12B2E7" border="2">culrc-white70.png</texture>
-			</control>
-			<control type="label">
-				<description>header label</description>
-				<textoffsetx>70</textoffsetx>
-				<left>-30</left>
-				<top>0</top>
-				<width>1320</width>
-				<height>70</height>
-				<font>font32_title</font>
-				<label>CU LRC Lyrics</label>
-				<align>left</align>
-				<aligny>center</aligny>
-				<shadowcolor>black</shadowcolor>
+				<width>1900</width>
+				<height>1000</height>
+				<texture colordiffuse="C2000000">culrc-black.png</texture>
 			</control>
 			<control type="button">
 				<description>background close area</description>
@@ -69,15 +48,15 @@
 				<description>button overlay to avoid closing in dialog area</description>
 				<left>0</left>
 				<top>0</top>
-				<width>1320</width>
-				<height>820</height>
+				<width>1900</width>
+				<height>1000</height>
 				<texturefocus></texturefocus>
 				<texturenofocus></texturenofocus>
 				<onclick>noop</onclick>
 			</control>
 			<control type="radiobutton">
 				<description>logo</description>
-				<left>1320</left>
+				<left>1900</left>
 				<top>11</top>
 				<width>48</width>
 				<height>48</height>
@@ -88,48 +67,54 @@
 				<label></label>
 				<animation effect="slide" end="-70,0" time="0" condition="true">Conditional</animation>
 				<textureradioofffocus colordiffuse="EEFFFFFF">culrc-close.png</textureradioofffocus>
-				<textureradiooffnofocus colordiffuse="EEFFFFFF">culrc-logo.png</textureradiooffnofocus>
+				<textureradiooffnofocus colordiffuse="EEFFFFFF">culrc-logo-dc.png</textureradiooffnofocus>
 				<textureradioonfocus colordiffuse="EEFFFFFF">culrc-close.png</textureradioonfocus>
-				<textureradioonnofocus colordiffuse="EEFFFFFF">culrc-logo.png</textureradioonnofocus>
+				<textureradioonnofocus colordiffuse="EEFFFFFF">culrc-logo-dc.png</textureradioonnofocus>
 				<onclick>Action(close)</onclick>
 			</control>
 		</control>
 		<control type="label">
-			<left>10</left>
-			<top>100</top>
-			<width>1300</width>
-			<height>40</height>
-			<font>font36_title</font>
+			<left>0</left>
+			<top>30</top>
+			<width>1900</width>
+			<height>60</height>
+			<font>font45</font>
 			<label>$INFO[MusicPlayer.Artist,, - ]$INFO[MusicPlayer.Title]</label>
 			<align>center</align>
 			<aligny>center</aligny>
+			<shadowcolor>black</shadowcolor>
 		</control>
 		<!-- ** Required ** Do not change <id> or <type> (Lyrics, will autoscroll if lrc based lyrics are shown) -->
+		<!-- fixed at half-width (left side) always, even with no translation showing (the right half just
+		     stays empty then) - a single control with this id is required so gui.py's one getControl(110)
+		     call in onInit() always resolves to the same, correct instance; two controls sharing an id with
+		     complementary <visible> conditions is a real Kodi skinning pattern but risks getControl()
+		     latching onto whichever one isn't actually shown, silently breaking scrolling/population -->
 		<control type="list" id="110">
-			<left>10</left>
-			<top>160</top>
-			<width>1300</width>
-			<height>600</height>
+			<left>20</left>
+			<top>140</top>
+			<width>920</width>
+			<height>720</height>
 			<scrolltime>200</scrolltime>
-			<itemlayout height="60">
+			<itemlayout height="70">
 				<control type="label">
 					<left>0</left>
 					<top>0</top>
-					<width>1300</width>
-					<height>60</height>
-					<font>font14</font>
+					<width>920</width>
+					<height>70</height>
+					<font>font28</font>
 					<aligny>center</aligny>
 					<align>center</align>
 					<label>$INFO[ListItem.Label]</label>
 				</control>
 			</itemlayout>
-			<focusedlayout height="60">
+			<focusedlayout height="70">
 				<control type="label">
 					<left>0</left>
 					<top>0</top>
-					<width>1300</width>
-					<height>60</height>
-					<font>font14</font>
+					<width>920</width>
+					<height>70</height>
+					<font>font28</font>
 					<aligny>center</aligny>
 					<align>center</align>
 					<shadowcolor>black</shadowcolor>
@@ -138,11 +123,86 @@
 				</control>
 			</focusedlayout>
 		</control>
+		<control type="image">
+			<description>divider between original lyrics and translation, only when translation is showing</description>
+			<left>950</left>
+			<top>140</top>
+			<width>2</width>
+			<height>720</height>
+			<texture colordiffuse="FF12B2E7">culrc-white70.png</texture>
+			<visible>!String.IsEmpty(Window(Home).Property(culrc.translation))</visible>
+		</control>
+		<!-- translation lines, mirrors id=110's layout - see gui.py's _populate_translation_list()/_show_translation_synced()/_show_translation_block() -->
+		<control type="list" id="112">
+			<left>960</left>
+			<top>140</top>
+			<width>920</width>
+			<height>720</height>
+			<scrolltime tween="quadratic" easing="out">500</scrolltime>
+			<visible>!String.IsEmpty(Window(Home).Property(culrc.translation))</visible>
+			<itemlayout height="70">
+				<control type="label">
+					<left>0</left>
+					<top>0</top>
+					<width>920</width>
+					<height>70</height>
+					<font>font28</font>
+					<aligny>center</aligny>
+					<align>center</align>
+					<label>$INFO[ListItem.Label]</label>
+				</control>
+			</itemlayout>
+			<focusedlayout height="70">
+				<control type="label">
+					<left>0</left>
+					<top>0</top>
+					<width>920</width>
+					<height>70</height>
+					<font>font28</font>
+					<aligny>center</aligny>
+					<align>center</align>
+					<shadowcolor>black</shadowcolor>
+					<textcolor>FF12B2E7</textcolor>
+					<label>$INFO[ListItem.Label]</label>
+				</control>
+			</focusedlayout>
+		</control>
+		<!-- translation provider/coverage - mirrors culrc.translation.source on Aeon Nox 5's patched panel, see gui.py.
+		     A textbox (not label) because a hybrid result's source string carries a "[CR]" line break for its
+		     2-line "Name (92%)[CR]+ DeepL (8%)" coverage display - a <label> renders [CR] as literal text. -->
+		<control type="textbox">
+			<left>960</left>
+			<top>865</top>
+			<width>920</width>
+			<height>50</height>
+			<font>font16</font>
+			<align>center</align>
+			<textcolor>FF999999</textcolor>
+			<shadowcolor>black</shadowcolor>
+			<label>$INFO[Window(Home).Property(culrc.translation.source)]</label>
+			<visible>!String.IsEmpty(Window(Home).Property(culrc.translation))</visible>
+		</control>
+		<!-- end-of-song human-translator credit, mirrors Aeon Nox 5's group id=141 - see gui.py's _maybe_show_translation_credit() -->
+		<control type="label">
+			<left>960</left>
+			<top>918</top>
+			<width>920</width>
+			<height>25</height>
+			<font>font16</font>
+			<align>center</align>
+			<aligny>center</aligny>
+			<textcolor>FF12B2E7</textcolor>
+			<shadowcolor>black</shadowcolor>
+			<label>$INFO[Window(Home).Property(culrc.creditmsg)]</label>
+			<visible>String.IsEqual(Window(Home).Property(culrc.creditshow),true)</visible>
+			<animation effect="fade" start="0" end="100" time="400">Visible</animation>
+			<animation effect="fade" start="100" end="0" time="400">Hidden</animation>
+		</control>
 		<control type="group">
 			<animation effect="fade" start="100" end="0" time="200" condition="!String.IsEmpty(Window(Home).Property(culrc.hidedialog)) + ![Window.IsActive(musicosd) | Player.ShowInfo]">Conditional</animation>
 			<control type="button">
-				<left>636</left>
-				<top>835</top>
+				<left>446</left>
+				<top>860</top>
 				<width>48</width>
 				<height>24</height>
 				<texturefocus colordiffuse="FF12B2E7">culrc-arrowdown.png</texturefocus>
@@ -155,8 +215,8 @@
 				<visible>Container(110).HasNext + Control.IsVisible(110)</visible>
 			</control>
 			<control type="button">
-				<left>636</left>
-				<top>-40</top>
+				<left>446</left>
+				<top>100</top>
 				<width>48</width>
 				<height>24</height>
 				<texturefocus colordiffuse="FF12B2E7" flipy="true">culrc-arrowdown.png</texturefocus>
@@ -170,21 +230,21 @@
 			</control>
 			<control type="image">
 				<description>lyricslist</description>
-				<left>15</left>
-				<top>750</top>
-				<width>64</width>
-				<height>64</height>
+				<left>20</left>
+				<top>930</top>
+				<width>48</width>
+				<height>48</height>
 				<texture>culrc-contextmenu.png</texture>
 				<visible>!String.IsEmpty(Window(Home).Property(culrc.haslist))</visible>
 			</control>
 			<control type="label">
 				<description>Scraper label</description>
 				<left>0</left>
-				<top>780</top>
-				<width>1300</width>
+				<top>945</top>
+				<width>1880</width>
 				<height>30</height>
 				<label>$LOCALIZE[21870]: $INFO[Control.GetLabel(200)]</label>
-				<font>font12</font>
+				<font>font13</font>
 				<align>right</align>
 				<aligny>center</aligny>
 				<textcolor>FF999999</textcolor>

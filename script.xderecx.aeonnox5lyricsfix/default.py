@@ -54,6 +54,14 @@ def main():
         DIALOG.ok('Aeon Nox 5 Skin Fixes', 'skin.aeon.nox.5 is not installed. Install/enable it first, then run this again.')
         return
 
+    # installed is not the same as ACTIVE - xbmc.getSkinDir() is whichever
+    # skin Kodi is actually running right now. Patching still proceeds (the
+    # user may be about to switch to it, or just wants it ready ahead of
+    # time), but nothing will be visibly different until they do switch -
+    # worth telling them so a "nothing happened" report isn't confusing.
+    if xbmc.getSkinDir() != 'skin.aeon.nox.5':
+        DIALOG.notification('Aeon Nox 5 Skin Fixes', 'skin.aeon.nox.5 is installed but not the active skin - patches will apply but stay invisible until you switch to it', icon=xbmcgui.NOTIFICATION_INFO, time=6000)
+
     all_pending = []
     for skin_id, skin_root in skin_roots:
         for bundled_name, rel_path, desc in PATCHES:

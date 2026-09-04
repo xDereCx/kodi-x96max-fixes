@@ -348,7 +348,11 @@ def align_by_content(original_lines, pairs, debug=False):
                 continue
             key = ' '.join(norm_src[start:start + length])
             if key not in merged_lookup:
-                merged_lookup[key] = ', '.join(trans_lines[start:start + length])
+                # strip any trailing comma/space the site's own line already
+                # ends with before rejoining with our own ", " - confirmed
+                # live, a site line ending "...jsem šilhal," joined with the
+                # next produced a doubled ",," in the cached translation
+                merged_lookup[key] = ', '.join(t.rstrip(' ,') for t in trans_lines[start:start + length])
         ckey = norm_src[start].replace(' ', '')
         if ckey and ckey not in concat_lookup:
             concat_lookup[ckey] = trans_lines[start]
