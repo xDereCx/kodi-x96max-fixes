@@ -141,6 +141,29 @@ every folder under `zips/` so Kodi's browser can see what's there.
   through CEC at all on this hardware. See
   [keymaps/hisense-blue-contextmenu/README.md](keymaps/hisense-blue-contextmenu/README.md).
 
+## ⚠ Uninstalling: watch out for shared module dependencies
+
+`script.module.beautifulsoup4`, `requests`, `urllib3`, `chardet`,
+`certifi`, `idna`, `soupsieve`, `typing-extensions` and `mutagen` are
+vendored here (see below) as generic `xbmc.python.module` addons -
+standard shared Python libraries, not something private to this repo's
+own addons. **Other addons already on a box can be quietly using the
+exact same module IDs without declaring it as a real `<requires>`
+dependency in their own `addon.xml`.**
+
+Confirmed live: manually removing this repo's addons *and* these vendored
+modules together (to get back to a clean/original state for testing)
+broke an unrelated weather/RSS addon on the same box with
+`ModuleNotFoundError: No module named 'requests'` (and `chardet`,
+`urllib3`) - it had been relying on these vendored copies the whole time,
+completely independently of anything in this repo.
+
+If you ever uninstall `script.cu.lrclyrics.fixed` and Kodi's uninstall
+flow offers to also remove "unused" dependencies, **decline that** unless
+you're sure nothing else on the box needs them - Kodi's own dependency
+tracking only knows about addons that properly declare the module in
+their own `<requires>`, so it can't see a use that doesn't.
+
 ## Repo layout / adding a new addon later
 
 ```
