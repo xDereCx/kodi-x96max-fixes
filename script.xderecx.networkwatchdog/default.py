@@ -64,7 +64,8 @@ def main():
     subprocess.run(['systemctl', 'enable', 'network-watchdog.service'])
 
     xbmc.log('[networkwatchdog] installed %s and %s' % (TARGET_SCRIPT, TARGET_SERVICE), xbmc.LOGINFO)
-    DIALOG.ok('Network watchdog', 'Installed and enabled. It will run automatically on the next boot.')
+    DIALOG.ok('Network watchdog', 'Installed and enabled. This is a systemd service, not a Kodi feature - '
+              'restart the whole box (not just Kodi) for it to actually run for the first time.')
 
 
 def remove():

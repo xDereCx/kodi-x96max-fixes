@@ -393,8 +393,30 @@ class MusicMonitor(xbmc.Player):
             self.rotator.set_images(sorted(saved))
 
 
+FIRST_RUN_MARKER = os.path.join(PROFILE, 'first_run_notified')
+
+
+def _notify_first_run():
+    # xbmc.service add-ons are started by Kodi's own CServiceAddonManager
+    # immediately on install/enable - no Kodi restart needed, unlike the
+    # Program add-ons in this same repo that patch skin files or install
+    # keymaps (those only take effect after one). Nothing else here would
+    # ever confirm to the user that this happened, so do it once, ever.
+    if xbmcvfs.exists(FIRST_RUN_MARKER):
+        return
+    xbmcgui.Dialog().notification(
+        'DC Artist Artwork DL', 'Running - no Kodi restart needed. Rotating fanart '
+        'appears once a track with a matched artist starts playing.',
+        icon=xbmcgui.NOTIFICATION_INFO, time=8000, sound=False
+    )
+    f = xbmcvfs.File(FIRST_RUN_MARKER, 'w')
+    f.write(b'1')
+    f.close()
+
+
 def main():
     log('service starting')
+    _notify_first_run()
     monitor = xbmc.Monitor()
     rotator = Rotator(monitor)
     rotator.start()
