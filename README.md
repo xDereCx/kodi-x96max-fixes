@@ -17,11 +17,31 @@ own entry below for which one it's in:
 
 ## Install (one-time, on any Kodi box)
 
+Two ways to get the repository zip onto the box - pick whichever's
+easier. Either way, the actual repository install (step 2/1) and
+add-on browsing (last step) are the same.
+
+**Option A - add as a Kodi source, install from there:**
+
 1. In Kodi: **Settings → File manager → Add source**, add
    `https://xderecx.github.io/kodi-x96max-fixes/zips/repository.xderecx.kodifixes/`
    (name it e.g. `xderecx-fixes`).
-2. **Settings → Add-ons → Install from zip file**, pick the source above,
-   then `repository.xderecx.kodifixes-1.1.0.zip`.
+2. **Settings → Add-ons → Install from zip file**, pick the source
+   above, then the `repository.xderecx.kodifixes-*.zip` file listed
+   there (always the current version - there's only ever one).
+
+**Option B - download the zip yourself, install from wherever you put it:**
+
+1. Download the current zip from
+   `https://xderecx.github.io/kodi-x96max-fixes/zips/repository.xderecx.kodifixes/`
+   (open that URL in a browser to see the exact filename/version) onto
+   a USB stick, network share, or anywhere else Kodi can already see
+   as a source.
+2. **Settings → Add-ons → Install from zip file**, pick that location,
+   then the zip.
+
+**Then, either way:**
+
 3. **Settings → Add-ons → Install from repository → DereC Kodi Addons**
    — install whichever addons you want from the list.
 
