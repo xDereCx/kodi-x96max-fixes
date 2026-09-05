@@ -147,13 +147,15 @@ every folder under `zips/` so Kodi's browser can see what's there.
   CoreELEC for it). This is a **global** keymap change, not specific
   to any one addon - useful for addons like this repo's CU LRC Lyrics
   fork, whose sync/reload/delete options live in a context menu. If
-  `custom_remote.xml` already exists with different content, backs it
-  up and asks before overwriting rather than silently replacing what
-  looks like an unrelated existing customization. Restart Kodi after
-  running it. Same as network watchdog above, its settings screen has
-  a "Restore original keymap" action to run **before** uninstalling -
-  restores your backed-up file, or removes the keymap entirely if
-  there wasn't one before.
+  `custom_remote.xml` already exists, merges this remap into it
+  section by section instead of overwriting the whole file, so
+  anything else already in there (your own sections, other button
+  remaps) survives untouched. Restart Kodi after running it. Same as
+  network watchdog above, its settings screen has a "Remove
+  blue-button remap" action to run **before** uninstalling - strips
+  out just this addon's entries, leaving everything else in the file
+  intact, and only deletes the file entirely if nothing else was left
+  in it.
 
 ## ⚠ Maintenance note: don't bulk-remove the vendored shared modules
 

@@ -1,7 +1,6 @@
-import json
 import os
 import sys
-import shutil
+import xml.etree.ElementTree as ET
 import xbmc
 import xbmcaddon
 import xbmcgui
@@ -9,44 +8,26 @@ import xbmcvfs
 
 ADDON = xbmcaddon.Addon()
 ADDON_PATH = xbmcvfs.translatePath(ADDON.getAddonInfo('path'))
-PROFILE = xbmcvfs.translatePath(ADDON.getAddonInfo('profile'))
 BUNDLED_KEYMAP = os.path.join(ADDON_PATH, 'resources', 'files', 'custom_remote.xml')
 
 TARGET_DIR = xbmcvfs.translatePath('special://userdata/keymaps')
 TARGET_KEYMAP = os.path.join(TARGET_DIR, 'custom_remote.xml')
-BACKUP_KEYMAP = TARGET_KEYMAP + '.hisenseblue-backup'
 
-# Kodi has no uninstall hook for script add-ons - clicking "Uninstall" in
-# the add-on browser just deletes this add-on's own folder, it never runs
-# any of our code. So "restore the original keymap" can only ever be this
-# separate, explicit action (run it BEFORE uninstalling, same as
-# fontinstall.py's install/remove pair for decorative fonts) - there is no
-# way to hook Kodi's own uninstall button for this.
-STATE_FILE = os.path.join(PROFILE, 'state.json')
+# the exact value this addon's own remap sets - used both to add it
+# (install) and to recognize it's specifically OUR entry, not the user's
+# own unrelated remap of the same button, when removing (remove)
+BLUE_VALUE = 'ContextMenu'
 
 DIALOG = xbmcgui.Dialog()
 
 
-def read(path):
-    with open(path, 'rb') as f:
-        return f.read()
-
-
-def _load_state():
-    if not os.path.isfile(STATE_FILE):
-        return {}
-    try:
-        with open(STATE_FILE, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except Exception:
-        return {}
-
-
-def _save_state(state):
-    if not os.path.isdir(PROFILE):
-        xbmcvfs.mkdirs(PROFILE)
-    with open(STATE_FILE, 'w', encoding='utf-8') as f:
-        json.dump(state, f)
+def _sections():
+    # the list of window-context section names this addon's own bundled
+    # keymap covers - read from the bundled file itself rather than
+    # hardcoded, so resources/files/custom_remote.xml stays the single
+    # source of truth
+    tree = ET.parse(BUNDLED_KEYMAP)
+    return [child.tag for child in tree.getroot()]
 
 
 def install():
@@ -54,41 +35,10 @@ def install():
         DIALOG.notification('Hisense blue button', 'Bundled file missing, reinstall this addon', icon=xbmcgui.NOTIFICATION_ERROR)
         return
 
-    bundled = read(BUNDLED_KEYMAP)
-    state = _load_state()
+    if not os.path.isdir(TARGET_DIR):
+        xbmcvfs.mkdirs(TARGET_DIR)
 
-    if state.get('installed'):
-        DIALOG.notification('Hisense blue button', 'Already installed, nothing to do', icon=xbmcgui.NOTIFICATION_INFO)
-        return
-
-    if os.path.isfile(TARGET_KEYMAP):
-        current = read(TARGET_KEYMAP)
-        if current == bundled:
-            # matches our own file already (e.g. state.json was lost/cleared
-            # but the actual keymap survived) - nothing to back up, just
-            # record that we consider it installed from here on
-            state['installed'] = True
-            state['had_backup'] = False
-            _save_state(state)
-            DIALOG.notification('Hisense blue button', 'Already installed, nothing to do', icon=xbmcgui.NOTIFICATION_INFO)
-            return
-        # custom_remote.xml is a generic Kodi filename, not something only
-        # this addon could have created - a DIFFERENT existing file here is
-        # very likely someone's own unrelated keymap customization. Never
-        # silently clobber that - ask first, and back it up so "Restore
-        # original keymap" can bring it back later.
-        if not DIALOG.yesno(
-            'Hisense blue button',
-            '%s already exists with different content - this looks like your own '
-            'keymap customization, not a previous install of this addon.\n\n'
-            'A backup will be kept (restorable via this addon\'s "Restore original '
-            'keymap" action). Overwrite it with this addon\'s blue-button-to-ContextMenu '
-            'remap?' % TARGET_KEYMAP
-        ):
-            return
-        shutil.copy2(TARGET_KEYMAP, BACKUP_KEYMAP)
-        had_backup = True
-    else:
+    if not os.path.isfile(TARGET_KEYMAP):
         if not DIALOG.yesno(
             'Hisense blue button',
             'This will install %s, remapping the blue button on a Hisense TV remote '
@@ -98,43 +48,124 @@ def install():
             'Kodi, not just this repo\'s addons. Continue?' % TARGET_KEYMAP
         ):
             return
-        had_backup = False
+        import shutil
+        shutil.copy2(BUNDLED_KEYMAP, TARGET_KEYMAP)
+        xbmc.log('[hisenseblue] installed %s' % TARGET_KEYMAP, xbmc.LOGINFO)
+        DIALOG.ok('Hisense blue button', 'Installed. Restart Kodi for it to take effect.')
+        return
 
-    if not os.path.isdir(TARGET_DIR):
-        xbmcvfs.mkdirs(TARGET_DIR)
-    shutil.copy2(BUNDLED_KEYMAP, TARGET_KEYMAP)
+    # custom_remote.xml already exists - it's a generic Kodi filename that
+    # could hold the user's own unrelated remaps (their own sections,
+    # their own buttons, even other sections we don't touch at all).
+    # MERGE our blue-button entry into it section by section instead of
+    # overwriting the whole file, so anything already there survives.
+    try:
+        tree = ET.parse(TARGET_KEYMAP)
+    except ET.ParseError as e:
+        DIALOG.ok('Hisense blue button', 'Could not parse existing %s (%s) - fix or remove it manually first.' % (TARGET_KEYMAP, e))
+        return
+    root = tree.getroot()
 
-    state['installed'] = True
-    state['had_backup'] = had_backup
-    _save_state(state)
+    conflicts = []
+    for name in _sections():
+        section = root.find(name)
+        if section is not None:
+            remote = section.find('remote')
+            if remote is not None:
+                blue = remote.find('blue')
+                if blue is not None and (blue.text or '').strip() and (blue.text or '').strip() != BLUE_VALUE:
+                    conflicts.append('%s: blue is already "%s"' % (name, blue.text.strip()))
 
-    xbmc.log('[hisenseblue] installed %s' % TARGET_KEYMAP, xbmc.LOGINFO)
-    DIALOG.ok('Hisense blue button', 'Installed. Restart Kodi for it to take effect.')
+    if conflicts:
+        if not DIALOG.yesno(
+            'Hisense blue button',
+            '%s already remaps blue to something else in %d place(s):\n%s\n\n'
+            'Overwrite those with ContextMenu? (Everything else in the file is left untouched.)'
+            % (TARGET_KEYMAP, len(conflicts), '\n'.join(conflicts))
+        ):
+            return
+    else:
+        if not DIALOG.yesno(
+            'Hisense blue button',
+            '%s already exists - this addon\'s blue-to-ContextMenu remap will be merged '
+            'into it (nothing else in the file is touched). Continue?' % TARGET_KEYMAP
+        ):
+            return
+
+    for name in _sections():
+        section = root.find(name)
+        if section is None:
+            section = ET.SubElement(root, name)
+        remote = section.find('remote')
+        if remote is None:
+            remote = ET.SubElement(section, 'remote')
+        blue = remote.find('blue')
+        if blue is None:
+            blue = ET.SubElement(remote, 'blue')
+        blue.text = BLUE_VALUE
+
+    ET.indent(tree, space='  ')
+    tree.write(TARGET_KEYMAP, encoding='UTF-8', xml_declaration=False)
+
+    xbmc.log('[hisenseblue] merged blue remap into %s' % TARGET_KEYMAP, xbmc.LOGINFO)
+    DIALOG.ok('Hisense blue button', 'Merged into your existing keymap. Restart Kodi for it to take effect.')
 
 
 def remove():
-    state = _load_state()
-    if not state.get('installed'):
-        DIALOG.notification('Hisense blue button', 'Not installed by this addon, nothing to do', icon=xbmcgui.NOTIFICATION_INFO)
+    # Kodi has no uninstall hook for script add-ons - clicking Uninstall in
+    # the add-on browser just deletes this add-on's own folder, it never
+    # runs any of our code, so this is the only way to actually undo the
+    # keymap change. Strips out exactly the <blue>ContextMenu</blue>
+    # entries THIS addon's own sections added, structurally - not a
+    # file-level backup/restore - so it works correctly no matter whether
+    # the file was: untouched since install, had its own content before
+    # install, or was further edited by the user (their own sections,
+    # their own remaps, even other buttons in the same sections this addon
+    # touched) at any point afterward. Only ever removes a <blue> entry
+    # whose value is still exactly "ContextMenu" - if the user has since
+    # deliberately changed it to something else, that's their own edit and
+    # is left alone.
+    if not os.path.isfile(TARGET_KEYMAP):
+        DIALOG.notification('Hisense blue button', 'Not installed, nothing to do', icon=xbmcgui.NOTIFICATION_INFO)
         return
 
-    if state.get('had_backup') and os.path.isfile(BACKUP_KEYMAP):
-        shutil.copy2(BACKUP_KEYMAP, TARGET_KEYMAP)
-        os.remove(BACKUP_KEYMAP)
-        msg = 'Restored your original %s from backup.' % TARGET_KEYMAP
-    elif os.path.isfile(TARGET_KEYMAP):
-        # there was no file here before we installed - restoring "the
-        # original" means removing it entirely, back to that same absence
+    try:
+        tree = ET.parse(TARGET_KEYMAP)
+    except ET.ParseError as e:
+        DIALOG.ok('Hisense blue button', 'Could not parse %s (%s) - fix or remove it manually.' % (TARGET_KEYMAP, e))
+        return
+    root = tree.getroot()
+
+    removed = 0
+    for name in _sections():
+        section = root.find(name)
+        if section is None:
+            continue
+        remote = section.find('remote')
+        if remote is None:
+            continue
+        blue = remote.find('blue')
+        if blue is not None and (blue.text or '').strip() == BLUE_VALUE:
+            remote.remove(blue)
+            removed += 1
+        if len(remote) == 0 and not (remote.text or '').strip():
+            section.remove(remote)
+        if len(section) == 0 and not (section.text or '').strip():
+            root.remove(section)
+
+    if removed == 0:
+        DIALOG.notification('Hisense blue button', 'No matching blue remap found, nothing to do', icon=xbmcgui.NOTIFICATION_INFO)
+        return
+
+    if len(root) == 0:
         os.remove(TARGET_KEYMAP)
-        msg = 'Removed %s (there was no file here before this addon installed it).' % TARGET_KEYMAP
+        msg = 'Removed %s entirely (nothing else was left in it).' % TARGET_KEYMAP
     else:
-        msg = '%s was already gone.' % TARGET_KEYMAP
+        ET.indent(tree, space='  ')
+        tree.write(TARGET_KEYMAP, encoding='UTF-8', xml_declaration=False)
+        msg = 'Removed this addon\'s blue remap (%d section(s)) from %s - everything else in it was left untouched.' % (removed, TARGET_KEYMAP)
 
-    state['installed'] = False
-    state['had_backup'] = False
-    _save_state(state)
-
-    xbmc.log('[hisenseblue] removed %s' % TARGET_KEYMAP, xbmc.LOGINFO)
+    xbmc.log('[hisenseblue] ' + msg, xbmc.LOGINFO)
     DIALOG.ok('Hisense blue button', msg + ' Restart Kodi for it to take effect.')
 
 

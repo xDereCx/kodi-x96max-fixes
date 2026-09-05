@@ -8,7 +8,7 @@
 					<control type="button" format="action"/>
 					<data>RunScript(script.xderecx.hisenseblue)</data>
 				</setting>
-				<setting id="remove" type="action" label="Restore original keymap" help="Undoes this addon's keymap change - restores your own custom_remote.xml from backup if you had one, or removes the file entirely if there wasn't one before. Run this BEFORE uninstalling this addon from the add-on browser - Kodi does not run any addon code on uninstall, so this is the only way to revert.">
+				<setting id="remove" type="action" label="Remove blue-button remap" help="Undoes this addon's keymap change - strips out just this addon's blue-to-ContextMenu entries from custom_remote.xml, leaving anything else in the file untouched. Deletes the file entirely only if nothing else was left in it. Run this BEFORE uninstalling this addon from the add-on browser - Kodi does not run any addon code on uninstall, so this is the only way to revert.">
 					<level>0</level>
 					<control type="button" format="action"/>
 					<data>RunScript(script.xderecx.hisenseblue,remove)</data>
