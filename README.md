@@ -143,8 +143,12 @@ every folder under `zips/` so Kodi's browser can see what's there.
 ### System-level (not skin-related)
 
 - **`script.xderecx.networkwatchdog`** — small Program add-on, not a
-  Kodi/skin fix but a system-level one delivered the same way. Run it
-  once from **Add-ons → Program add-ons**: it installs a systemd
+  Kodi/skin fix but a system-level one delivered the same way. Also
+  offers to install itself automatically the first time Kodi boots
+  after this addon is installed (no need to already know to go find
+  it under Program add-ons), and offers to reboot the box right then
+  if you accept - or run it manually once from **Add-ons → Program
+  add-ons** if you'd rather do it yourself: it installs a systemd
   oneshot service + script to `/storage/.config/` that waits up to 60s
   after boot for a `192.168.x.x` LAN IP (ignoring WireGuard/OpenVPN/PPP
   tunnel interfaces) and restarts `connman` if none shows up. Fixes
@@ -158,8 +162,10 @@ every folder under `zips/` so Kodi's browser can see what's there.
   running forever.
 
 - **`script.xderecx.hisenseblue`** — small Program add-on, same
-  delivery mechanism. Run it once from **Add-ons → Program add-ons**:
-  installs `userdata/keymaps/custom_remote.xml`, remapping the blue
+  delivery mechanism, also offers to install itself automatically on
+  first boot after install (and offers to restart Kodi right then),
+  same as network watchdog above - or run it manually once from
+  **Add-ons → Program add-ons**: installs `userdata/keymaps/custom_remote.xml`, remapping the blue
   button on a Hisense TV remote (received over HDMI-CEC) to open
   Kodi's ContextMenu, since the TV's own dedicated Menu button doesn't
   pass through CEC at all on this hardware (confirmed with
