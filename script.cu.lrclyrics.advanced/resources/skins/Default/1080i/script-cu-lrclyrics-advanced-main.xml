@@ -1,0 +1,1948 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<window>
+	<animation type="WindowOpen" reversible="false">
+		<effect type="fade" end="100" time="250" />
+	</animation>
+	<animation type="WindowClose" reversible="false">
+		<effect type="fade" start="100" end="0" time="200" />
+	</animation>
+	<depth>0.50</depth>
+	<coordinates>
+		<left>10</left>
+		<top>40</top>
+	</coordinates>
+	<controls>
+		<!-- rotating artist-fanart background, if service.xderecx.musicfanart is installed
+		     and running - entirely generic (just reads a Window(Visualisation) property that
+		     addon sets regardless of active skin), invisible/no-op if that service isn't
+		     installed or hasn't set anything yet. Previously only AN5 got this, patched in
+		     by script.xderecx.aeonnox5lyricsfix - now works on any skin, since this addon's
+		     own bundled dialog is what actually renders everywhere after the 1.29.4 rename. -->
+		<control type="image">
+			<left>0</left>
+			<top>0</top>
+			<width>1920</width>
+			<height>1080</height>
+			<aspectratio>scale</aspectratio>
+			<texture>$INFO[Window(Visualisation).Property(ArtistSlideshow.Image)]</texture>
+			<visible>!String.IsEmpty(Window(Visualisation).Property(ArtistSlideshow.Image))</visible>
+		</control>
+		<control type="group">
+			<animation effect="fade" start="100" end="0" time="200" condition="!String.IsEmpty(Window(Home).Property(culrc.hidedialog)) + ![Window.IsActive(musicosd) | Player.ShowInfo]">Conditional</animation>
+			<!-- no background box/dimming at all, per user request - text sits directly over
+			     whatever's already on screen (fanart etc.), matching Aeon Nox 5's own plain style
+			     instead of the original upstream popup-window chrome or a translucent overlay strip -->
+			<control type="button">
+				<description>background close area</description>
+				<left>-1920</left>
+				<top>-1080</top>
+				<width>5760</width>
+				<height>3240</height>
+				<texturefocus></texturefocus>
+				<texturenofocus></texturenofocus>
+				<onclick>Action(close)</onclick>
+			</control>
+			<control type="button">
+				<description>button overlay to avoid closing in dialog area</description>
+				<left>0</left>
+				<top>0</top>
+				<width>1900</width>
+				<height>1000</height>
+				<texturefocus></texturefocus>
+				<texturenofocus></texturenofocus>
+				<onclick>noop</onclick>
+			</control>
+			<control type="radiobutton">
+				<description>logo</description>
+				<left>1900</left>
+				<top>11</top>
+				<width>48</width>
+				<height>48</height>
+				<radiowidth>48</radiowidth>
+				<radioheight>48</radioheight>
+				<texturefocus></texturefocus>
+				<texturenofocus></texturenofocus>
+				<label></label>
+				<visible>false</visible>
+				<animation effect="slide" end="-70,0" time="0" condition="true">Conditional</animation>
+				<textureradioofffocus colordiffuse="EEFFFFFF">culrc-close.png</textureradioofffocus>
+				<textureradiooffnofocus colordiffuse="EEFFFFFF">culrc-logo-dc.png</textureradiooffnofocus>
+				<textureradioonfocus colordiffuse="EEFFFFFF">culrc-close.png</textureradioonfocus>
+				<textureradioonnofocus colordiffuse="EEFFFFFF">culrc-logo-dc.png</textureradioonnofocus>
+				<onclick>Action(close)</onclick>
+			</control>
+		</control>
+		<control type="label">
+			<left>0</left>
+			<top>30</top>
+			<width>1900</width>
+			<height>60</height>
+			<font>font_culrc_title</font>
+			<label>$INFO[MusicPlayer.Artist,, - ]$INFO[MusicPlayer.Title]</label>
+			<align>center</align>
+			<aligny>center</aligny>
+			<shadowcolor>black</shadowcolor>
+			<visible>false</visible>
+		</control>
+		<!-- ** Required ** Do not change <id> or <type> (Lyrics, will autoscroll if lrc based lyrics are shown) -->
+		<!-- kept invisible on purpose - gui.py's getControl(110)/selectItem()/addItem() still need a
+		     real list control to track "current line" against the LRC timestamps, but per user
+		     request this dialog shows ONLY that one current line (no scrolling list of surrounding
+		     lines, no background box behind it - matching Aeon Nox 5's own plain colored-text style),
+		     so nothing about this list is ever actually rendered. See the current-line labels below,
+		     which read Container(110)/(112).ListItem.Label - that infolabel reflects the selected
+		     item regardless of whether the control has real focus or is even visible. -->
+		<control type="list" id="110">
+			<left>20</left>
+			<top>140</top>
+			<width>920</width>
+			<height>720</height>
+			<visible>false</visible>
+			<itemlayout height="70"><control type="label"><width>920</width><height>70</height></control></itemlayout>
+			<focusedlayout height="70"><control type="label"><width>920</width><height>70</height></control></focusedlayout>
+		</control>
+		<!-- translation lines - mirrors id=110, see gui.py's _populate_translation_list()/_show_translation_synced()/_show_translation_block() -->
+		<control type="list" id="112">
+			<left>960</left>
+			<top>140</top>
+			<width>920</width>
+			<height>720</height>
+			<visible>false</visible>
+			<itemlayout height="70"><control type="label"><width>920</width><height>70</height></control></itemlayout>
+			<focusedlayout height="70"><control type="label"><width>920</width><height>70</height></control></focusedlayout>
+		</control>
+		<control type="image">
+			<description>divider between original lyrics and translation, only when translation is showing</description>
+			<left>950</left>
+			<top>300</top>
+			<width>2</width>
+			<height>400</height>
+			<texture colordiffuse="FF12B2E7">culrc-white70.png</texture>
+			<visible>!String.IsEmpty(Window(Home).Property(culrc.translation))</visible>
+		</control>
+		<!-- LICENSE NOTE: the entrance-animation choreography in this section (positions, timings,
+		     effect combinations for 15 of the 17 styles below) is adapted from Aeon Nox 5's own
+		     1080i/Includes_VideoLyrics.xml, (c) BigNoid, licensed CC BY-NC-SA 4.0
+		     (https://creativecommons.org/licenses/by-nc-sa/4.0/). This specific section is used
+		     under those terms (attribution, non-commercial, share-alike) - NOT this addon's own
+		     GPL-2.0-only license, since the choreography itself was ported, not just referenced.
+		     See this repository's README "License" section for the full explanation.
+		     current-line display - full faithful port of ALL 15 of Aeon Nox 5's own real entrance
+		     styles (positions, per-style color palettes, real font sizes from skin.aeon.nox.5's
+		     own Font.xml), PLUS 2 brand-new styles of our own (LyricsW "wiggle" and LyricsB
+		     "balloon pop", GPL-2.0-only, not derived from Aeon Nox 5). The trigger digit-matching
+		     was widened from Aeon Nox 5's own mod-15 to mod-17 so these 2 new styles get their
+		     own clean, non-overlapping slots instead of being layered onto an existing style -
+		     this means the exact line-to-style assignment now diverges from Aeon Nox 5's own
+		     sequence (deliberate tradeoff, agreed with user), but each of the 15 ported styles'
+		     own internal choreography is otherwise untouched/pure. Skipped Aeon Nox 5's 3x-copy
+		     manual drop-shadow trick in favor of this addon's existing shadowcolor attribute.
+		     34 distinct Aeon Nox 5 font tokens collapsed onto this addon's 12 legally-bundleable
+		     Google Font families (Exo2, Ranchers, Luckiest Guy - the 3 originals - plus Agbalumo,
+		     Alfa Slab One, Bangers, Bowlby One SC, Playball, Racing Sans One, Rubik Dirt,
+		     Staatliches, Titan One - see 1.28.0's news for why Aeon Nox 5's own actual fonts,
+		     e.g. Nasalization/Theboldfont/SF Distant Galaxy/BOXING/Geomancy, are excluded),
+		     cycled across styles, each at its own real per-token size where ported from Aeon
+		     Nox 5. Mod-17 digit matching guarantees consecutive line positions can never repeat
+		     a style (verified 0 collisions, 0 dead lines for currentitem values 1-300).
+		     Translation (Container 112) intentionally keeps its existing simpler single-style
+		     treatment, matching how Aeon Nox 5's own file only applies this system to the main
+		     lyric line too. -->
+			<control type="grouplist">
+				<left>1</left>
+				<top>200</top>
+				<width>1920</width>
+				<height>100</height>
+				<itemgap>10</itemgap>
+				<scrolltime>0</scrolltime>
+				<orientation>horizontal</orientation>
+				<align>center</align>
+		
+			<control type="label">
+				<visible>String.IsEqual(Container(110).Currentitem,1) | String.EndsWith(Container(110).Currentitem,18) | String.EndsWith(Container(110).Currentitem,35) | String.EndsWith(Container(110).Currentitem,52) | String.EndsWith(Container(110).Currentitem,69) | String.EndsWith(Container(110).Currentitem,86) | String.EndsWith(Container(110).Currentitem,03)</visible>
+				<animation type="Visible" reversible="false">
+					<effect type="slide" start="-200,0" end="0,0" tween="back" easing="out" time="300"/>
+					<effect type="zoom" start="25" end="100" tween="back" easing="out" time="500"/>
+				</animation>
+				<width>auto</width>
+				<height>100</height>
+				<label>$INFO[Container(110).ListItem.Property(part1)]</label>
+				<font>culrc_exo2_120</font>
+				<shadowcolor>black</shadowcolor>
+				<align>center</align>
+				<aligny>center</aligny>
+				<textcolor>FF69BBD3</textcolor>
+			</control>
+			<control type="label">
+				<animation type="Visible" reversible="false">
+					<effect type="slide" start="-200,0" end="0,0" tween="back" easing="out" time="600"/>
+					<effect type="zoom" start="25" end="100" tween="back" easing="out" time="800"/>
+				</animation>
+				<visible>String.IsEqual(Container(110).Currentitem,1) | String.EndsWith(Container(110).Currentitem,18) | String.EndsWith(Container(110).Currentitem,35) | String.EndsWith(Container(110).Currentitem,52) | String.EndsWith(Container(110).Currentitem,69) | String.EndsWith(Container(110).Currentitem,86) | String.EndsWith(Container(110).Currentitem,03)</visible>
+				<width>auto</width>
+				<height>100</height>
+				<label>$INFO[Container(110).ListItem.Property(part2)]</label>
+				<font>culrc_exo2_120</font>
+				<shadowcolor>black</shadowcolor>
+				<align>center</align>
+				<aligny>center</aligny>
+				<textcolor>FFE16B6B</textcolor>
+			</control>
+			<control type="label">
+				<visible>String.IsEqual(Container(110).Currentitem,1) | String.EndsWith(Container(110).Currentitem,18) | String.EndsWith(Container(110).Currentitem,35) | String.EndsWith(Container(110).Currentitem,52) | String.EndsWith(Container(110).Currentitem,69) | String.EndsWith(Container(110).Currentitem,86) | String.EndsWith(Container(110).Currentitem,03)</visible>
+				<animation type="Visible" reversible="false">
+					<effect type="slide" start="-200,0" end="0,0" tween="back" easing="out" time="900"/>
+					<effect type="zoom" start="25" end="100" tween="back" easing="out" time="1100"/>
+				</animation>
+				<width>auto</width>
+				<height>100</height>
+				<label>$INFO[Container(110).ListItem.Property(part3)]</label>
+				<font>culrc_exo2_120</font>
+				<shadowcolor>black</shadowcolor>
+				<align>center</align>
+				<aligny>center</aligny>
+				<textcolor>FFF8E950</textcolor>
+			</control>
+		
+				</control>
+
+		
+			<control type="group">
+				<left>513</left>
+				<top>227</top>
+				<visible>String.IsEqual(Container(110).Currentitem,1) | String.EndsWith(Container(110).Currentitem,18) | String.EndsWith(Container(110).Currentitem,35) | String.EndsWith(Container(110).Currentitem,52) | String.EndsWith(Container(110).Currentitem,69) | String.EndsWith(Container(110).Currentitem,86) | String.EndsWith(Container(110).Currentitem,03)</visible>
+				<animation type="Visible" reversible="false">
+					<effect type="slide" delay="300" start="-200,0" end="0,0" tween="back" easing="out" time="900"/>
+					<effect type="zoom" center="450,370" delay="300" start="25" end="100" tween="sine" easing="out" time="900"/>
+				</animation>
+				<control type="textbox">
+					<left>0</left>
+					<top>80</top>
+					<width>900</width>
+					<height>600</height>
+					<label>$INFO[Container(110).ListItem.Property(part4)]</label>
+					<font>culrc_ranchers_60</font>
+					<shadowcolor>black</shadowcolor>
+					<align>center</align>
+					<aligny>top</aligny>
+					<textcolor>FFFFFAF0</textcolor>
+				</control>
+			</control>
+		
+	
+		
+			<control type="group">
+				<top>251</top>
+				<left>1</left>
+				<control type="grouplist">
+					<left>0</left>
+					<top>-95</top>
+					<width>1920</width>
+					<height>125</height>
+					<itemgap>25</itemgap>
+					<scrolltime>0</scrolltime>
+					<orientation>horizontal</orientation>
+					<visible>true</visible>
+					<align>center</align>
+					<control type="label">
+						<visible>String.IsEqual(Container(110).Currentitem,2) | String.EndsWith(Container(110).Currentitem,19) | String.EndsWith(Container(110).Currentitem,36) | String.EndsWith(Container(110).Currentitem,53) | String.EndsWith(Container(110).Currentitem,70) | String.EndsWith(Container(110).Currentitem,87) | String.EndsWith(Container(110).Currentitem,04)</visible>
+						<animation type="Visible" reversible="false">
+							<effect type="zoom" center="auto" start="0" end="100" tween="sine" easing="out" time="700"/>
+						</animation>
+						<width>auto</width>
+						<height>125</height>
+						<label>$INFO[Container(110).ListItem.Property(part1)]</label>
+						<font>culrc_luckiestguy_120</font>
+						<shadowcolor>black</shadowcolor>
+						<align>center</align>
+						<aligny>center</aligny>
+						<textcolor>FF4CB050</textcolor>
+					</control>
+					<control type="label">
+						<visible>String.IsEqual(Container(110).Currentitem,2) | String.EndsWith(Container(110).Currentitem,19) | String.EndsWith(Container(110).Currentitem,36) | String.EndsWith(Container(110).Currentitem,53) | String.EndsWith(Container(110).Currentitem,70) | String.EndsWith(Container(110).Currentitem,87) | String.EndsWith(Container(110).Currentitem,04)</visible>
+						<animation type="Visible" reversible="false">
+							<effect type="zoom" center="auto" start="400" end="100" tween="sine" easing="out" time="700"/>
+						</animation>
+						<width>auto</width>
+						<height>125</height>
+						<label>$INFO[Container(110).ListItem.Property(part2)]</label>
+						<font>culrc_luckiestguy_120</font>
+						<align>center</align>
+						<aligny>center</aligny>
+						<textcolor>FFFEC106</textcolor>
+					</control>
+				</control>
+				<control type="grouplist">
+					<left>0</left>
+					<top>20</top>
+					<width>1920</width>
+					<height>600</height>
+					<itemgap>30</itemgap>
+					<scrolltime>0</scrolltime>
+					<orientation>horizontal</orientation>
+					<visible>true</visible>
+					<align>center</align>
+					<control type="label">
+						<visible>String.IsEqual(Container(110).Currentitem,2) | String.EndsWith(Container(110).Currentitem,19) | String.EndsWith(Container(110).Currentitem,36) | String.EndsWith(Container(110).Currentitem,53) | String.EndsWith(Container(110).Currentitem,70) | String.EndsWith(Container(110).Currentitem,87) | String.EndsWith(Container(110).Currentitem,04)</visible>
+						<animation type="Visible" reversible="false">
+							<effect type="zoom" center="auto" start="400" end="100" tween="sine" easing="out" time="700"/>
+						</animation>
+						<width>auto</width>
+						<height>125</height>
+						<label>$INFO[Container(110).ListItem.Property(part3)]</label>
+						<font>culrc_luckiestguy_120</font>
+						<shadowcolor>black</shadowcolor>
+						<align>right</align>
+						<aligny>top</aligny>
+						<textcolor>FF2095F4</textcolor>
+					</control>
+					<control type="label">
+						<width max="700">auto</width>
+						<height>600</height>
+						<wrapmultiline>true</wrapmultiline>
+						<visible>String.IsEqual(Container(110).Currentitem,2) | String.EndsWith(Container(110).Currentitem,19) | String.EndsWith(Container(110).Currentitem,36) | String.EndsWith(Container(110).Currentitem,53) | String.EndsWith(Container(110).Currentitem,70) | String.EndsWith(Container(110).Currentitem,87) | String.EndsWith(Container(110).Currentitem,04)</visible>
+						<animation effect="slide" end="0,10" condition="true">Conditional</animation>
+						<animation type="Visible" reversible="false">
+							<effect type="zoom" center="480,200" start="0" end="100" tween="sine" easing="out" time="700"/>
+						</animation>
+						<label>$INFO[Container(110).ListItem.Property(part4)]</label>
+						<font>culrc_agbalumo_58</font>
+						<shadowcolor>black</shadowcolor>
+						<align>left</align>
+						<aligny>top</aligny>
+						<textcolor>FFFFFAF0</textcolor>
+					</control>
+				</control>
+			</control>
+		
+	
+			<control type="grouplist">
+				<left>1</left>
+				<top>200</top>
+				<width>1920</width>
+				<height>120</height>
+				<itemgap>3</itemgap>
+				<scrolltime>0</scrolltime>
+				<orientation>horizontal</orientation>
+				<align>center</align>
+		
+			<control type="label">
+				<visible>String.IsEqual(Container(110).Currentitem,3) | String.EndsWith(Container(110).Currentitem,20) | String.EndsWith(Container(110).Currentitem,37) | String.EndsWith(Container(110).Currentitem,54) | String.EndsWith(Container(110).Currentitem,71) | String.EndsWith(Container(110).Currentitem,88) | String.EndsWith(Container(110).Currentitem,05)</visible>
+				<animation type="Visible" reversible="false">
+					<effect type="slide" start="100,-300" end="50,0" time="250" tween="back" easing="out"/>
+					<effect type="rotate" delay="900" center="auto" start="15" end="-10" time="200" tween="sine" easing="out"/>
+					<effect type="rotate" delay="1100" center="auto" end="10" time="200" tween="back" easing="out"/>
+					<effect type="slide" delay="900" end="-50,0" time="300" tween="back" easing="out"/>
+				</animation>
+				<width>auto</width>
+				<height>115</height>
+				<label>$INFO[Container(110).ListItem.Property(part1)]</label>
+				<font>culrc_alfaslabone_125</font>
+				<shadowcolor>black</shadowcolor>
+				<align>center</align>
+				<aligny>center</aligny>
+				<textcolor>FFFF9A32</textcolor>
+			</control>
+			<control type="label">
+				<visible>String.IsEqual(Container(110).Currentitem,3) | String.EndsWith(Container(110).Currentitem,20) | String.EndsWith(Container(110).Currentitem,37) | String.EndsWith(Container(110).Currentitem,54) | String.EndsWith(Container(110).Currentitem,71) | String.EndsWith(Container(110).Currentitem,88) | String.EndsWith(Container(110).Currentitem,05)</visible>
+				<animation type="Visible" reversible="false">
+					<effect type="slide" start="0,-300" end="0,0" time="500" tween="back" easing="out"/>
+					<effect type="rotate" delay="900" center="auto" start="-8" end="11" time="200" tween="sine" easing="out"/>
+					<effect type="rotate" delay="1100" center="auto" end="-11" time="250" tween="back" easing="out"/>
+				</animation>
+				<width>auto</width>
+				<height>115</height>
+				<label>$INFO[Container(110).ListItem.Property(part2)]</label>
+				<font>culrc_alfaslabone_125</font>
+				<shadowcolor>black</shadowcolor>
+				<align>center</align>
+				<aligny>center</aligny>
+				<textcolor>FFBCFB24</textcolor>
+			</control>
+			<control type="label">
+				<visible>String.IsEqual(Container(110).Currentitem,3) | String.EndsWith(Container(110).Currentitem,20) | String.EndsWith(Container(110).Currentitem,37) | String.EndsWith(Container(110).Currentitem,54) | String.EndsWith(Container(110).Currentitem,71) | String.EndsWith(Container(110).Currentitem,88) | String.EndsWith(Container(110).Currentitem,05)</visible>
+				<animation type="Visible" reversible="false">
+					<effect type="slide" start="-100,-300" end="-50,0" time="650" tween="back" easing="out"/>
+					<effect type="rotate" delay="900" center="auto" start="22" end="-12" time="200" tween="sine" easing="out"/>
+					<effect type="rotate" delay="1100" center="auto" end="12" time="300" tween="back" easing="out"/>
+					<effect type="slide" delay="900" end="50,0" time="350" tween="back" easing="out"/>
+				</animation>
+				<width>auto</width>
+				<height>115</height>
+				<label>$INFO[Container(110).ListItem.Property(part3)]</label>
+				<font>culrc_alfaslabone_125</font>
+				<shadowcolor>black</shadowcolor>
+				<align>center</align>
+				<aligny>center</aligny>
+				<textcolor>FF9A9699</textcolor>
+			</control>
+		
+				</control>
+
+		
+			<control type="group">
+				<left>513</left>
+				<top>233</top>
+				<visible>String.IsEqual(Container(110).Currentitem,3) | String.EndsWith(Container(110).Currentitem,20) | String.EndsWith(Container(110).Currentitem,37) | String.EndsWith(Container(110).Currentitem,54) | String.EndsWith(Container(110).Currentitem,71) | String.EndsWith(Container(110).Currentitem,88) | String.EndsWith(Container(110).Currentitem,05)</visible>
+				<animation type="Visible" reversible="false">
+					<effect type="slide" delay="700" start="0,250" end="0,0" time="350" tween="back"/>
+					<effect type="rotate" delay="700" center="auto" start="4" end="0" time="600" tween="bounce" easing="out"/>
+				</animation>
+				<control type="textbox">
+					<left>0</left>
+					<top>74</top>
+					<width>900</width>
+					<height>600</height>
+					<label>$INFO[Container(110).ListItem.Property(part4)]</label>
+					<font>culrc_bangers_62</font>
+					<shadowcolor>black</shadowcolor>
+					<align>center</align>
+					<aligny>top</aligny>
+					<textcolor>FFFFFAF0</textcolor>
+				</control>
+			</control>
+		
+	
+		
+			<control type="group">
+				<top>31</top>
+				<left>111</left>
+				<animation effect="rotate" center="auto" start="5" end="5" condition="true">Conditional</animation>
+				<control type="label">
+					<visible>String.IsEqual(Container(110).Currentitem,4) | String.EndsWith(Container(110).Currentitem,21) | String.EndsWith(Container(110).Currentitem,38) | String.EndsWith(Container(110).Currentitem,55) | String.EndsWith(Container(110).Currentitem,72) | String.EndsWith(Container(110).Currentitem,89) | String.EndsWith(Container(110).Currentitem,06)</visible>
+					<animation type="Visible" reversible="false">
+						<effect type="slide" end="0,-115" time="250" tween="sine" easing="out"/>
+						<effect type="slide" delay="300" end="0,-160" time="250" tween="sine" easing="out"/>
+						<effect type="slide" delay="600" end="-280,0" time="250" tween="sine" easing="out"/>
+						<effect type="slide" delay="1150" end="0,-160" time="250" tween="back" easing="out"/>
+					</animation>
+					<left>-30</left>
+					<top>520</top>
+					<width>1135</width>
+					<height>125</height>
+					<label>$INFO[Container(110).ListItem.Property(part1)]</label>
+					<font>culrc_bowlbyonesc_120</font>
+					<shadowcolor>black</shadowcolor>
+					<align>right</align>
+					<aligny>center</aligny>
+					<textcolor>FFFF4E50</textcolor>
+				</control>
+				<control type="label">
+					<left>-30</left>
+					<visible>String.IsEqual(Container(110).Currentitem,4) | String.EndsWith(Container(110).Currentitem,21) | String.EndsWith(Container(110).Currentitem,38) | String.EndsWith(Container(110).Currentitem,55) | String.EndsWith(Container(110).Currentitem,72) | String.EndsWith(Container(110).Currentitem,89) | String.EndsWith(Container(110).Currentitem,06)</visible>
+					<animation type="Visible" reversible="false">
+						<effect type="slide" delay="300" end="0,-160" time="250" tween="sine" easing="out"/>
+						<effect type="slide" delay="600" end="-280,0" time="250" tween="sine" easing="out"/>
+						<effect type="slide" delay="1150" end="0,-160" time="300" tween="back" easing="out"/>
+					</animation>
+					<top>520</top>
+					<width>1135</width>
+					<height>125</height>
+					<label>$INFO[Container(110).ListItem.Property(part2)]</label>
+					<font>culrc_bowlbyonesc_120</font>
+					<shadowcolor>black</shadowcolor>
+					<align>right</align>
+					<aligny>center</aligny>
+					<textcolor>FFFC913A</textcolor>
+				</control>
+				<control type="label">
+					<visible>String.IsEqual(Container(110).Currentitem,4) | String.EndsWith(Container(110).Currentitem,21) | String.EndsWith(Container(110).Currentitem,38) | String.EndsWith(Container(110).Currentitem,55) | String.EndsWith(Container(110).Currentitem,72) | String.EndsWith(Container(110).Currentitem,89) | String.EndsWith(Container(110).Currentitem,06)</visible>
+					<animation type="Visible" reversible="false">
+						<effect type="slide" delay="600" end="0,-160" time="250" tween="sine" easing="out"/>
+						<effect type="slide" delay="1150" end="0,-160" time="350" tween="back" easing="out"/>
+					</animation>
+					<left>795</left>
+					<top>520</top>
+					<width>1135</width>
+					<height>125</height>
+					<label>$INFO[Container(110).ListItem.Property(part3)]</label>
+					<font>culrc_bowlbyonesc_120</font>
+					<shadowcolor>black</shadowcolor>
+					<align>left</align>
+					<aligny>center</aligny>
+					<textcolor>FFF9D423</textcolor>
+				</control>
+				<control type="textbox">
+					<left>860</left>
+					<top>478</top>
+					<width>700</width>
+					<height>600</height>
+					<visible>String.IsEqual(Container(110).Currentitem,4) | String.EndsWith(Container(110).Currentitem,21) | String.EndsWith(Container(110).Currentitem,38) | String.EndsWith(Container(110).Currentitem,55) | String.EndsWith(Container(110).Currentitem,72) | String.EndsWith(Container(110).Currentitem,89) | String.EndsWith(Container(110).Currentitem,06)</visible>
+					<animation type="Visible" reversible="false">
+						<effect type="slide" delay="1100" end="0,-160" time="350" tween="back" easing="out"/>
+					</animation>
+					<label>$INFO[Container(110).ListItem.Property(part4)]</label>
+					<font>culrc_playball_54</font>
+					<shadowcolor>black</shadowcolor>
+					<align>left</align>
+					<aligny>top</aligny>
+					<textcolor>FFFFFAF0</textcolor>
+				</control>
+			</control>
+		
+	
+			<control type="grouplist">
+				<left>1951</left>
+				<top>100</top>
+				<width>1920</width>
+				<height>350</height>
+				<itemgap>10</itemgap>
+				<scrolltime>0</scrolltime>
+				<orientation>horizontal</orientation>
+				<align>center</align>
+		
+			<control type="label">
+				<visible>String.IsEqual(Container(110).Currentitem,5) | String.EndsWith(Container(110).Currentitem,22) | String.EndsWith(Container(110).Currentitem,39) | String.EndsWith(Container(110).Currentitem,56) | String.EndsWith(Container(110).Currentitem,73) | String.EndsWith(Container(110).Currentitem,90) | String.EndsWith(Container(110).Currentitem,07)</visible>
+				<animation type="Visible" reversible="false">
+					<effect type="slide" end="-1950,0" time="500" tween="sine" easing="out"/>
+				</animation>
+				<width>auto</width>
+				<height>350</height>
+				<label>$INFO[Container(110).ListItem.Property(part1)]</label>
+				<font>culrc_racingsansone_104</font>
+				<shadowcolor>black</shadowcolor>
+				<align>center</align>
+				<aligny>top</aligny>
+				<textcolor>FF00BFC0</textcolor>
+			</control>
+			<control type="label">
+				<visible>String.IsEqual(Container(110).Currentitem,5) | String.EndsWith(Container(110).Currentitem,22) | String.EndsWith(Container(110).Currentitem,39) | String.EndsWith(Container(110).Currentitem,56) | String.EndsWith(Container(110).Currentitem,73) | String.EndsWith(Container(110).Currentitem,90) | String.EndsWith(Container(110).Currentitem,07)</visible>
+				<animation type="Visible" reversible="false">
+					<effect type="slide" end="-150,70"/>
+					<effect type="slide" delay="100" end="-2000,0" time="500" tween="sine" easing="out"/>
+					<effect type="slide" delay="650" end="200,0" time="200" tween="sine" easing="out"/>
+				</animation>
+				<width>auto</width>
+				<height>350</height>
+				<label>$INFO[Container(110).ListItem.Property(part2)]</label>
+				<font>culrc_racingsansone_104</font>
+				<shadowcolor>black</shadowcolor>
+				<align>center</align>
+				<aligny>top</aligny>
+				<textcolor>FF98EA33</textcolor>
+			</control>
+			<control type="label">
+				<visible>String.IsEqual(Container(110).Currentitem,5) | String.EndsWith(Container(110).Currentitem,22) | String.EndsWith(Container(110).Currentitem,39) | String.EndsWith(Container(110).Currentitem,56) | String.EndsWith(Container(110).Currentitem,73) | String.EndsWith(Container(110).Currentitem,90) | String.EndsWith(Container(110).Currentitem,07)</visible>
+				<animation type="Visible" reversible="false">
+					<effect type="slide" end="-200,140"/>
+					<effect type="slide" delay="150" end="-1950,0" time="500" tween="sine" easing="out"/>
+					<effect type="slide" delay="700" end="200,0" time="250" tween="sine" easing="out"/>
+				</animation>
+				<width>auto</width>
+				<height>350</height>
+				<label>$INFO[Container(110).ListItem.Property(part3)]</label>
+				<font>culrc_racingsansone_104</font>
+				<shadowcolor>black</shadowcolor>
+				<align>center</align>
+				<aligny>top</aligny>
+				<textcolor>FFFFFAF0</textcolor>
+			</control>
+			<control type="label">
+				<wrapmultiline>true</wrapmultiline>
+				<visible>String.IsEqual(Container(110).Currentitem,5) | String.EndsWith(Container(110).Currentitem,22) | String.EndsWith(Container(110).Currentitem,39) | String.EndsWith(Container(110).Currentitem,56) | String.EndsWith(Container(110).Currentitem,73) | String.EndsWith(Container(110).Currentitem,90) | String.EndsWith(Container(110).Currentitem,07)</visible>
+				<animation type="Visible" reversible="false">
+					<effect type="slide" end="-250,196"/>
+					<effect type="slide" delay="250" end="-2100,0" time="500" tween="sine" easing="out"/>
+					<effect type="slide" delay="700" end="400,0" time="300" tween="sine" easing="out"/>
+				</animation>
+				<width min="100" max="700">auto</width>
+				<height>350</height>
+				<label>$INFO[Container(110).ListItem.Property(part4)]</label>
+				<font>culrc_rubikdirt_54</font>
+				<shadowcolor>black</shadowcolor>
+				<align>left</align>
+				<aligny>top</aligny>
+				<textcolor>FFDAA8EA</textcolor>
+			</control>
+		
+				</control>
+
+			<control type="grouplist">
+				<left>1</left>
+				<top>-200</top>
+				<width>1920</width>
+				<height>100</height>
+				<itemgap>10</itemgap>
+				<scrolltime>0</scrolltime>
+				<orientation>horizontal</orientation>
+				<align>center</align>
+		
+			<control type="label">
+				<visible>String.IsEqual(Container(110).Currentitem,6) | String.EndsWith(Container(110).Currentitem,23) | String.EndsWith(Container(110).Currentitem,40) | String.EndsWith(Container(110).Currentitem,57) | String.EndsWith(Container(110).Currentitem,74) | String.EndsWith(Container(110).Currentitem,91) | String.EndsWith(Container(110).Currentitem,08)</visible>
+				<animation type="Visible" reversible="false">
+					<effect type="slide" end="0,400" time="1000" tween="bounce" easing="out" />
+					<effect type="rotate" start="440" center="auto" end="360" time="1000" tween="cubic" easing="out" />
+				</animation>
+				<width>auto</width>
+				<height>100</height>
+				<label>$INFO[Container(110).ListItem.Property(part1)]</label>
+				<font>culrc_staatliches_120</font>
+				<shadowcolor>black</shadowcolor>
+				<align>center</align>
+				<aligny>center</aligny>
+				<textcolor>FFFF9C00</textcolor>
+			</control>
+			<control type="label">
+				<animation type="Visible" reversible="false">
+					<effect type="slide" delay="150" end="0,400" time="1000" tween="bounce" easing="out" />
+					<effect type="rotate" delay="150" start="440" center="auto" end="360" time="1000" tween="cubic" easing="out" />
+				</animation>
+				<visible>String.IsEqual(Container(110).Currentitem,6) | String.EndsWith(Container(110).Currentitem,23) | String.EndsWith(Container(110).Currentitem,40) | String.EndsWith(Container(110).Currentitem,57) | String.EndsWith(Container(110).Currentitem,74) | String.EndsWith(Container(110).Currentitem,91) | String.EndsWith(Container(110).Currentitem,08)</visible>
+				<width>auto</width>
+				<height>100</height>
+				<label>$INFO[Container(110).ListItem.Property(part2)]</label>
+				<font>culrc_staatliches_120</font>
+				<shadowcolor>black</shadowcolor>
+				<align>center</align>
+				<aligny>center</aligny>
+				<textcolor>FF86B8B1</textcolor>
+			</control>
+			<control type="label">
+				<visible>String.IsEqual(Container(110).Currentitem,6) | String.EndsWith(Container(110).Currentitem,23) | String.EndsWith(Container(110).Currentitem,40) | String.EndsWith(Container(110).Currentitem,57) | String.EndsWith(Container(110).Currentitem,74) | String.EndsWith(Container(110).Currentitem,91) | String.EndsWith(Container(110).Currentitem,08)</visible>
+				<animation type="Visible" reversible="false">
+					<effect type="slide" delay="300" end="0,400" time="1000" tween="bounce" easing="out" />
+					<effect type="rotate" delay="300" start="440" center="auto" end="360" time="1000" tween="cubic" easing="out" />
+				</animation>
+				<width>auto</width>
+				<height>100</height>
+				<label>$INFO[Container(110).ListItem.Property(part3)]</label>
+				<font>culrc_staatliches_120</font>
+				<shadowcolor>black</shadowcolor>
+				<align>center</align>
+				<aligny>center</aligny>
+				<textcolor>FFF2F26F</textcolor>
+			</control>
+		
+				</control>
+
+		
+			<control type="group">
+				<left>513</left>
+				<top>227</top>
+				<visible>String.IsEqual(Container(110).Currentitem,6) | String.EndsWith(Container(110).Currentitem,23) | String.EndsWith(Container(110).Currentitem,40) | String.EndsWith(Container(110).Currentitem,57) | String.EndsWith(Container(110).Currentitem,74) | String.EndsWith(Container(110).Currentitem,91) | String.EndsWith(Container(110).Currentitem,08)</visible>
+				<animation type="Visible" reversible="false">
+					<effect type="slide" delay="225" start="0,200" end="0,0" time="350" tween="back"/>
+				</animation>
+				<control type="textbox">
+					<left>0</left>
+					<top>80</top>
+					<width>900</width>
+					<height>600</height>
+					<label>$INFO[Container(110).ListItem.Property(part4)]</label>
+					<font>culrc_titanone_60</font>
+					<shadowcolor>black</shadowcolor>
+					<align>center</align>
+					<aligny>top</aligny>
+					<textcolor>FFFFFAF0</textcolor>
+				</control>
+			</control>
+		
+	
+		
+			<control type="group">
+				<top>1</top>
+				<left>11</left>
+				<control type="label">
+					<visible>String.IsEqual(Container(110).Currentitem,7) | String.EndsWith(Container(110).Currentitem,24) | String.EndsWith(Container(110).Currentitem,41) | String.EndsWith(Container(110).Currentitem,58) | String.EndsWith(Container(110).Currentitem,75) | String.EndsWith(Container(110).Currentitem,92) | String.EndsWith(Container(110).Currentitem,09)</visible>
+					<animation type="Visible" reversible="false">
+						<effect type="slide" end="0,-115" time="250" tween="sine" easing="out"/>
+						<effect type="slide" delay="300" end="0,-160" time="250" tween="sine" easing="out"/>
+						<effect type="slide" delay="600" end="0,-160" time="250" tween="sine" easing="out"/>
+						<effect type="slide" delay="1150" end="-200,0" time="250" tween="back" easing="out"/>
+					</animation>
+					<left>50</left>
+					<top>520</top>
+					<width>1200</width>
+					<height>125</height>
+					<label>$INFO[Container(110).ListItem.Property(part1)]</label>
+					<font>culrc_exo2_110</font>
+					<shadowcolor>black</shadowcolor>
+					<align>right</align>
+					<aligny>center</aligny>
+					<textcolor>FFEA80FC</textcolor>
+				</control>
+				<control type="label">
+					<left>50</left>
+					<visible>String.IsEqual(Container(110).Currentitem,7) | String.EndsWith(Container(110).Currentitem,24) | String.EndsWith(Container(110).Currentitem,41) | String.EndsWith(Container(110).Currentitem,58) | String.EndsWith(Container(110).Currentitem,75) | String.EndsWith(Container(110).Currentitem,92) | String.EndsWith(Container(110).Currentitem,09)</visible>
+					<animation type="Visible" reversible="false">
+						<effect type="slide" delay="300" end="0,-160" time="250" tween="sine" easing="out"/>
+						<effect type="slide" delay="600" end="0,-160" time="250" tween="sine" easing="out"/>
+						<effect type="slide" delay="1150" end="-200,0" time="300" tween="back" easing="out"/>
+					</animation>
+					<top>520</top>
+					<width>1200</width>
+					<height>125</height>
+					<label>$INFO[Container(110).ListItem.Property(part2)]</label>
+					<font>culrc_ranchers_155</font>
+					<shadowcolor>black</shadowcolor>
+					<align>right</align>
+					<aligny>center</aligny>
+					<textcolor>FFFFEB3B</textcolor>
+				</control>
+				<control type="label">
+					<visible>String.IsEqual(Container(110).Currentitem,7) | String.EndsWith(Container(110).Currentitem,24) | String.EndsWith(Container(110).Currentitem,41) | String.EndsWith(Container(110).Currentitem,58) | String.EndsWith(Container(110).Currentitem,75) | String.EndsWith(Container(110).Currentitem,92) | String.EndsWith(Container(110).Currentitem,09)</visible>
+					<animation type="Visible" reversible="false">
+						<effect type="zoom" delay="600" center="960,540" start="0" end="100" time="250" tween="sine" easing="out"/>
+						<effect type="slide" delay="1150" end="-200,0" time="350" tween="back" easing="out"/>
+					</animation>
+					<left>50</left>
+					<top>350</top>
+					<width>1200</width>
+					<height>125</height>
+					<label>$INFO[Container(110).ListItem.Property(part3)]</label>
+					<font>culrc_luckiestguy_205</font>
+					<shadowcolor>black</shadowcolor>
+					<align>right</align>
+					<aligny>center</aligny>
+					<textcolor>FF4DD0E1</textcolor>
+				</control>
+				<control type="textbox">
+					<left>1080</left>
+					<top>-15</top>
+					<width>525</width>
+					<height>600</height>
+					<visible>String.IsEqual(Container(110).Currentitem,7) | String.EndsWith(Container(110).Currentitem,24) | String.EndsWith(Container(110).Currentitem,41) | String.EndsWith(Container(110).Currentitem,58) | String.EndsWith(Container(110).Currentitem,75) | String.EndsWith(Container(110).Currentitem,92) | String.EndsWith(Container(110).Currentitem,09)</visible>
+					<animation type="Visible" reversible="false">
+						<effect type="zoom" delay="1100" center="auto" start="0" end="100" time="350" tween="back" easing="out"/>
+						<effect type="rotate" delay="1100" center="auto" start="4" end="0" time="600" tween="bounce" easing="out"/>
+					</animation>
+					<label>$INFO[Container(110).ListItem.Property(part4)]</label>
+					<font>culrc_agbalumo_60</font>
+					<shadowcolor>black</shadowcolor>
+					<align>left</align>
+					<aligny>center</aligny>
+					<textcolor>FFFFFAF0</textcolor>
+				</control>
+			</control>
+		
+	
+			<control type="grouplist">
+				<left>1</left>
+				<top>200</top>
+				<width>1920</width>
+				<height>140</height>
+				<itemgap>10</itemgap>
+				<scrolltime>0</scrolltime>
+				<orientation>horizontal</orientation>
+				<align>center</align>
+		
+			<control type="label">
+				<visible>String.IsEqual(Container(110).Currentitem,8) | String.EndsWith(Container(110).Currentitem,25) | String.EndsWith(Container(110).Currentitem,42) | String.EndsWith(Container(110).Currentitem,59) | String.EndsWith(Container(110).Currentitem,76) | String.EndsWith(Container(110).Currentitem,93)</visible>
+				<animation type="Visible" reversible="false">
+					<effect type="rotatey" center="0,0" start="90" end="0" time="450" tween="sine" easing="out"/>
+				</animation>
+				<width>auto</width>
+				<height>120</height>
+				<label>$INFO[Container(110).ListItem.Property(part1)]</label>
+				<font>culrc_alfaslabone_120</font>
+				<shadowcolor>black</shadowcolor>
+				<align>center</align>
+				<aligny>top</aligny>
+				<textcolor>FF4CB050</textcolor>
+			</control>
+			<control type="label">
+				<visible>String.IsEqual(Container(110).Currentitem,8) | String.EndsWith(Container(110).Currentitem,25) | String.EndsWith(Container(110).Currentitem,42) | String.EndsWith(Container(110).Currentitem,59) | String.EndsWith(Container(110).Currentitem,76) | String.EndsWith(Container(110).Currentitem,93)</visible>
+				<animation type="Visible" reversible="false">
+					<effect type="rotatex" center="0,0" start="90" end="0" time="600" tween="sine" easing="out"/>
+				</animation>
+				<width>auto</width>
+				<height>120</height>
+				<label>$INFO[Container(110).ListItem.Property(part2)]</label>
+				<font>culrc_alfaslabone_120</font>
+				<shadowcolor>black</shadowcolor>
+				<align>center</align>
+				<aligny>top</aligny>
+				<textcolor>FFFEC106</textcolor>
+			</control>
+			<control type="label">
+				<visible>String.IsEqual(Container(110).Currentitem,8) | String.EndsWith(Container(110).Currentitem,25) | String.EndsWith(Container(110).Currentitem,42) | String.EndsWith(Container(110).Currentitem,59) | String.EndsWith(Container(110).Currentitem,76) | String.EndsWith(Container(110).Currentitem,93)</visible>
+				<animation type="Visible" reversible="false">
+					<effect type="rotate" center="0,0" start="170" end="0" time="750" tween="sine" easing="out"/>
+				</animation>
+				<width>auto</width>
+				<height>120</height>
+				<label>$INFO[Container(110).ListItem.Property(part3)]</label>
+				<font>culrc_alfaslabone_120</font>
+				<shadowcolor>black</shadowcolor>
+				<align>center</align>
+				<aligny>top</aligny>
+				<textcolor>FF2095F4</textcolor>
+			</control>
+		
+				</control>
+
+		
+			<control type="group">
+				<left>513</left>
+				<top>273</top>
+				<visible>String.IsEqual(Container(110).Currentitem,8) | String.EndsWith(Container(110).Currentitem,25) | String.EndsWith(Container(110).Currentitem,42) | String.EndsWith(Container(110).Currentitem,59) | String.EndsWith(Container(110).Currentitem,76) | String.EndsWith(Container(110).Currentitem,93)</visible>
+				<animation type="Visible" reversible="false">
+					<effect type="slide" delay="750" start="-800,0" end="0,0" time="400" tween="back" easing="out"/>
+					<effect type="rotate" delay="750" center="auto" start="3" end="0" time="575" tween="bounce" easing="out"/>
+				</animation>
+				<control type="textbox">
+					<left>0</left>
+					<top>24</top>
+					<width>900</width>
+					<height>600</height>
+					<label>$INFO[Container(110).ListItem.Property(part4)]</label>
+					<font>culrc_bangers_54</font>
+					<shadowcolor>black</shadowcolor>
+					<align>center</align>
+					<aligny>top</aligny>
+					<textcolor>FFFFFAF0</textcolor>
+				</control>
+			</control>
+		
+	
+		
+			<control type="group">
+				<top>-19</top>
+				<left>21</left>
+				<control type="label">
+					<visible>String.IsEqual(Container(110).Currentitem,9) | String.EndsWith(Container(110).Currentitem,26) | String.EndsWith(Container(110).Currentitem,43) | String.EndsWith(Container(110).Currentitem,60) | String.EndsWith(Container(110).Currentitem,77) | String.EndsWith(Container(110).Currentitem,94)</visible>
+					<animation type="Visible" reversible="false">
+						<effect type="slide" delay="400" start="0,-400" end="0,0" time="250" tween="back" easing="out"/>
+						<effect type="rotate" center="720,270" delay="900" start="35" end="0" time="250" tween="back" easing="out"/>
+					</animation>
+					<left>0</left>
+					<top>395</top>
+					<width>940</width>
+					<height>125</height>
+					<label>$INFO[Container(110).ListItem.Property(part3)]</label>
+					<font>culrc_bowlbyonesc_130</font>
+					<shadowcolor>black</shadowcolor>
+					<align>right</align>
+					<aligny>center</aligny>
+					<textcolor>FFFB8C00</textcolor>
+				</control>
+				<control type="label">
+					<left>0</left>
+					<visible>String.IsEqual(Container(110).Currentitem,9) | String.EndsWith(Container(110).Currentitem,26) | String.EndsWith(Container(110).Currentitem,43) | String.EndsWith(Container(110).Currentitem,60) | String.EndsWith(Container(110).Currentitem,77) | String.EndsWith(Container(110).Currentitem,94)</visible>
+					<animation type="Visible" reversible="false">
+						<effect type="slide" delay="150" start="0,-400" end="0,0" time="350" tween="back" easing="out"/>
+						<effect type="rotate" center="720,270" delay="900" start="35" end="0" time="300" tween="back" easing="out"/>
+					</animation>
+					<top>270</top>
+					<width>940</width>
+					<height>125</height>
+					<label>$INFO[Container(110).ListItem.Property(part2)]</label>
+					<font>culrc_bowlbyonesc_130</font>
+					<shadowcolor>black</shadowcolor>
+					<align>right</align>
+					<aligny>center</aligny>
+					<textcolor>FFFFFAF0</textcolor>
+				</control>
+				<control type="label">
+					<visible>String.IsEqual(Container(110).Currentitem,9) | String.EndsWith(Container(110).Currentitem,26) | String.EndsWith(Container(110).Currentitem,43) | String.EndsWith(Container(110).Currentitem,60) | String.EndsWith(Container(110).Currentitem,77) | String.EndsWith(Container(110).Currentitem,94)</visible>
+					<animation type="Visible" reversible="false">
+						<effect type="slide" start="0,-400" end="0,0" time="250" tween="back" easing="out"/>
+						<effect type="rotate" center="720,270" delay="900" start="35" end="0" time="350" tween="back" easing="out"/>
+					</animation>
+					<left>0</left>
+					<top>145</top>
+					<width>940</width>
+					<height>125</height>
+					<label>$INFO[Container(110).ListItem.Property(part1)]</label>
+					<font>culrc_bowlbyonesc_130</font>
+					<shadowcolor>black</shadowcolor>
+					<align>right</align>
+					<aligny>center</aligny>
+					<textcolor>FF00E676</textcolor>
+				</control>
+				<control type="textbox">
+					<left>960</left>
+					<top>30</top>
+					<width>600</width>
+					<height>600</height>
+					<visible>String.IsEqual(Container(110).Currentitem,9) | String.EndsWith(Container(110).Currentitem,26) | String.EndsWith(Container(110).Currentitem,43) | String.EndsWith(Container(110).Currentitem,60) | String.EndsWith(Container(110).Currentitem,77) | String.EndsWith(Container(110).Currentitem,94)</visible>
+					<animation type="Visible" reversible="false">
+						<effect type="slide" delay="700" start="600,0" end="0,0" time="350" tween="back"/>
+						<effect type="rotate" delay="700" center="auto" start="4" end="0" time="600" tween="bounce" easing="out"/>
+					</animation>
+					<label>$INFO[Container(110).ListItem.Property(part4)]</label>
+					<font>culrc_playball_58</font>
+					<shadowcolor>black</shadowcolor>
+					<align>left</align>
+					<aligny>center</aligny>
+					<textcolor>FFB39DDB</textcolor>
+				</control>
+			</control>
+		
+	
+		
+			<control type="group">
+				<top>151</top>
+				<left>1</left>
+				<control type="label">
+					<visible>String.EndsWith(Container(110).Currentitem,10) | String.EndsWith(Container(110).Currentitem,27) | String.EndsWith(Container(110).Currentitem,44) | String.EndsWith(Container(110).Currentitem,61) | String.EndsWith(Container(110).Currentitem,78) | String.EndsWith(Container(110).Currentitem,95)</visible>
+					<animation type="Visible" reversible="false">
+						<effect type="zoom" center="auto" start="400" end="100" tween="back" easing="out" time="350"/>
+						<effect type="slide" delay="800" start="0,0" end="0,-200" time="350" tween="back" easing="out"/>
+					</animation>
+					<left>0</left>
+					<top>154</top>
+					<width>1920</width>
+					<height>115</height>
+					<label>$INFO[Container(110).ListItem.Property(part1)]</label>
+					<font>culrc_racingsansone_120</font>
+					<shadowcolor>black</shadowcolor>
+					<align>center</align>
+					<aligny>center</aligny>
+					<textcolor>FFFF9800</textcolor>
+				</control>
+				<control type="grouplist">
+					<left>0</left>
+					<top>260</top>
+					<width>1920</width>
+					<height>125</height>
+					<itemgap>35</itemgap>
+					<scrolltime>0</scrolltime>
+					<orientation>horizontal</orientation>
+					<visible>true</visible>
+					<align>center</align>
+					<control type="label">
+						<visible>String.EndsWith(Container(110).Currentitem,10) | String.EndsWith(Container(110).Currentitem,27) | String.EndsWith(Container(110).Currentitem,44) | String.EndsWith(Container(110).Currentitem,61) | String.EndsWith(Container(110).Currentitem,78) | String.EndsWith(Container(110).Currentitem,95)</visible>
+						<animation type="Visible" reversible="false">
+							<effect type="zoom" center="auto" start="400" end="100" tween="back" easing="out" time="550"/>
+							<effect type="slide" delay="800" start="0,0" end="0,-200" time="400" tween="back" easing="out"/>
+						</animation>
+						<width>auto</width>
+						<height>125</height>
+						<label>$INFO[Container(110).ListItem.Property(part2)]</label>
+						<font>culrc_racingsansone_120</font>
+						<shadowcolor>black</shadowcolor>
+						<align>center</align>
+						<aligny>center</aligny>
+						<textcolor>FF00BCD4</textcolor>
+					</control>
+					<control type="label">
+						<visible>String.EndsWith(Container(110).Currentitem,10) | String.EndsWith(Container(110).Currentitem,27) | String.EndsWith(Container(110).Currentitem,44) | String.EndsWith(Container(110).Currentitem,61) | String.EndsWith(Container(110).Currentitem,78) | String.EndsWith(Container(110).Currentitem,95)</visible>
+						<animation type="Visible" reversible="false">
+							<effect type="zoom" center="auto" start="400" end="100" tween="back" easing="out" time="750"/>
+							<effect type="slide" delay="800" start="0,0" end="0,-200" time="450" tween="back" easing="out"/>
+						</animation>
+						<width>auto</width>
+						<height>125</height>
+						<label>$INFO[Container(110).ListItem.Property(part3)]</label>
+						<font>culrc_racingsansone_120</font>
+						<shadowcolor>black</shadowcolor>
+						<align>center</align>
+						<aligny>center</aligny>
+						<textcolor>FFFFFAF0</textcolor>
+					</control>
+				</control>
+				<control type="textbox">
+					<left>610</left>
+					<top>178</top>
+					<width>700</width>
+					<height>600</height>
+					<visible>String.EndsWith(Container(110).Currentitem,10) | String.EndsWith(Container(110).Currentitem,27) | String.EndsWith(Container(110).Currentitem,44) | String.EndsWith(Container(110).Currentitem,61) | String.EndsWith(Container(110).Currentitem,78) | String.EndsWith(Container(110).Currentitem,95)</visible>
+					<animation type="Visible" reversible="false">
+						<effect type="slide" delay="1150" start="400,0" end="0,0" time="200" tween="sine" easing="out"/>
+						<effect type="rotate" delay="1150" center="auto" start="4" end="0" time="600" tween="bounce" easing="out"/>
+					</animation>
+					<label>$INFO[Container(110).ListItem.Property(part4)]</label>
+					<font>culrc_rubikdirt_52</font>
+					<shadowcolor>black</shadowcolor>
+					<align>center</align>
+					<aligny>top</aligny>
+					<textcolor>FFF29AB8</textcolor>
+				</control>
+			</control>
+		
+	
+		
+			<control type="group">
+				<top>251</top>
+				<left>1</left>
+				<control type="grouplist">
+					<animation type="Visible" reversible="false">
+						<effect type="slide" start="0,-200" end="0,0" time="200"/>
+					</animation>
+					<visible>String.EndsWith(Container(110).Currentitem,11) | String.EndsWith(Container(110).Currentitem,28) | String.EndsWith(Container(110).Currentitem,45) | String.EndsWith(Container(110).Currentitem,62) | String.EndsWith(Container(110).Currentitem,79) | String.EndsWith(Container(110).Currentitem,96)</visible>
+					<left>0</left>
+					<top>-95</top>
+					<width>1920</width>
+					<height>125</height>
+					<itemgap>25</itemgap>
+					<scrolltime>0</scrolltime>
+					<orientation>horizontal</orientation>
+					<visible>true</visible>
+					<align>center</align>
+					<control type="label">
+						<width>auto</width>
+						<height>125</height>
+						<label>$INFO[Container(110).ListItem.Property(part1)]</label>
+						<font>culrc_staatliches_60</font>
+						<shadowcolor>black</shadowcolor>
+						<align>center</align>
+						<aligny>center</aligny>
+						<textcolor>FFFAB649</textcolor>
+					</control>
+					<control type="label">
+						<width>auto</width>
+						<height>125</height>
+						<label>$INFO[Container(110).ListItem.Property(part2)]</label>
+						<font>culrc_titanone_120</font>
+						<align>center</align>
+						<aligny>center</aligny>
+						<textcolor>00fFFFFF</textcolor>
+					</control>
+				</control>
+				<control type="grouplist">
+					<visible>String.EndsWith(Container(110).Currentitem,11) | String.EndsWith(Container(110).Currentitem,28) | String.EndsWith(Container(110).Currentitem,45) | String.EndsWith(Container(110).Currentitem,62) | String.EndsWith(Container(110).Currentitem,79) | String.EndsWith(Container(110).Currentitem,96)</visible>
+					<animation type="Visible" reversible="false">
+						<effect type="slide" delay="250" start="400,0" end="0,0" time="200"/>
+					</animation>
+					<left>0</left>
+					<top>-95</top>
+					<width>1920</width>
+					<height>125</height>
+					<itemgap>25</itemgap>
+					<scrolltime>0</scrolltime>
+					<orientation>horizontal</orientation>
+					<visible>true</visible>
+					<align>center</align>
+					<control type="label">
+						<width>auto</width>
+						<height>125</height>
+						<label>$INFO[Container(110).ListItem.Property(part1)]</label>
+						<font>culrc_staatliches_60</font>
+						<align>center</align>
+						<aligny>center</aligny>
+						<textcolor>00fFFFFF</textcolor>
+					</control>
+					<control type="label">
+						<width>auto</width>
+						<height>125</height>
+						<label>$INFO[Container(110).ListItem.Property(part2)]</label>
+						<font>culrc_titanone_120</font>
+						<shadowcolor>black</shadowcolor>
+						<align>center</align>
+						<aligny>center</aligny>
+						<textcolor>FFEF4051</textcolor>
+					</control>
+				</control>
+				<control type="grouplist">
+					<visible>String.EndsWith(Container(110).Currentitem,11) | String.EndsWith(Container(110).Currentitem,28) | String.EndsWith(Container(110).Currentitem,45) | String.EndsWith(Container(110).Currentitem,62) | String.EndsWith(Container(110).Currentitem,79) | String.EndsWith(Container(110).Currentitem,96)</visible>
+					<animation type="Visible" reversible="false">
+						<effect type="slide" delay="500" start="-400,0" end="0,0" time="200"/>
+					</animation>
+					<left>0</left>
+					<top>15</top>
+					<width>1920</width>
+					<height>600</height>
+					<itemgap>40</itemgap>
+					<scrolltime>0</scrolltime>
+					<orientation>horizontal</orientation>
+					<visible>true</visible>
+					<align>center</align>
+					<control type="label">
+						<width>auto</width>
+						<height>125</height>
+						<label>$INFO[Container(110).ListItem.Property(part3)]</label>
+						<font>culrc_titanone_120</font>
+						<shadowcolor>black</shadowcolor>
+						<align>right</align>
+						<aligny>top</aligny>
+						<textcolor>FF52BBB7</textcolor>
+					</control>
+					<control type="label">
+						<animation effect="slide" end="0,10" condition="true">Conditional</animation>
+						<width max="700">auto</width>
+						<height>600</height>
+						<wrapmultiline>true</wrapmultiline>
+						<label>$INFO[Container(110).ListItem.Property(part4)]</label>
+						<font>culrc_staatliches_60</font>
+						<align>left</align>
+						<aligny>top</aligny>
+						<textcolor>00ffffff</textcolor>
+					</control>
+				</control>
+				<control type="grouplist">
+					<visible>String.EndsWith(Container(110).Currentitem,11) | String.EndsWith(Container(110).Currentitem,28) | String.EndsWith(Container(110).Currentitem,45) | String.EndsWith(Container(110).Currentitem,62) | String.EndsWith(Container(110).Currentitem,79) | String.EndsWith(Container(110).Currentitem,96)</visible>
+					<animation type="Visible" reversible="false">
+						<effect type="slide" delay="750" start="0,200" end="0,0" time="200"/>
+					</animation>
+					<left>0</left>
+					<top>30</top>
+					<width>1920</width>
+					<height>600</height>
+					<itemgap>40</itemgap>
+					<scrolltime>0</scrolltime>
+					<orientation>horizontal</orientation>
+					<visible>true</visible>
+					<align>center</align>
+					<control type="label">
+						<width>auto</width>
+						<height>125</height>
+						<label>$INFO[Container(110).ListItem.Property(part3)]</label>
+						<font>culrc_titanone_120</font>
+						<align>right</align>
+						<aligny>top</aligny>
+						<textcolor>00ffffff</textcolor>
+					</control>
+					<control type="label">
+						<animation effect="slide" end="0,10" condition="true">Conditional</animation>
+						<width max="700">auto</width>
+						<height>600</height>
+						<wrapmultiline>true</wrapmultiline>
+						<label>$INFO[Container(110).ListItem.Property(part4)]</label>
+						<font>culrc_staatliches_60</font>
+						<shadowcolor>black</shadowcolor>
+						<align>left</align>
+						<aligny>top</aligny>
+						<textcolor>FF84EFBB</textcolor>
+					</control>
+				</control>
+			</control>
+		
+	
+		
+			<control type="group">
+				<top>1</top>
+				<left>11</left>
+				<control type="label">
+					<visible>String.EndsWith(Container(110).Currentitem,12) | String.EndsWith(Container(110).Currentitem,29) | String.EndsWith(Container(110).Currentitem,46) | String.EndsWith(Container(110).Currentitem,63) | String.EndsWith(Container(110).Currentitem,80) | String.EndsWith(Container(110).Currentitem,97)</visible>
+					<animation type="Visible" reversible="false">
+						<effect type="zoom" center="auto" start="0" end="100" time="200"/>
+					</animation>
+					<left>40</left>
+					<top>5</top>
+					<width>1820</width>
+					<height>400</height>
+					<label>$INFO[Container(110).ListItem.Property(part1)]</label>
+					<font>culrc_exo2_275</font>
+					<shadowcolor>black</shadowcolor>
+					<scroll>true</scroll>
+					<scrollspeed>100</scrollspeed>
+					<scrollsuffix></scrollsuffix>
+					<align>center</align>
+					<aligny>top</aligny>
+					<textcolor>FFEA80FC</textcolor>
+				</control>
+			</control>
+		
+	
+		
+			<control type="grouplist">
+				<top>181</top>
+				<left>11</left>
+				<width>1900</width>
+				<height>350</height>
+				<itemgap>45</itemgap>
+				<scrolltime>0</scrolltime>
+				<orientation>horizontal</orientation>
+				<visible>true</visible>
+				<align>center</align>
+				<control type="label">
+					<visible>String.EndsWith(Container(110).Currentitem,12) | String.EndsWith(Container(110).Currentitem,29) | String.EndsWith(Container(110).Currentitem,46) | String.EndsWith(Container(110).Currentitem,63) | String.EndsWith(Container(110).Currentitem,80) | String.EndsWith(Container(110).Currentitem,97)</visible>
+					<width>auto</width>
+					<height>350</height>
+					<label>$INFO[Container(110).ListItem.Property(part2)]</label>
+					<font>culrc_ranchers_165</font>
+					<align>center</align>
+					<aligny>top</aligny>
+					<textcolor>00fFFFFF</textcolor>
+				</control>
+				<control type="label">
+					<visible>String.EndsWith(Container(110).Currentitem,12) | String.EndsWith(Container(110).Currentitem,29) | String.EndsWith(Container(110).Currentitem,46) | String.EndsWith(Container(110).Currentitem,63) | String.EndsWith(Container(110).Currentitem,80) | String.EndsWith(Container(110).Currentitem,97)</visible>
+					<animation type="Visible" reversible="false">
+						<effect type="zoom" delay="500" center="auto" start="0" end="100" time="200"/>
+					</animation>
+					<width>auto</width>
+					<height>350</height>
+					<label>$INFO[Container(110).ListItem.Property(part3)]</label>
+					<font>culrc_luckiestguy_220</font>
+					<shadowcolor>black</shadowcolor>
+					<align>center</align>
+					<aligny>center</aligny>
+					<textcolor>FF4DD0E1</textcolor>
+				</control>
+			</control>
+			<control type="grouplist">
+				<top>181</top>
+				<left>11</left>
+				<width>1900</width>
+				<height>350</height>
+				<itemgap>45</itemgap>
+				<scrolltime>0</scrolltime>
+				<orientation>horizontal</orientation>
+				<visible>true</visible>
+				<align>center</align>
+				<control type="label">
+					<visible>String.EndsWith(Container(110).Currentitem,12) | String.EndsWith(Container(110).Currentitem,29) | String.EndsWith(Container(110).Currentitem,46) | String.EndsWith(Container(110).Currentitem,63) | String.EndsWith(Container(110).Currentitem,80) | String.EndsWith(Container(110).Currentitem,97)</visible>
+					<animation type="Visible" reversible="false">
+						<effect type="zoom" delay="250" center="auto" start="0" end="100" time="200"/>
+					</animation>
+					<width>auto</width>
+					<height>350</height>
+					<label>$INFO[Container(110).ListItem.Property(part2)]</label>
+					<font>culrc_ranchers_165</font>
+					<shadowcolor>black</shadowcolor>
+					<align>center</align>
+					<aligny>top</aligny>
+					<textcolor>FFFFEB3B</textcolor>
+				</control>
+				<control type="label">
+					<visible>String.EndsWith(Container(110).Currentitem,12) | String.EndsWith(Container(110).Currentitem,29) | String.EndsWith(Container(110).Currentitem,46) | String.EndsWith(Container(110).Currentitem,63) | String.EndsWith(Container(110).Currentitem,80) | String.EndsWith(Container(110).Currentitem,97)</visible>
+					<width>auto</width>
+					<height>350</height>
+					<label>$INFO[Container(110).ListItem.Property(part3)]</label>
+					<font>culrc_luckiestguy_220</font>
+					<align>center</align>
+					<aligny>center</aligny>
+					<textcolor>00fFFFFF</textcolor>
+				</control>
+			</control>
+		
+	
+		
+			<control type="group">
+				<top>1</top>
+				<left>11</left>
+				<control type="textbox">
+					<left>600</left>
+					<top>390</top>
+					<width>700</width>
+					<height>600</height>
+					<visible>String.EndsWith(Container(110).Currentitem,12) | String.EndsWith(Container(110).Currentitem,29) | String.EndsWith(Container(110).Currentitem,46) | String.EndsWith(Container(110).Currentitem,63) | String.EndsWith(Container(110).Currentitem,80) | String.EndsWith(Container(110).Currentitem,97)</visible>
+					<animation type="Visible" reversible="false">
+						<effect type="zoom" delay="800" center="960,400" start="0" end="100" time="200"/>
+					</animation>
+					<label>$INFO[Container(110).ListItem.Property(part4)]</label>
+					<font>culrc_agbalumo_58</font>
+					<shadowcolor>black</shadowcolor>
+					<align>center</align>
+					<aligny>top</aligny>
+					<textcolor>FFFFFAF0</textcolor>
+				</control>
+			</control>
+		
+	
+			<control type="grouplist">
+				<left>1</left>
+				<top>200</top>
+				<width>1920</width>
+				<height>125</height>
+				<itemgap>10</itemgap>
+				<scrolltime>0</scrolltime>
+				<orientation>horizontal</orientation>
+				<align>center</align>
+		
+			<control type="label">
+				<visible>String.EndsWith(Container(110).Currentitem,13) | String.EndsWith(Container(110).Currentitem,30) | String.EndsWith(Container(110).Currentitem,47) | String.EndsWith(Container(110).Currentitem,64) | String.EndsWith(Container(110).Currentitem,81) | String.EndsWith(Container(110).Currentitem,98)</visible>
+				<animation type="Visible" reversible="false">
+					<effect type="zoom" center="auto" start="25" end="100" time="300"/>
+					<effect type="rotate" center="auto" start="360" end="0" time="300" tween="sine" easing="out"/>
+				</animation>
+				<width>auto</width>
+				<height>120</height>
+				<label>$INFO[Container(110).ListItem.Property(part1)]</label>
+				<font>culrc_alfaslabone_120</font>
+				<shadowcolor>black</shadowcolor>
+				<align>center</align>
+				<aligny>top</aligny>
+				<textcolor>FF00BFC0</textcolor>
+			</control>
+			<control type="label">
+				<visible>String.EndsWith(Container(110).Currentitem,13) | String.EndsWith(Container(110).Currentitem,30) | String.EndsWith(Container(110).Currentitem,47) | String.EndsWith(Container(110).Currentitem,64) | String.EndsWith(Container(110).Currentitem,81) | String.EndsWith(Container(110).Currentitem,98)</visible>
+				<animation type="Visible" reversible="false">
+					<effect type="zoom" center="auto" start="25" end="100" time="500"/>
+					<effect type="rotate" center="auto" start="450" end="0" time="500" tween="sine" easing="out"/>
+				</animation>
+				<width>auto</width>
+				<height>120</height>
+				<label>$INFO[Container(110).ListItem.Property(part2)]</label>
+				<font>culrc_alfaslabone_120</font>
+				<shadowcolor>black</shadowcolor>
+				<align>center</align>
+				<aligny>top</aligny>
+				<textcolor>FF98EA33</textcolor>
+			</control>
+			<control type="label">
+				<visible>String.EndsWith(Container(110).Currentitem,13) | String.EndsWith(Container(110).Currentitem,30) | String.EndsWith(Container(110).Currentitem,47) | String.EndsWith(Container(110).Currentitem,64) | String.EndsWith(Container(110).Currentitem,81) | String.EndsWith(Container(110).Currentitem,98)</visible>
+				<animation type="Visible" reversible="false">
+					<effect type="zoom" center="auto" start="25" end="100" time="600"/>
+					<effect type="rotate" center="auto" start="540" end="0" time="700" tween="sine" easing="out"/>
+				</animation>
+				<width>auto</width>
+				<height>120</height>
+				<label>$INFO[Container(110).ListItem.Property(part3)]</label>
+				<font>culrc_alfaslabone_120</font>
+				<shadowcolor>black</shadowcolor>
+				<align>center</align>
+				<aligny>top</aligny>
+				<textcolor>FFF7F6E4</textcolor>
+			</control>
+		
+				</control>
+
+		
+			<control type="group">
+				<left>513</left>
+				<top>223</top>
+				<visible>String.EndsWith(Container(110).Currentitem,13) | String.EndsWith(Container(110).Currentitem,30) | String.EndsWith(Container(110).Currentitem,47) | String.EndsWith(Container(110).Currentitem,64) | String.EndsWith(Container(110).Currentitem,81) | String.EndsWith(Container(110).Currentitem,98)</visible>
+				<animation type="Visible" reversible="false">
+					<effect type="zoom" center="450,370" delay="700" start="25" end="100" tween="sine" easing="out" time="300"/>
+				</animation>
+				<control type="textbox">
+					<left>0</left>
+					<top>82</top>
+					<width>900</width>
+					<height>600</height>
+					<label>$INFO[Container(110).ListItem.Property(part4)]</label>
+					<font>culrc_bangers_62</font>
+					<shadowcolor>black</shadowcolor>
+					<align>center</align>
+					<aligny>top</aligny>
+					<textcolor>FFDAA8EA</textcolor>
+				</control>
+			</control>
+		
+	
+			<control type="grouplist">
+				<left>1</left>
+				<top>170</top>
+				<width>2020</width>
+				<height>350</height>
+				<itemgap>20</itemgap>
+				<scrolltime>0</scrolltime>
+				<orientation>horizontal</orientation>
+				<align>center</align>
+		
+			<control type="label">
+				<animation effect="rotate" center="auto" start="4" end="4" condition="true">Conditional</animation>
+				<visible>String.EndsWith(Container(110).Currentitem,14) | String.EndsWith(Container(110).Currentitem,31) | String.EndsWith(Container(110).Currentitem,48) | String.EndsWith(Container(110).Currentitem,65) | String.EndsWith(Container(110).Currentitem,82) | String.EndsWith(Container(110).Currentitem,99)</visible>
+				<animation type="Visible" reversible="false">
+					<effect type="slide" end="0,-400"/>
+					<effect type="slide" delay="100" end="0,400" time="10"/>
+					<effect type="fade" delay="100" start="0" end="100" time="250"/>
+					<effect type="zoom" delay="100" start="0" end="100" time="250" tween="back" easing="out"/>
+				</animation>
+				<width>auto</width>
+				<height>350</height>
+				<label>$INFO[Container(110).ListItem.Property(part1)]</label>
+				<font>culrc_bowlbyonesc_140</font>
+				<align>center</align>
+				<aligny>top</aligny>
+				<textcolor>FFFF9800</textcolor>
+			</control>
+			<control type="label">
+				<animation effect="rotate" center="auto" start="-4" end="-4" condition="true">Conditional</animation>
+				<visible>String.EndsWith(Container(110).Currentitem,14) | String.EndsWith(Container(110).Currentitem,31) | String.EndsWith(Container(110).Currentitem,48) | String.EndsWith(Container(110).Currentitem,65) | String.EndsWith(Container(110).Currentitem,82) | String.EndsWith(Container(110).Currentitem,99)</visible>
+				<animation type="Visible" reversible="false">
+					<effect type="slide" end="-10,-400"/>
+					<effect type="slide" delay="450" end="0,390" time="10"/>
+					<effect type="fade" delay="450" start="0" end="100" time="250"/>
+					<effect type="zoom" delay="450" start="0" end="100" time="250" tween="back" easing="out"/>
+				</animation>
+				<width>auto</width>
+				<height>350</height>
+				<label>$INFO[Container(110).ListItem.Property(part2)]</label>
+				<font>culrc_bowlbyonesc_140</font>
+				<align>center</align>
+				<aligny>top</aligny>
+				<textcolor>FFFFFAF0</textcolor>
+			</control>
+			<control type="label">
+				<animation effect="rotate" center="auto" start="4" end="4" condition="true">Conditional</animation>
+				<visible>String.EndsWith(Container(110).Currentitem,14) | String.EndsWith(Container(110).Currentitem,31) | String.EndsWith(Container(110).Currentitem,48) | String.EndsWith(Container(110).Currentitem,65) | String.EndsWith(Container(110).Currentitem,82) | String.EndsWith(Container(110).Currentitem,99)</visible>
+				<animation type="Visible" reversible="false">
+					<effect type="slide" end="0,-400"/>
+					<effect type="slide" delay="800" end="0,410" time="10"/>
+					<effect type="fade" delay="800" start="0" end="100" time="250"/>
+					<effect type="zoom" delay="800" start="0" end="100" time="250" tween="back" easing="out"/>
+				</animation>
+				<width>auto</width>
+				<height>350</height>
+				<label>$INFO[Container(110).ListItem.Property(part3)]</label>
+				<font>culrc_bowlbyonesc_140</font>
+				<align>center</align>
+				<aligny>top</aligny>
+				<textcolor>FF00BCD4</textcolor>
+			</control>
+		
+				</control>
+
+		
+			<control type="textbox">
+				<left>611</left>
+				<top>341</top>
+				<visible>String.EndsWith(Container(110).Currentitem,14) | String.EndsWith(Container(110).Currentitem,31) | String.EndsWith(Container(110).Currentitem,48) | String.EndsWith(Container(110).Currentitem,65) | String.EndsWith(Container(110).Currentitem,82) | String.EndsWith(Container(110).Currentitem,99)</visible>
+				<animation type="Visible" reversible="false">
+					<effect type="fade" delay="1200" start="0" end="100" time="250"/>
+					<effect type="zoom" center="960,500" delay="1200" start="0" end="105" time="250" tween="back" easing="out"/>
+				</animation>
+				<width>700</width>
+				<height>600</height>
+				<label>$INFO[Container(110).ListItem.Property(part4)]</label>
+				<font>culrc_playball_54</font>
+				<align>center</align>
+				<aligny>top</aligny>
+				<textcolor>FFF395B5</textcolor>
+			</control>
+		
+	
+		
+			<control type="group">
+				<top>1</top>
+				<left>171</left>
+				<control type="label">
+					<visible>String.EndsWith(Container(110).Currentitem,15) | String.EndsWith(Container(110).Currentitem,32) | String.EndsWith(Container(110).Currentitem,49) | String.EndsWith(Container(110).Currentitem,66) | String.EndsWith(Container(110).Currentitem,83) | String.EndsWith(Container(110).Currentitem,00)</visible>
+					<animation type="Visible" reversible="false">
+						<effect type="slide" start="1000,0" end="0,0" time="350" tween="back" easing="out"/>
+						<effect type="slide" delay="800" start="0,0" end="-200,0" time="350" tween="back" easing="out"/>
+					</animation>
+					<left>50</left>
+					<top>125</top>
+					<width>925</width>
+					<height>125</height>
+					<label>$INFO[Container(110).ListItem.Property(part1)]</label>
+					<font>culrc_racingsansone_130</font>
+					<shadowcolor>black</shadowcolor>
+					<align>right</align>
+					<aligny>center</aligny>
+					<textcolor>FFAEE23A</textcolor>
+				</control>
+				<control type="label">
+					<left>50</left>
+					<visible>String.EndsWith(Container(110).Currentitem,15) | String.EndsWith(Container(110).Currentitem,32) | String.EndsWith(Container(110).Currentitem,49) | String.EndsWith(Container(110).Currentitem,66) | String.EndsWith(Container(110).Currentitem,83) | String.EndsWith(Container(110).Currentitem,00)</visible>
+					<animation type="Visible" reversible="false">
+						<effect type="slide" delay="150" start="1000,0" end="0,0" time="350" tween="back" easing="out"/>
+						<effect type="slide" delay="800" start="0,0" end="-200,0" time="350" tween="back" easing="out"/>
+					</animation>
+					<top>250</top>
+					<width>925</width>
+					<height>125</height>
+					<label>$INFO[Container(110).ListItem.Property(part2)]</label>
+					<font>culrc_racingsansone_130</font>
+					<shadowcolor>black</shadowcolor>
+					<align>right</align>
+					<aligny>center</aligny>
+					<textcolor>FFFFFAF0</textcolor>
+				</control>
+				<control type="label">
+					<visible>String.EndsWith(Container(110).Currentitem,15) | String.EndsWith(Container(110).Currentitem,32) | String.EndsWith(Container(110).Currentitem,49) | String.EndsWith(Container(110).Currentitem,66) | String.EndsWith(Container(110).Currentitem,83) | String.EndsWith(Container(110).Currentitem,00)</visible>
+					<animation type="Visible" reversible="false">
+						<effect type="slide" delay="300" start="1000,0" end="0,0" time="350" tween="back" easing="out"/>
+						<effect type="slide" delay="800" start="0,0" end="-200,0" time="350" tween="back" easing="out"/>
+					</animation>
+					<left>50</left>
+					<top>375</top>
+					<width>925</width>
+					<height>125</height>
+					<label>$INFO[Container(110).ListItem.Property(part3)]</label>
+					<font>culrc_racingsansone_130</font>
+					<shadowcolor>black</shadowcolor>
+					<align>right</align>
+					<aligny>center</aligny>
+					<textcolor>FF02A8C6</textcolor>
+				</control>
+				<control type="textbox">
+					<left>800</left>
+					<top>10</top>
+					<width>600</width>
+					<height>600</height>
+					<visible>String.EndsWith(Container(110).Currentitem,15) | String.EndsWith(Container(110).Currentitem,32) | String.EndsWith(Container(110).Currentitem,49) | String.EndsWith(Container(110).Currentitem,66) | String.EndsWith(Container(110).Currentitem,83) | String.EndsWith(Container(110).Currentitem,00)</visible>
+					<animation type="Visible" reversible="false">
+						<effect type="slide" delay="650" start="0,-400" end="0,0" time="1200" tween="bounce" easing="out" />
+					</animation>
+					<label>$INFO[Container(110).ListItem.Property(part4)]</label>
+					<font>culrc_rubikdirt_56</font>
+					<shadowcolor>black</shadowcolor>
+					<align>left</align>
+					<aligny>center</aligny>
+					<textcolor>FFD865D1</textcolor>
+				</control>
+			</control>
+		
+	
+			<control type="grouplist">
+				<left>1</left>
+				<top>350</top>
+				<width>1920</width>
+				<height>110</height>
+				<itemgap>15</itemgap>
+				<scrolltime>0</scrolltime>
+				<orientation>horizontal</orientation>
+				<align>center</align>
+				<control type="label">
+					<visible>String.EndsWith(Container(110).Currentitem,16) | String.EndsWith(Container(110).Currentitem,33) | String.EndsWith(Container(110).Currentitem,50) | String.EndsWith(Container(110).Currentitem,67) | String.EndsWith(Container(110).Currentitem,84) | String.EndsWith(Container(110).Currentitem,01)</visible>
+					<animation type="Visible" reversible="false">
+						<effect type="slide" start="0,-160" end="0,0" delay="0" time="300" tween="back" easing="out"/>
+						<effect type="zoom" start="20" end="100" delay="0" time="450" tween="back" easing="out"/>
+					</animation>
+					<animation effect="rotate" start="-6" end="6" center="auto" time="380" tween="sine" easing="inout" pulse="true" condition="true">Conditional</animation>
+					<width>auto</width>
+					<height>110</height>
+					<label>$INFO[Container(110).ListItem.Property(part1)]</label>
+					<font>culrc_titanone_110</font>
+					<shadowcolor>black</shadowcolor>
+					<align>center</align>
+					<aligny>center</aligny>
+					<textcolor>FFFF3D8A</textcolor>
+				</control>
+				<control type="label">
+					<visible>String.EndsWith(Container(110).Currentitem,16) | String.EndsWith(Container(110).Currentitem,33) | String.EndsWith(Container(110).Currentitem,50) | String.EndsWith(Container(110).Currentitem,67) | String.EndsWith(Container(110).Currentitem,84) | String.EndsWith(Container(110).Currentitem,01)</visible>
+					<animation type="Visible" reversible="false">
+						<effect type="slide" start="0,-160" end="0,0" delay="150" time="300" tween="back" easing="out"/>
+						<effect type="zoom" start="20" end="100" delay="150" time="450" tween="back" easing="out"/>
+					</animation>
+					<animation effect="rotate" start="-6" end="6" center="auto" time="380" tween="sine" easing="inout" pulse="true" condition="true">Conditional</animation>
+					<width>auto</width>
+					<height>110</height>
+					<label>$INFO[Container(110).ListItem.Property(part2)]</label>
+					<font>culrc_titanone_110</font>
+					<shadowcolor>black</shadowcolor>
+					<align>center</align>
+					<aligny>center</aligny>
+					<textcolor>FFB6FF3D</textcolor>
+				</control>
+				<control type="label">
+					<visible>String.EndsWith(Container(110).Currentitem,16) | String.EndsWith(Container(110).Currentitem,33) | String.EndsWith(Container(110).Currentitem,50) | String.EndsWith(Container(110).Currentitem,67) | String.EndsWith(Container(110).Currentitem,84) | String.EndsWith(Container(110).Currentitem,01)</visible>
+					<animation type="Visible" reversible="false">
+						<effect type="slide" start="0,-160" end="0,0" delay="300" time="300" tween="back" easing="out"/>
+						<effect type="zoom" start="20" end="100" delay="300" time="450" tween="back" easing="out"/>
+					</animation>
+					<animation effect="rotate" start="-6" end="6" center="auto" time="380" tween="sine" easing="inout" pulse="true" condition="true">Conditional</animation>
+					<width>auto</width>
+					<height>110</height>
+					<label>$INFO[Container(110).ListItem.Property(part3)]</label>
+					<font>culrc_titanone_110</font>
+					<shadowcolor>black</shadowcolor>
+					<align>center</align>
+					<aligny>center</aligny>
+					<textcolor>FF3DE0FF</textcolor>
+				</control>
+				<control type="label">
+					<visible>String.EndsWith(Container(110).Currentitem,16) | String.EndsWith(Container(110).Currentitem,33) | String.EndsWith(Container(110).Currentitem,50) | String.EndsWith(Container(110).Currentitem,67) | String.EndsWith(Container(110).Currentitem,84) | String.EndsWith(Container(110).Currentitem,01)</visible>
+					<animation type="Visible" reversible="false">
+						<effect type="slide" start="0,-160" end="0,0" delay="450" time="300" tween="back" easing="out"/>
+						<effect type="zoom" start="20" end="100" delay="450" time="450" tween="back" easing="out"/>
+					</animation>
+					<animation effect="rotate" start="-6" end="6" center="auto" time="380" tween="sine" easing="inout" pulse="true" condition="true">Conditional</animation>
+					<width>auto</width>
+					<height>110</height>
+					<label>$INFO[Container(110).ListItem.Property(part4)]</label>
+					<font>culrc_titanone_110</font>
+					<shadowcolor>black</shadowcolor>
+					<align>center</align>
+					<aligny>center</aligny>
+					<textcolor>FFFFFAF0</textcolor>
+				</control>
+			</control>
+				<control type="label">
+					<left>-30</left>
+					<top>650</top>
+					<width>1135</width>
+					<height>125</height>
+					<visible>String.EndsWith(Container(110).Currentitem,17) | String.EndsWith(Container(110).Currentitem,34) | String.EndsWith(Container(110).Currentitem,51) | String.EndsWith(Container(110).Currentitem,68) | String.EndsWith(Container(110).Currentitem,85) | String.EndsWith(Container(110).Currentitem,02)</visible>
+					<animation type="Visible" reversible="false">
+						<effect type="zoom" start="0" end="100" time="400" tween="back" easing="out"/>
+						<effect type="zoom" start="100" end="145" delay="900" time="450" tween="sine" easing="inout"/>
+						<effect type="zoom" start="145" end="185" delay="1350" time="120"/>
+						<effect type="fade" start="100" end="0" delay="1350" time="120"/>
+					</animation>
+					<label>$INFO[Container(110).ListItem.Property(part1)]</label>
+					<font>culrc_bangers_120</font>
+					<shadowcolor>black</shadowcolor>
+					<align>right</align>
+					<aligny>center</aligny>
+					<textcolor>FFFF6FCF</textcolor>
+				</control>
+				<control type="label">
+					<left>-30</left>
+					<top>650</top>
+					<width>1135</width>
+					<height>125</height>
+					<visible>String.EndsWith(Container(110).Currentitem,17) | String.EndsWith(Container(110).Currentitem,34) | String.EndsWith(Container(110).Currentitem,51) | String.EndsWith(Container(110).Currentitem,68) | String.EndsWith(Container(110).Currentitem,85) | String.EndsWith(Container(110).Currentitem,02)</visible>
+					<animation type="Visible" reversible="false">
+						<effect type="zoom" start="0" end="100" time="400" tween="back" easing="out"/>
+						<effect type="zoom" start="100" end="145" delay="900" time="450" tween="sine" easing="inout"/>
+						<effect type="zoom" start="145" end="185" delay="1350" time="120"/>
+						<effect type="fade" start="100" end="0" delay="1350" time="120"/>
+					</animation>
+					<label>$INFO[Container(110).ListItem.Property(part2)]</label>
+					<font>culrc_bangers_120</font>
+					<shadowcolor>black</shadowcolor>
+					<align>right</align>
+					<aligny>center</aligny>
+					<textcolor>FF4FC3F7</textcolor>
+				</control>
+				<control type="label">
+					<left>795</left>
+					<top>650</top>
+					<width>1135</width>
+					<height>125</height>
+					<visible>String.EndsWith(Container(110).Currentitem,17) | String.EndsWith(Container(110).Currentitem,34) | String.EndsWith(Container(110).Currentitem,51) | String.EndsWith(Container(110).Currentitem,68) | String.EndsWith(Container(110).Currentitem,85) | String.EndsWith(Container(110).Currentitem,02)</visible>
+					<animation type="Visible" reversible="false">
+						<effect type="zoom" start="0" end="100" time="400" tween="back" easing="out"/>
+						<effect type="zoom" start="100" end="145" delay="900" time="450" tween="sine" easing="inout"/>
+						<effect type="zoom" start="145" end="185" delay="1350" time="120"/>
+						<effect type="fade" start="100" end="0" delay="1350" time="120"/>
+					</animation>
+					<label>$INFO[Container(110).ListItem.Property(part3)]</label>
+					<font>culrc_bangers_120</font>
+					<shadowcolor>black</shadowcolor>
+					<align>left</align>
+					<aligny>center</aligny>
+					<textcolor>FFFFD54F</textcolor>
+				</control>
+				<control type="label">
+					<left>795</left>
+					<top>650</top>
+					<width>1135</width>
+					<height>125</height>
+					<visible>String.EndsWith(Container(110).Currentitem,17) | String.EndsWith(Container(110).Currentitem,34) | String.EndsWith(Container(110).Currentitem,51) | String.EndsWith(Container(110).Currentitem,68) | String.EndsWith(Container(110).Currentitem,85) | String.EndsWith(Container(110).Currentitem,02)</visible>
+					<animation type="Visible" reversible="false">
+						<effect type="zoom" start="0" end="100" time="400" tween="back" easing="out"/>
+						<effect type="zoom" start="100" end="145" delay="900" time="450" tween="sine" easing="inout"/>
+						<effect type="zoom" start="145" end="185" delay="1350" time="120"/>
+						<effect type="fade" start="100" end="0" delay="1350" time="120"/>
+					</animation>
+					<label>$INFO[Container(110).ListItem.Property(part4)]</label>
+					<font>culrc_bangers_120</font>
+					<shadowcolor>black</shadowcolor>
+					<align>left</align>
+					<aligny>center</aligny>
+					<textcolor>FFFFFAF0</textcolor>
+				</control>
+		<control type="group">
+			<visible>!String.IsEmpty(Window(Home).Property(culrc.translation))</visible>
+				<control type="group">
+					<visible>[String.EndsWith(Container(112).Currentitem,1) | String.EndsWith(Container(112).Currentitem,6)]</visible>
+					<animation effect="rotate" center="auto" start="4" end="4" time="0" condition="true">Conditional</animation>
+					<animation effect="slide" start="0,-600" end="0,0" time="250" tween="sine" easing="out" reversible="false">Visible</animation>
+					<animation effect="fade" start="100" end="0" time="150">Hidden</animation>
+					<control type="label">
+						<left>960</left>
+						<top>760</top>
+						<width>400</width>
+						<height>120</height>
+						<font>culrc_luckiestguy_120</font>
+						<aligny>center</aligny>
+						<align>right</align>
+						<shadowcolor>black</shadowcolor>
+						<textcolor>FF2ECC71</textcolor>
+						<label>$INFO[Container(112).ListItem.Property(part1)]</label>
+					</control>
+					<control type="label">
+						<left>1360</left>
+						<top>760</top>
+						<width>300</width>
+						<height>120</height>
+						<font>culrc_luckiestguy_120</font>
+						<aligny>center</aligny>
+						<align>center</align>
+						<shadowcolor>black</shadowcolor>
+						<textcolor>FFF1C40F</textcolor>
+						<label>$INFO[Container(112).ListItem.Property(part2)]</label>
+					</control>
+					<control type="label">
+						<left>1660</left>
+						<top>760</top>
+						<width>260</width>
+						<height>120</height>
+						<font>culrc_luckiestguy_120</font>
+						<aligny>center</aligny>
+						<align>left</align>
+						<shadowcolor>black</shadowcolor>
+						<textcolor>FF3498DB</textcolor>
+						<label>$INFO[Container(112).ListItem.Property(part3)]</label>
+					</control>
+					<control type="label">
+						<left>960</left>
+						<top>880</top>
+						<width>920</width>
+						<height>70</height>
+						<font>font20</font>
+						<aligny>center</aligny>
+						<align>center</align>
+						<shadowcolor>black</shadowcolor>
+						<textcolor>FFFFFFFF</textcolor>
+						<label>$INFO[Container(112).ListItem.Property(part4)]</label>
+					</control>
+				</control>
+				<control type="group">
+					<visible>[String.EndsWith(Container(112).Currentitem,3) | String.EndsWith(Container(112).Currentitem,8)]</visible>
+					<animation effect="rotate" center="auto" start="4" end="4" time="0" condition="true">Conditional</animation>
+					<animation effect="slide" start="-900,0" end="0,0" time="250" tween="sine" easing="out" reversible="false">Visible</animation>
+					<animation effect="fade" start="100" end="0" time="150">Hidden</animation>
+					<control type="label">
+						<left>960</left>
+						<top>760</top>
+						<width>400</width>
+						<height>120</height>
+						<font>culrc_exo2_120</font>
+						<aligny>center</aligny>
+						<align>right</align>
+						<shadowcolor>black</shadowcolor>
+						<textcolor>FF2ECC71</textcolor>
+						<label>$INFO[Container(112).ListItem.Property(part1)]</label>
+					</control>
+					<control type="label">
+						<left>1360</left>
+						<top>760</top>
+						<width>300</width>
+						<height>120</height>
+						<font>culrc_exo2_120</font>
+						<aligny>center</aligny>
+						<align>center</align>
+						<shadowcolor>black</shadowcolor>
+						<textcolor>FFF1C40F</textcolor>
+						<label>$INFO[Container(112).ListItem.Property(part2)]</label>
+					</control>
+					<control type="label">
+						<left>1660</left>
+						<top>760</top>
+						<width>260</width>
+						<height>120</height>
+						<font>culrc_exo2_120</font>
+						<aligny>center</aligny>
+						<align>left</align>
+						<shadowcolor>black</shadowcolor>
+						<textcolor>FF3498DB</textcolor>
+						<label>$INFO[Container(112).ListItem.Property(part3)]</label>
+					</control>
+					<control type="label">
+						<left>960</left>
+						<top>880</top>
+						<width>920</width>
+						<height>70</height>
+						<font>font20</font>
+						<aligny>center</aligny>
+						<align>center</align>
+						<shadowcolor>black</shadowcolor>
+						<textcolor>FFFFFFFF</textcolor>
+						<label>$INFO[Container(112).ListItem.Property(part4)]</label>
+					</control>
+				</control>
+				<control type="group">
+					<visible>[String.EndsWith(Container(112).Currentitem,5) | String.EndsWith(Container(112).Currentitem,0)]</visible>
+					<animation effect="rotate" center="auto" start="4" end="4" time="0" condition="true">Conditional</animation>
+					<animation effect="zoom" center="auto" start="0" end="100" time="250" reversible="false">Visible</animation>
+					<animation effect="fade" start="100" end="0" time="150">Hidden</animation>
+					<control type="label">
+						<left>960</left>
+						<top>760</top>
+						<width>400</width>
+						<height>120</height>
+						<font>culrc_ranchers_120</font>
+						<aligny>center</aligny>
+						<align>right</align>
+						<shadowcolor>black</shadowcolor>
+						<textcolor>FF2ECC71</textcolor>
+						<label>$INFO[Container(112).ListItem.Property(part1)]</label>
+					</control>
+					<control type="label">
+						<left>1360</left>
+						<top>760</top>
+						<width>300</width>
+						<height>120</height>
+						<font>culrc_ranchers_120</font>
+						<aligny>center</aligny>
+						<align>center</align>
+						<shadowcolor>black</shadowcolor>
+						<textcolor>FFF1C40F</textcolor>
+						<label>$INFO[Container(112).ListItem.Property(part2)]</label>
+					</control>
+					<control type="label">
+						<left>1660</left>
+						<top>760</top>
+						<width>260</width>
+						<height>120</height>
+						<font>culrc_ranchers_120</font>
+						<aligny>center</aligny>
+						<align>left</align>
+						<shadowcolor>black</shadowcolor>
+						<textcolor>FF3498DB</textcolor>
+						<label>$INFO[Container(112).ListItem.Property(part3)]</label>
+					</control>
+					<control type="label">
+						<left>960</left>
+						<top>880</top>
+						<width>920</width>
+						<height>70</height>
+						<font>font20</font>
+						<aligny>center</aligny>
+						<align>center</align>
+						<shadowcolor>black</shadowcolor>
+						<textcolor>FFFFFFFF</textcolor>
+						<label>$INFO[Container(112).ListItem.Property(part4)]</label>
+					</control>
+				</control>
+				<control type="group">
+					<visible>[String.EndsWith(Container(112).Currentitem,7) | String.EndsWith(Container(112).Currentitem,2)]</visible>
+					<animation effect="rotate" center="auto" start="4" end="4" time="0" condition="true">Conditional</animation>
+					<animation effect="slide" start="900,0" end="0,0" time="250" tween="sine" easing="out" reversible="false">Visible</animation>
+					<animation effect="fade" start="100" end="0" time="150">Hidden</animation>
+					<control type="label">
+						<left>960</left>
+						<top>760</top>
+						<width>400</width>
+						<height>120</height>
+						<font>culrc_luckiestguy_120</font>
+						<aligny>center</aligny>
+						<align>right</align>
+						<shadowcolor>black</shadowcolor>
+						<textcolor>FF2ECC71</textcolor>
+						<label>$INFO[Container(112).ListItem.Property(part1)]</label>
+					</control>
+					<control type="label">
+						<left>1360</left>
+						<top>760</top>
+						<width>300</width>
+						<height>120</height>
+						<font>culrc_luckiestguy_120</font>
+						<aligny>center</aligny>
+						<align>center</align>
+						<shadowcolor>black</shadowcolor>
+						<textcolor>FFF1C40F</textcolor>
+						<label>$INFO[Container(112).ListItem.Property(part2)]</label>
+					</control>
+					<control type="label">
+						<left>1660</left>
+						<top>760</top>
+						<width>260</width>
+						<height>120</height>
+						<font>culrc_luckiestguy_120</font>
+						<aligny>center</aligny>
+						<align>left</align>
+						<shadowcolor>black</shadowcolor>
+						<textcolor>FF3498DB</textcolor>
+						<label>$INFO[Container(112).ListItem.Property(part3)]</label>
+					</control>
+					<control type="label">
+						<left>960</left>
+						<top>880</top>
+						<width>920</width>
+						<height>70</height>
+						<font>font20</font>
+						<aligny>center</aligny>
+						<align>center</align>
+						<shadowcolor>black</shadowcolor>
+						<textcolor>FFFFFFFF</textcolor>
+						<label>$INFO[Container(112).ListItem.Property(part4)]</label>
+					</control>
+				</control>
+				<control type="group">
+					<visible>[String.EndsWith(Container(112).Currentitem,9) | String.EndsWith(Container(112).Currentitem,4)]</visible>
+					<animation effect="rotate" center="auto" start="4" end="4" time="0" condition="true">Conditional</animation>
+					<animation effect="zoom" center="auto" start="400" end="100" time="250" reversible="false">Visible</animation>
+					<animation effect="fade" start="100" end="0" time="150">Hidden</animation>
+					<control type="label">
+						<left>960</left>
+						<top>760</top>
+						<width>400</width>
+						<height>120</height>
+						<font>culrc_exo2_120</font>
+						<aligny>center</aligny>
+						<align>right</align>
+						<shadowcolor>black</shadowcolor>
+						<textcolor>FF2ECC71</textcolor>
+						<label>$INFO[Container(112).ListItem.Property(part1)]</label>
+					</control>
+					<control type="label">
+						<left>1360</left>
+						<top>760</top>
+						<width>300</width>
+						<height>120</height>
+						<font>culrc_exo2_120</font>
+						<aligny>center</aligny>
+						<align>center</align>
+						<shadowcolor>black</shadowcolor>
+						<textcolor>FFF1C40F</textcolor>
+						<label>$INFO[Container(112).ListItem.Property(part2)]</label>
+					</control>
+					<control type="label">
+						<left>1660</left>
+						<top>760</top>
+						<width>260</width>
+						<height>120</height>
+						<font>culrc_exo2_120</font>
+						<aligny>center</aligny>
+						<align>left</align>
+						<shadowcolor>black</shadowcolor>
+						<textcolor>FF3498DB</textcolor>
+						<label>$INFO[Container(112).ListItem.Property(part3)]</label>
+					</control>
+					<control type="label">
+						<left>960</left>
+						<top>880</top>
+						<width>920</width>
+						<height>70</height>
+						<font>font20</font>
+						<aligny>center</aligny>
+						<align>center</align>
+						<shadowcolor>black</shadowcolor>
+						<textcolor>FFFFFFFF</textcolor>
+						<label>$INFO[Container(112).ListItem.Property(part4)]</label>
+					</control>
+				</control>
+		</control>
+		<!-- translation provider/coverage - mirrors culrc.translation.source on Aeon Nox 5's patched panel, see gui.py.
+		     A textbox (not label) because a hybrid result's source string carries a "[CR]" line break for its
+		     2-line "Name (92%)[CR]+ DeepL (8%)" coverage display - a <label> renders [CR] as literal text. -->
+		<control type="textbox">
+			<left>960</left>
+			<top>865</top>
+			<width>920</width>
+			<height>50</height>
+			<font>font_culrc_meta</font>
+			<align>center</align>
+			<textcolor>FF999999</textcolor>
+			<shadowcolor>black</shadowcolor>
+			<label>$INFO[Window(Home).Property(culrc.translation.source)]</label>
+			<visible>!String.IsEmpty(Window(Home).Property(culrc.translation))</visible>
+		</control>
+		<!-- end-of-song human-translator credit, mirrors Aeon Nox 5's group id=141 - see gui.py's _maybe_show_translation_credit() -->
+		<control type="label">
+			<left>960</left>
+			<top>918</top>
+			<width>920</width>
+			<height>25</height>
+			<font>font_culrc_meta</font>
+			<align>center</align>
+			<aligny>center</aligny>
+			<textcolor>FF12B2E7</textcolor>
+			<shadowcolor>black</shadowcolor>
+			<label>$INFO[Window(Home).Property(culrc.creditmsg)]</label>
+			<visible>String.IsEqual(Window(Home).Property(culrc.creditshow),true)</visible>
+			<animation effect="fade" start="0" end="100" time="400">Visible</animation>
+			<animation effect="fade" start="100" end="0" time="400">Hidden</animation>
+		</control>
+		<control type="group">
+			<visible>false</visible>
+			<animation effect="fade" start="100" end="0" time="200" condition="!String.IsEmpty(Window(Home).Property(culrc.hidedialog)) + ![Window.IsActive(musicosd) | Player.ShowInfo]">Conditional</animation>
+			<control type="image">
+				<description>lyricslist</description>
+				<left>20</left>
+				<top>930</top>
+				<width>48</width>
+				<height>48</height>
+				<texture>culrc-contextmenu.png</texture>
+				<visible>!String.IsEmpty(Window(Home).Property(culrc.haslist))</visible>
+			</control>
+			<control type="label">
+				<description>Scraper label</description>
+				<left>0</left>
+				<top>945</top>
+				<width>1880</width>
+				<height>30</height>
+				<label>$LOCALIZE[21870]: $INFO[Control.GetLabel(200)]</label>
+				<font>font_culrc_meta</font>
+				<align>right</align>
+				<aligny>center</aligny>
+				<textcolor>FF999999</textcolor>
+				<shadowcolor>black</shadowcolor>
+			</control>
+			<!-- ** Required ** Do not change <id> or <type> (name of the used scraper and optionally the number of found lyrics) -->
+			<control type="label" id="200">
+				<description>Scraper label</description>
+				<visible>false</visible>
+			</control>
+		</control>
+	</controls>
+</window>

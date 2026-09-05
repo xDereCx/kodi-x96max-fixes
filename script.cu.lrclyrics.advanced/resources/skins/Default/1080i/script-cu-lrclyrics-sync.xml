@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- generic, skin-independent fallback for the sync-offset slider window
+     (context menu "Sync", or up/down during timed lyrics). Aeon Nox 5 gets
+     its own more elaborately-styled copy of this file from
+     script.xderecx.aeonnox5lyricsfix (uses AN5's own slider/background
+     textures and font) - this version deliberately uses only
+     control types/attributes guaranteed to work on ANY skin: <rectangle>
+     instead of <image> for the background (no texture file dependency),
+     and no <texturesliderbar>/<textureslidernib> overrides on the slider
+     (falls back to Kodi's own built-in slider graphics) or <font> tag on
+     the labels (falls back to the active skin's own Font.xml "Default"
+     fontset, which every skin is required to define). Without this file,
+     opening the sync dialog on any skin other than a patched Aeon Nox 5
+     crashed outright ("XML File for Window is missing") - confirmed live. -->
+<window>
+	<defaultcontrol>11</defaultcontrol>
+	<coordinates>
+		<system>1</system>
+	</coordinates>
+	<controls>
+		<control type="rectangle">
+			<left>360</left>
+			<top>100</top>
+			<width>1200</width>
+			<height>150</height>
+			<colordiffuse>C0000000</colordiffuse>
+		</control>
+		<control type="label" id="10">
+			<description>Dialog header</description>
+			<left>400</left>
+			<top>115</top>
+			<width>1120</width>
+			<height>40</height>
+			<align>center</align>
+			<textcolor>white</textcolor>
+		</control>
+		<control type="slider" id="11">
+			<description>Slider</description>
+			<left>400</left>
+			<top>160</top>
+			<width>1120</width>
+			<height>30</height>
+			<onup>11</onup>
+			<ondown>11</ondown>
+			<onleft>11</onleft>
+			<onright>11</onright>
+		</control>
+		<control type="label" id="12">
+			<description>Slider value</description>
+			<left>400</left>
+			<top>195</top>
+			<width>1120</width>
+			<height>35</height>
+			<align>center</align>
+			<textcolor>white</textcolor>
+		</control>
+	</controls>
+</window>

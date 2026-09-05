@@ -175,7 +175,7 @@ msgstr "Dekorative Schriftarten im aktiven Skin installieren"
 
 msgctxt "#32197"
 msgid "Adds 3 bold display fonts (Exo2, Ranchers, Luckiest Guy - all free/redistributable, full Slovak/Czech diacritic support) to the currently active skin's own Font.xml, so the current-line display can use them. Backs up the original file first. Needs a Kodi restart to take effect. Only works if the active skin is on writable storage - not the OS-bundled default skin on some builds."
-msgstr "Fügt 3 fette Schriftarten (Exo2, Ranchers, Luckiest Guy - frei weitergebbar, volle slowakische/tschechische Diakritik-Unterstützung) zur Font.xml des aktiven Skins hinzu. Die Originaldatei wird vorher gesichert. Erfordert einen Kodi-Neustart. Funktioniert nur, wenn der aktive Skin auf beschreibbarem Speicher liegt."
+msgstr "Fügt 12 fette Schriftarten (Exo2, Ranchers, Luckiest Guy, Agbalumo, Alfa Slab One, Bangers, Bowlby One SC, Playball, Racing Sans One, Rubik Dirt, Staatliches, Titan One - frei weitergebbar, volle slowakische/tschechische Diakritik-Unterstützung) zur Font.xml des aktiven Skins hinzu. Die Originaldatei wird vorher gesichert. Erfordert einen Kodi-Neustart. Funktioniert nur, wenn der aktive Skin auf beschreibbarem Speicher liegt."
 
 msgctxt "#32198"
 msgid "Remove decorative fonts"
@@ -184,6 +184,14 @@ msgstr "Dekorative Schriftarten entfernen"
 msgctxt "#32199"
 msgid "Restores the active skin's original Font.xml from backup and removes the copied font files. Needs a Kodi restart to take effect."
 msgstr "Stellt die ursprüngliche Font.xml des aktiven Skins aus der Sicherung wieder her und entfernt die kopierten Schriftdateien. Erfordert einen Kodi-Neustart."
+
+msgctxt "#32919"
+msgid "Translation isn't available in this skin's own lyrics display"
+msgstr "Übersetzung ist in der nativen Anzeige dieses Skins nicht verfügbar"
+
+msgctxt "#32921"
+msgid "Decorative fonts installed. Restart Kodi for them to take effect."
+msgstr "Dekorative Schriftarten installiert. Starte Kodi neu, damit sie wirksam werden."
 
 # empty strings from id 32013 to 32100 (except 32171-32191 above)
 # Settings labels

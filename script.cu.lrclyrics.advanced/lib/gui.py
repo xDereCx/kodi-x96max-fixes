@@ -26,6 +26,30 @@ SEEK_OSD_HOLD = 1.5
 CREDIT_DISPLAY_SECONDS = 25
 
 
+class _NullTranslationControl(object):
+    # stand-in for control 112 (the translation line list) on skins that
+    # ship their own native script-cu-lrclyrics-main.xml built before the
+    # translation feature existed (e.g. skin.bello.10, skin.confluence) -
+    # getControl(112) raises RuntimeError there, which used to crash
+    # onInit() immediately and prevent the whole dialog from opening.
+    # Translation is simply unavailable on such skins; every call here is
+    # a harmless no-op instead of a crash.
+    def reset(self):
+        pass
+
+    def addItem(self, item):
+        pass
+
+    def getListItem(self, i):
+        return None
+
+    def size(self):
+        return 0
+
+    def selectItem(self, i):
+        pass
+
+
 class MAIN():
     def __init__(self):
         WIN.setProperty('culrc.running', 'true')
@@ -446,6 +470,17 @@ class MAIN():
         if not self.SETTING_SERVICE:
             # quit the script if mode was changed from service to manual
             self.CULRC_QUIT = True
+        # Kodi's Monitor.onSettingsChanged fires for ANY settings change,
+        # not just this addon's own - including Settings > Interface > Skin,
+        # which is how a live skin switch is caught here. Without this, the
+        # decorative-font auto-install (also run once at every service
+        # start in default.py) would only ever notice a newly-switched-to
+        # skin the next time Kodi happened to restart, not right when the
+        # user actually switched to it.
+        from lib import fontinstall
+        installed, result = fontinstall.auto_install_if_needed()
+        if installed:
+            xbmcgui.Dialog().notification(ADDONNAME, LANGUAGE(32921), icon=ADDONICON, time=6000, sound=False)
 
     def callback(self, action):
         if action == 'quit':
@@ -485,7 +520,16 @@ class guiThread(threading.Thread):
         self.kwargs = kwargs['opt']
 
     def run(self):
-        ui = GUI('script-cu-lrclyrics-main.xml', CWD, 'Default', '1080i', opt=self.kwargs)
+        # a fork-specific filename, not the classic "script-cu-lrclyrics-main.xml"
+        # every upstream-styled skin (Confluence, Bello 10, etc.) already ships
+        # its own native override of - Kodi's WindowXMLDialog prefers a skin's
+        # own file over the addon's bundled one whenever the names match, so
+        # those skins were silently hijacking this dialog with their old,
+        # pre-fork layout (no control 112 for translation - confirmed live via
+        # kodi.log: "RuntimeError: Non-Existent Control 112" under skin.bello.10).
+        # A name no other skin's override matches means Kodi always falls
+        # through to this addon's own bundled file, on every skin.
+        ui = GUI('script-cu-lrclyrics-advanced-main.xml', CWD, 'Default', '1080i', opt=self.kwargs)
         ui.doModal()
         del ui
         WIN.clearProperty('culrc.guirunning')
@@ -506,7 +550,7 @@ class syncThread(threading.Thread):
         # dedicated window instead of the skin's shared DialogSlider.xml
         # (used for volume/seek/brightness too) - keeps our wider layout
         # from affecting anything else in Kodi
-        dialog = sync.GUI('script-cu-lrclyrics-sync.xml' , CWD, 'Default', offset=self.adjust, function=self.function, monitor=self.Monitor)
+        dialog = sync.GUI('script-cu-lrclyrics-sync.xml' , CWD, 'Default', '1080i', offset=self.adjust, function=self.function, monitor=self.Monitor)
         dialog.doModal()
         adjust = dialog.val
         del dialog
@@ -541,12 +585,24 @@ class GUI(xbmcgui.WindowXMLDialog):
         # state preserved instead of reset. See reset_controls().
         self.SONG_RESTARTED = kwargs['opt']['song_restarted']
         self.dialog = xbmcgui.Dialog()
+        # set here, not just in setup_gui() (which runs inside onInit()) - a
+        # Back/menu press that reaches onAction before onInit() finishes
+        # calls exit_gui(), which reads these; without this they don't exist
+        # yet, exit_gui() crashes, the window never closes, and every
+        # further Back repeats the same crash (confirmed live: only OK
+        # worked, Back did nothing, kodi.log showed the same AttributeError
+        # looping on every keypress).
+        self._seek_hide_timer = None
+        self._credit_hide_timer = None
 
     def onInit(self):
         self.matchlist = ['@', r'www\.(.*?)\.(.*?)', 'QQ(.*?)[1-9]', 'artist ?: ?.', 'album ?: ?.', 'title ?: ?.', 'song ?: ?.', 'by ?: ?.']
         self.text = self.getControl(110)
         self.label = self.getControl(200)
-        self.text2 = self.getControl(112)
+        try:
+            self.text2 = self.getControl(112)
+        except RuntimeError:
+            self.text2 = _NullTranslationControl()
         self.setup_gui()
         self.process_lyrics()
         # we have processed the lyrics, reset the new lyrics bool, else we do it again when entering the main loop
@@ -833,6 +889,9 @@ class GUI(xbmcgui.WindowXMLDialog):
                 self.save(self.lyrics)
 
     def show_translation(self):
+        if isinstance(self.text2, _NullTranslationControl):
+            xbmcgui.Dialog().notification(ADDONNAME, LANGUAGE(32193), icon=ADDONICON, time=4000, sound=False)
+            return
         # toggle: a second selection while the panel is already showing
         # just hides it again, instead of always re-fetching/re-showing
         if WIN.getProperty('culrc.translation'):

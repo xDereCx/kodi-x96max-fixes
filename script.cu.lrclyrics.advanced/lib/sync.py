@@ -16,6 +16,13 @@ class GUI(xbmcgui.WindowXMLDialog):
     def onInit(self):
         self._get_controls()
         self._init_values()
+        # self.val is normally set in onAction() from the slider's live
+        # value, but a quick open-then-idle-timeout with no interaction at
+        # all (confirmed live) never fires onAction() even once - default
+        # to the original offset (no change) so syncThread.run() reading
+        # dialog.val after doModal() returns can't crash with
+        # AttributeError.
+        self.val = self.offset
         self.exit = False
         self.last_update = time.time()
         while (not self.Monitor.abortRequested()) and xbmc.getCondVisibility('Player.HasAudio') and (not self.exit):

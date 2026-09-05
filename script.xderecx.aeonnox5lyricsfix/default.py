@@ -12,8 +12,6 @@ DIALOG = xbmcgui.Dialog()
 
 # (bundled .dat filename, skin-relative path, one-line description shown in the confirm dialog)
 PATCHES = [
-    ('script-cu-lrclyrics-main.xml.dat', os.path.join('1080i', 'script-cu-lrclyrics-main.xml'),
-     'hides the topbar.png dark band over lyrics text, adds the rotating-fanart background control'),
     ('MusicVisualisation.xml.dat', os.path.join('1080i', 'MusicVisualisation.xml'),
      'hides the static Player.Art(fanart) background so it cannot cover the rotating fanart image'),
     ('Font.xml.dat', os.path.join('1080i', 'Font.xml'),
@@ -23,6 +21,8 @@ PATCHES = [
 # new files this addon introduces rather than patches - no original to
 # back up, just installed/updated as-is if missing or out of date
 NEW_FILES = [
+    ('script-cu-lrclyrics-main.xml.dat', os.path.join('1080i', 'script-cu-lrclyrics-advanced-main.xml'),
+     'hides the topbar.png dark band over lyrics text, adds the rotating-fanart background control'),
     ('script-cu-lrclyrics-sync.xml.dat', os.path.join('1080i', 'script-cu-lrclyrics-sync.xml'),
      'dedicated wide sync-offset slider window, so it does not affect the shared DialogSlider.xml used for volume/seek/brightness'),
 ]

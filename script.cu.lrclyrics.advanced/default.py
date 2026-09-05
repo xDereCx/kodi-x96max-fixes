@@ -8,6 +8,22 @@ log('script version %s started' % ADDONVERSION, debug=True)
 if sys.argv == ['']:
     disable_conflicting_addon()
 
+# kodi startup: once per skin ever, auto-install the decorative fonts the
+# current-line display needs - without this, a fresh install on a skin
+# nobody has run "Install decorative fonts" for manually just silently
+# renders at the active skin's own fallback size/typeface forever, since
+# there'd be no one around to run it by hand on every box this ends up on.
+# Per user request this is fully automatic, no confirmation - just a
+# non-blocking notification once it's done. Runs at boot, before any song
+# can start playing, since installing only takes effect after a Kodi
+# restart anyway (Font.xml is only read once at skin load) - doing this any
+# later just means more songs shown in the wrong font first.
+if sys.argv == ['']:
+    from lib import fontinstall
+    _installed, _result = fontinstall.auto_install_if_needed()
+    if _installed:
+        xbmcgui.Dialog().notification(ADDONNAME, LANGUAGE(32921), icon=ADDONICON, time=6000, sound=False)
+
 # kodi startup, service is disabled, exit
 if sys.argv == [''] and not ADDON.getSettingBool('service'):
     log('service not enabled', debug=True)

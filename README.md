@@ -105,7 +105,7 @@ every folder under `zips/` so Kodi's browser can see what's there.
   without asking. Patches up to 3
   `skin.aeon.nox.5` files in one confirmation, each with a one-time
   `.bak` backup, no-op for anything already applied:
-  - `1080i/script-cu-lrclyrics-main.xml` — hides the `topbar.png`
+  - `1080i/script-cu-lrclyrics-advanced-main.xml` — hides the `topbar.png`
     control that draws a dark band over lyrics text, and adds the
     rotating-fanart background control `service.xderecx.musicfanart`
     needs (the lyrics dialog is what's usually on screen during
@@ -186,7 +186,16 @@ the repository (or via Settings → Add-ons → Check for updates).
 ## License
 
 - `script.cu.lrclyrics.advanced/` keeps the original addon's
-  GPL-2.0-only license (see its `LICENSE.txt`).
+  GPL-2.0-only license (see its `LICENSE.txt`), with one exception:
+  the current-line entrance-animation choreography in
+  `resources/skins/Default/1080i/script-cu-lrclyrics-advanced-main.xml`
+  (positions, timings, and effect combinations for its 15 entrance
+  styles) is adapted from Aeon Nox 5's own
+  `1080i/Includes_VideoLyrics.xml`, © BigNoid, licensed
+  CC BY-NC-SA 4.0 - that specific section of that one file is used
+  under those terms (attribution, non-commercial, share-alike), not
+  GPL-2.0, since the choreography itself (not just the surrounding
+  code) is what was ported.
 - `service.xderecx.musicfanart/` is MIT.
 - `script.xderecx.aeonnox5lyricsfix/` bundles modified copies of Aeon
   Nox 5 files (`resources/skinfile/*.dat`), under the skin's own

@@ -175,7 +175,7 @@ msgstr "Instalar fuentes decorativas en el skin activo"
 
 msgctxt "#32197"
 msgid "Adds 3 bold display fonts (Exo2, Ranchers, Luckiest Guy - all free/redistributable, full Slovak/Czech diacritic support) to the currently active skin's own Font.xml, so the current-line display can use them. Backs up the original file first. Needs a Kodi restart to take effect. Only works if the active skin is on writable storage - not the OS-bundled default skin on some builds."
-msgstr "Añade 3 fuentes en negrita (Exo2, Ranchers, Luckiest Guy - libremente redistribuibles, con soporte completo de diacríticos eslovacos/checos) al Font.xml del skin activo. Primero hace una copia de seguridad del archivo original. Requiere reiniciar Kodi. Solo funciona si el skin activo está en almacenamiento con permiso de escritura."
+msgstr "Añade 12 fuentes en negrita (Exo2, Ranchers, Luckiest Guy, Agbalumo, Alfa Slab One, Bangers, Bowlby One SC, Playball, Racing Sans One, Rubik Dirt, Staatliches, Titan One - libremente redistribuibles, con soporte completo de diacríticos eslovacos/checos) al Font.xml del skin activo. Primero hace una copia de seguridad del archivo original. Requiere reiniciar Kodi. Solo funciona si el skin activo está en almacenamiento con permiso de escritura."
 
 msgctxt "#32198"
 msgid "Remove decorative fonts"
@@ -184,6 +184,14 @@ msgstr "Quitar fuentes decorativas"
 msgctxt "#32199"
 msgid "Restores the active skin's original Font.xml from backup and removes the copied font files. Needs a Kodi restart to take effect."
 msgstr "Restaura el Font.xml original del skin activo desde la copia de seguridad y elimina las fuentes copiadas. Requiere reiniciar Kodi."
+
+msgctxt "#32919"
+msgid "Translation isn't available in this skin's own lyrics display"
+msgstr "La traducción no está disponible en la pantalla nativa de este skin"
+
+msgctxt "#32921"
+msgid "Decorative fonts installed. Restart Kodi for them to take effect."
+msgstr "Fuentes decorativas instaladas. Reinicia Kodi para que surtan efecto."
 
 # empty strings from id 32013 to 32100 (except 32171-32191 above)
 # Settings labels
