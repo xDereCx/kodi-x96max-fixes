@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="script.xderecx.hisenseblue" name="Hisense TV remote: blue button to ContextMenu" version="1.0.0" provider-name="xDereCx">
+	<requires>
+		<import addon="xbmc.python" version="3.0.0"/>
+	</requires>
+	<extension point="xbmc.python.script" library="default.py"/>
+	<extension point="xbmc.addon.metadata">
+		<summary lang="en_US">Remaps a Hisense TV remote's blue button (received over HDMI-CEC) to Kodi's ContextMenu</summary>
+		<description lang="en_US">Run this once from Program add-ons. Installs userdata/keymaps/custom_remote.xml, remapping the blue button on a Hisense TV remote from Kodi's default ActivateWindow(Pictures) to ContextMenu - the TV's own dedicated Menu button doesn't pass through CEC at all on this hardware (confirmed with cec-client -m: no User Control Pressed event ever reaches CoreELEC for it), while the coloured buttons do. Blue was picked since Pictures isn't otherwise used on this box; useful for addons like this repo's CU LRC Lyrics fork, whose sync/reload/delete options live in a context menu. This is a GLOBAL keymap change, not specific to any one addon. If custom_remote.xml already exists with different content, asks before overwriting rather than silently replacing what looks like an unrelated existing customization. Requires a Kodi restart to take effect. Only tested on a Hisense TV over CEC on CoreELEC (x96max) - check with cec-client -m first on other hardware to confirm the blue button (or whichever you remap) actually reaches CoreELEC before relying on this.</description>
+		<platform>all</platform>
+		<license>CC-BY-NC-SA-4.0</license>
+		<source>https://github.com/xDereCx/kodi-x96max-fixes</source>
+		<assets>
+			<icon>icon.png</icon>
+		</assets>
+		<news>1.0.0: initial release - packages the Hisense blue-button-to-ContextMenu keymap fix (previously a manual-copy-only file under keymaps/hisense-blue-contextmenu/) as a proper installable addon.</news>
+	</extension>
+</addon>
