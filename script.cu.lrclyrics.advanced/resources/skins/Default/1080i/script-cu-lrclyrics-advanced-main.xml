@@ -11,6 +11,11 @@
 		<left>10</left>
 		<top>40</top>
 	</coordinates>
+	<!-- Gives the translation list (112) real window focus so its focusedlayout can render a
+	     bigger current line, matching Aeon Nox 5's own design - without "always", so if
+	     translation isn't showing when the window opens, Kodi falls back to no focus at all
+	     (the previous, working behavior) instead of forcing focus onto a hidden control. -->
+	<defaultcontrol>112</defaultcontrol>
 	<controls>
 		<!-- rotating artist-fanart background, if service.xderecx.musicfanart is installed
 		     and running - entirely generic (just reads a Window(Visualisation) property that
@@ -82,7 +87,7 @@
 			<top>30</top>
 			<width>1900</width>
 			<height>60</height>
-			<font>font_culrc_title</font>
+			<font>culrc_notosans_34b</font>
 			<label>$INFO[MusicPlayer.Artist,, - ]$INFO[MusicPlayer.Title]</label>
 			<align>center</align>
 			<aligny>center</aligny>
@@ -106,24 +111,82 @@
 			<itemlayout height="70"><control type="label"><width>920</width><height>70</height></control></itemlayout>
 			<focusedlayout height="70"><control type="label"><width>920</width><height>70</height></control></focusedlayout>
 		</control>
-		<!-- translation lines - mirrors id=110, see gui.py's _populate_translation_list()/_show_translation_synced()/_show_translation_block() -->
-		<control type="list" id="112">
-			<left>960</left>
-			<top>140</top>
-			<width>920</width>
-			<height>720</height>
-			<visible>false</visible>
-			<itemlayout height="70"><control type="label"><width>920</width><height>70</height></control></itemlayout>
-			<focusedlayout height="70"><control type="label"><width>920</width><height>70</height></control></focusedlayout>
+		<!-- translation panel - a full-width dark band across the bottom of the screen, logo+source
+		     in a left column, a divider, then a REAL focused scrolling list to the right (smooth
+		     scroll between lines, current line bigger + word-wraps to a 2nd line if long, via
+		     native focusedlayout). This control is given real window focus (see <defaultcontrol>
+		     above) - unlike list 110, which deliberately never gets focus (see gui.py's disabled
+		     "self.setFocus(self.text)"/"focus-steal fix": OK on a focused list goes to onClick(),
+		     not onAction()'s ACTION_SELECT_ITEM/OSD handling - a real previously-fixed bug). List
+		     112 has no such conflicting onClick behavior of its own, so gui.py's onClick() forwards
+		     controlId==112 to the exact same close-dialog/open-OSD logic as onAction()'s OK case.
+		     Absolute AN5 pixel targets (45,770 etc.) minus this window's own (10,40) <coordinates>
+		     offset - see gui.py's _populate_translation_list()/_show_translation_synced()/_show_translation_block(). -->
+		<control type="image">
+			<description>translation panel backdrop, only when translation is showing</description>
+			<left>35</left>
+			<top>750</top>
+			<width>1830</width>
+			<height>280</height>
+			<texture colordiffuse="A0000000">culrc-black.png</texture>
+			<visible>!String.IsEmpty(Window(Home).Property(culrc.translation))</visible>
 		</control>
 		<control type="image">
-			<description>divider between original lyrics and translation, only when translation is showing</description>
-			<left>950</left>
-			<top>300</top>
-			<width>2</width>
-			<height>400</height>
-			<texture colordiffuse="FF12B2E7">culrc-white70.png</texture>
+			<description>CU LRC Lyrics logo, left column of the translation panel</description>
+			<left>43</left>
+			<top>770</top>
+			<width>260</width>
+			<height>130</height>
+			<aspectratio align="center" aligny="top">keep</aspectratio>
+			<texture>culrc-logo.png</texture>
 			<visible>!String.IsEmpty(Window(Home).Property(culrc.translation))</visible>
+		</control>
+		<control type="image">
+			<description>divider between the logo/source column and the translated text</description>
+			<left>310</left>
+			<top>770</top>
+			<width>3</width>
+			<height>280</height>
+			<texture colordiffuse="white">culrc-white70.png</texture>
+			<visible>!String.IsEmpty(Window(Home).Property(culrc.translation))</visible>
+		</control>
+		<control type="fixedlist" id="112">
+			<left>353</left>
+			<top>770</top>
+			<width>1492</width>
+			<height>280</height>
+			<onup>112</onup>
+			<ondown>112</ondown>
+			<onleft>112</onleft>
+			<onright>112</onright>
+			<orientation>vertical</orientation>
+			<focusposition>1</focusposition>
+			<scrolltime tween="quadratic" easing="out">500</scrolltime>
+			<visible>!String.IsEmpty(Window(Home).Property(culrc.translation))</visible>
+			<itemlayout height="28">
+				<control type="label">
+					<width>1492</width>
+					<height>28</height>
+					<font>culrc_notosans_16</font>
+					<textcolor>white</textcolor>
+					<shadowcolor>black</shadowcolor>
+					<align>left</align>
+					<aligny>center</aligny>
+					<label>$INFO[ListItem.Label]</label>
+				</control>
+			</itemlayout>
+			<focusedlayout height="85">
+				<control type="textbox">
+					<width>1492</width>
+					<height>85</height>
+					<font>culrc_notosans_30b</font>
+					<textcolor>white</textcolor>
+					<shadowcolor>black</shadowcolor>
+					<align>left</align>
+					<aligny>center</aligny>
+					<label>$INFO[ListItem.Label]</label>
+				</control>
+			</focusedlayout>
 		</control>
 		<!-- LICENSE NOTE: the entrance-animation choreography in this section (positions, timings,
 		     effect combinations for 15 of the 17 styles below) is adapted from Aeon Nox 5's own
@@ -155,9 +218,9 @@
 		     lyric line too. -->
 			<control type="grouplist">
 				<left>1</left>
-				<top>200</top>
+				<top>165</top>
 				<width>1920</width>
-				<height>100</height>
+				<height>170</height>
 				<itemgap>10</itemgap>
 				<scrolltime>0</scrolltime>
 				<orientation>horizontal</orientation>
@@ -170,7 +233,7 @@
 					<effect type="zoom" start="25" end="100" tween="back" easing="out" time="500"/>
 				</animation>
 				<width>auto</width>
-				<height>100</height>
+				<height>170</height>
 				<label>$INFO[Container(110).ListItem.Property(part1)]</label>
 				<font>culrc_exo2_120</font>
 				<shadowcolor>black</shadowcolor>
@@ -185,7 +248,7 @@
 				</animation>
 				<visible>String.IsEqual(Container(110).Currentitem,1) | String.EndsWith(Container(110).Currentitem,18) | String.EndsWith(Container(110).Currentitem,35) | String.EndsWith(Container(110).Currentitem,52) | String.EndsWith(Container(110).Currentitem,69) | String.EndsWith(Container(110).Currentitem,86) | String.EndsWith(Container(110).Currentitem,03)</visible>
 				<width>auto</width>
-				<height>100</height>
+				<height>170</height>
 				<label>$INFO[Container(110).ListItem.Property(part2)]</label>
 				<font>culrc_exo2_120</font>
 				<shadowcolor>black</shadowcolor>
@@ -200,7 +263,7 @@
 					<effect type="zoom" start="25" end="100" tween="back" easing="out" time="1100"/>
 				</animation>
 				<width>auto</width>
-				<height>100</height>
+				<height>170</height>
 				<label>$INFO[Container(110).ListItem.Property(part3)]</label>
 				<font>culrc_exo2_120</font>
 				<shadowcolor>black</shadowcolor>
@@ -241,9 +304,9 @@
 				<left>1</left>
 				<control type="grouplist">
 					<left>0</left>
-					<top>-95</top>
+					<top>-112</top>
 					<width>1920</width>
-					<height>125</height>
+					<height>159</height>
 					<itemgap>25</itemgap>
 					<scrolltime>0</scrolltime>
 					<orientation>horizontal</orientation>
@@ -255,7 +318,7 @@
 							<effect type="zoom" center="auto" start="0" end="100" tween="sine" easing="out" time="700"/>
 						</animation>
 						<width>auto</width>
-						<height>125</height>
+						<height>159</height>
 						<label>$INFO[Container(110).ListItem.Property(part1)]</label>
 						<font>culrc_luckiestguy_120</font>
 						<shadowcolor>black</shadowcolor>
@@ -269,7 +332,7 @@
 							<effect type="zoom" center="auto" start="400" end="100" tween="sine" easing="out" time="700"/>
 						</animation>
 						<width>auto</width>
-						<height>125</height>
+						<height>159</height>
 						<label>$INFO[Container(110).ListItem.Property(part2)]</label>
 						<font>culrc_luckiestguy_120</font>
 						<align>center</align>
@@ -293,7 +356,7 @@
 							<effect type="zoom" center="auto" start="400" end="100" tween="sine" easing="out" time="700"/>
 						</animation>
 						<width>auto</width>
-						<height>125</height>
+						<height>159</height>
 						<label>$INFO[Container(110).ListItem.Property(part3)]</label>
 						<font>culrc_luckiestguy_120</font>
 						<shadowcolor>black</shadowcolor>
@@ -323,9 +386,9 @@
 	
 			<control type="grouplist">
 				<left>1</left>
-				<top>200</top>
+				<top>178</top>
 				<width>1920</width>
-				<height>120</height>
+				<height>165</height>
 				<itemgap>3</itemgap>
 				<scrolltime>0</scrolltime>
 				<orientation>horizontal</orientation>
@@ -340,7 +403,7 @@
 					<effect type="slide" delay="900" end="-50,0" time="300" tween="back" easing="out"/>
 				</animation>
 				<width>auto</width>
-				<height>115</height>
+				<height>165</height>
 				<label>$INFO[Container(110).ListItem.Property(part1)]</label>
 				<font>culrc_alfaslabone_125</font>
 				<shadowcolor>black</shadowcolor>
@@ -356,7 +419,7 @@
 					<effect type="rotate" delay="1100" center="auto" end="-11" time="250" tween="back" easing="out"/>
 				</animation>
 				<width>auto</width>
-				<height>115</height>
+				<height>165</height>
 				<label>$INFO[Container(110).ListItem.Property(part2)]</label>
 				<font>culrc_alfaslabone_125</font>
 				<shadowcolor>black</shadowcolor>
@@ -373,7 +436,7 @@
 					<effect type="slide" delay="900" end="50,0" time="350" tween="back" easing="out"/>
 				</animation>
 				<width>auto</width>
-				<height>115</height>
+				<height>165</height>
 				<label>$INFO[Container(110).ListItem.Property(part3)]</label>
 				<font>culrc_alfaslabone_125</font>
 				<shadowcolor>black</shadowcolor>
@@ -422,9 +485,9 @@
 						<effect type="slide" delay="1150" end="0,-160" time="250" tween="back" easing="out"/>
 					</animation>
 					<left>-30</left>
-					<top>520</top>
+					<top>503</top>
 					<width>1135</width>
-					<height>125</height>
+					<height>159</height>
 					<label>$INFO[Container(110).ListItem.Property(part1)]</label>
 					<font>culrc_bowlbyonesc_120</font>
 					<shadowcolor>black</shadowcolor>
@@ -440,9 +503,9 @@
 						<effect type="slide" delay="600" end="-280,0" time="250" tween="sine" easing="out"/>
 						<effect type="slide" delay="1150" end="0,-160" time="300" tween="back" easing="out"/>
 					</animation>
-					<top>520</top>
+					<top>503</top>
 					<width>1135</width>
-					<height>125</height>
+					<height>159</height>
 					<label>$INFO[Container(110).ListItem.Property(part2)]</label>
 					<font>culrc_bowlbyonesc_120</font>
 					<shadowcolor>black</shadowcolor>
@@ -457,9 +520,9 @@
 						<effect type="slide" delay="1150" end="0,-160" time="350" tween="back" easing="out"/>
 					</animation>
 					<left>795</left>
-					<top>520</top>
+					<top>503</top>
 					<width>1135</width>
-					<height>125</height>
+					<height>159</height>
 					<label>$INFO[Container(110).ListItem.Property(part3)]</label>
 					<font>culrc_bowlbyonesc_120</font>
 					<shadowcolor>black</shadowcolor>
@@ -564,9 +627,9 @@
 
 			<control type="grouplist">
 				<left>1</left>
-				<top>-200</top>
+				<top>-285</top>
 				<width>1920</width>
-				<height>100</height>
+				<height>271</height>
 				<itemgap>10</itemgap>
 				<scrolltime>0</scrolltime>
 				<orientation>horizontal</orientation>
@@ -579,7 +642,7 @@
 					<effect type="rotate" start="440" center="auto" end="360" time="1000" tween="cubic" easing="out" />
 				</animation>
 				<width>auto</width>
-				<height>100</height>
+				<height>159</height>
 				<label>$INFO[Container(110).ListItem.Property(part1)]</label>
 				<font>culrc_staatliches_120</font>
 				<shadowcolor>black</shadowcolor>
@@ -594,7 +657,7 @@
 				</animation>
 				<visible>String.IsEqual(Container(110).Currentitem,6) | String.EndsWith(Container(110).Currentitem,23) | String.EndsWith(Container(110).Currentitem,40) | String.EndsWith(Container(110).Currentitem,57) | String.EndsWith(Container(110).Currentitem,74) | String.EndsWith(Container(110).Currentitem,91) | String.EndsWith(Container(110).Currentitem,08)</visible>
 				<width>auto</width>
-				<height>100</height>
+				<height>159</height>
 				<label>$INFO[Container(110).ListItem.Property(part2)]</label>
 				<font>culrc_staatliches_120</font>
 				<shadowcolor>black</shadowcolor>
@@ -609,7 +672,7 @@
 					<effect type="rotate" delay="300" start="440" center="auto" end="360" time="1000" tween="cubic" easing="out" />
 				</animation>
 				<width>auto</width>
-				<height>100</height>
+				<height>159</height>
 				<label>$INFO[Container(110).ListItem.Property(part3)]</label>
 				<font>culrc_staatliches_120</font>
 				<shadowcolor>black</shadowcolor>
@@ -656,9 +719,9 @@
 						<effect type="slide" delay="1150" end="-200,0" time="250" tween="back" easing="out"/>
 					</animation>
 					<left>50</left>
-					<top>520</top>
+					<top>510</top>
 					<width>1200</width>
-					<height>125</height>
+					<height>146</height>
 					<label>$INFO[Container(110).ListItem.Property(part1)]</label>
 					<font>culrc_exo2_110</font>
 					<shadowcolor>black</shadowcolor>
@@ -674,9 +737,9 @@
 						<effect type="slide" delay="600" end="0,-160" time="250" tween="sine" easing="out"/>
 						<effect type="slide" delay="1150" end="-200,0" time="300" tween="back" easing="out"/>
 					</animation>
-					<top>520</top>
+					<top>480</top>
 					<width>1200</width>
-					<height>125</height>
+					<height>205</height>
 					<label>$INFO[Container(110).ListItem.Property(part2)]</label>
 					<font>culrc_ranchers_155</font>
 					<shadowcolor>black</shadowcolor>
@@ -691,9 +754,9 @@
 						<effect type="slide" delay="1150" end="-200,0" time="350" tween="back" easing="out"/>
 					</animation>
 					<left>50</left>
-					<top>350</top>
+					<top>277</top>
 					<width>1200</width>
-					<height>125</height>
+					<height>271</height>
 					<label>$INFO[Container(110).ListItem.Property(part3)]</label>
 					<font>culrc_luckiestguy_205</font>
 					<shadowcolor>black</shadowcolor>
@@ -723,9 +786,9 @@
 	
 			<control type="grouplist">
 				<left>1</left>
-				<top>200</top>
+				<top>184</top>
 				<width>1920</width>
-				<height>140</height>
+				<height>172</height>
 				<itemgap>10</itemgap>
 				<scrolltime>0</scrolltime>
 				<orientation>horizontal</orientation>
@@ -737,7 +800,7 @@
 					<effect type="rotatey" center="0,0" start="90" end="0" time="450" tween="sine" easing="out"/>
 				</animation>
 				<width>auto</width>
-				<height>120</height>
+				<height>159</height>
 				<label>$INFO[Container(110).ListItem.Property(part1)]</label>
 				<font>culrc_alfaslabone_120</font>
 				<shadowcolor>black</shadowcolor>
@@ -751,7 +814,7 @@
 					<effect type="rotatex" center="0,0" start="90" end="0" time="600" tween="sine" easing="out"/>
 				</animation>
 				<width>auto</width>
-				<height>120</height>
+				<height>159</height>
 				<label>$INFO[Container(110).ListItem.Property(part2)]</label>
 				<font>culrc_alfaslabone_120</font>
 				<shadowcolor>black</shadowcolor>
@@ -765,7 +828,7 @@
 					<effect type="rotate" center="0,0" start="170" end="0" time="750" tween="sine" easing="out"/>
 				</animation>
 				<width>auto</width>
-				<height>120</height>
+				<height>159</height>
 				<label>$INFO[Container(110).ListItem.Property(part3)]</label>
 				<font>culrc_alfaslabone_120</font>
 				<shadowcolor>black</shadowcolor>
@@ -811,9 +874,9 @@
 						<effect type="rotate" center="720,270" delay="900" start="35" end="0" time="250" tween="back" easing="out"/>
 					</animation>
 					<left>0</left>
-					<top>395</top>
+					<top>372</top>
 					<width>940</width>
-					<height>125</height>
+					<height>172</height>
 					<label>$INFO[Container(110).ListItem.Property(part3)]</label>
 					<font>culrc_bowlbyonesc_130</font>
 					<shadowcolor>black</shadowcolor>
@@ -828,9 +891,9 @@
 						<effect type="slide" delay="150" start="0,-400" end="0,0" time="350" tween="back" easing="out"/>
 						<effect type="rotate" center="720,270" delay="900" start="35" end="0" time="300" tween="back" easing="out"/>
 					</animation>
-					<top>270</top>
+					<top>247</top>
 					<width>940</width>
-					<height>125</height>
+					<height>172</height>
 					<label>$INFO[Container(110).ListItem.Property(part2)]</label>
 					<font>culrc_bowlbyonesc_130</font>
 					<shadowcolor>black</shadowcolor>
@@ -845,9 +908,9 @@
 						<effect type="rotate" center="720,270" delay="900" start="35" end="0" time="350" tween="back" easing="out"/>
 					</animation>
 					<left>0</left>
-					<top>145</top>
+					<top>122</top>
 					<width>940</width>
-					<height>125</height>
+					<height>172</height>
 					<label>$INFO[Container(110).ListItem.Property(part1)]</label>
 					<font>culrc_bowlbyonesc_130</font>
 					<shadowcolor>black</shadowcolor>
@@ -886,9 +949,9 @@
 						<effect type="slide" delay="800" start="0,0" end="0,-200" time="350" tween="back" easing="out"/>
 					</animation>
 					<left>0</left>
-					<top>154</top>
+					<top>132</top>
 					<width>1920</width>
-					<height>115</height>
+					<height>159</height>
 					<label>$INFO[Container(110).ListItem.Property(part1)]</label>
 					<font>culrc_racingsansone_120</font>
 					<shadowcolor>black</shadowcolor>
@@ -898,9 +961,9 @@
 				</control>
 				<control type="grouplist">
 					<left>0</left>
-					<top>260</top>
+					<top>243</top>
 					<width>1920</width>
-					<height>125</height>
+					<height>159</height>
 					<itemgap>35</itemgap>
 					<scrolltime>0</scrolltime>
 					<orientation>horizontal</orientation>
@@ -913,7 +976,7 @@
 							<effect type="slide" delay="800" start="0,0" end="0,-200" time="400" tween="back" easing="out"/>
 						</animation>
 						<width>auto</width>
-						<height>125</height>
+						<height>159</height>
 						<label>$INFO[Container(110).ListItem.Property(part2)]</label>
 						<font>culrc_racingsansone_120</font>
 						<shadowcolor>black</shadowcolor>
@@ -928,7 +991,7 @@
 							<effect type="slide" delay="800" start="0,0" end="0,-200" time="450" tween="back" easing="out"/>
 						</animation>
 						<width>auto</width>
-						<height>125</height>
+						<height>159</height>
 						<label>$INFO[Container(110).ListItem.Property(part3)]</label>
 						<font>culrc_racingsansone_120</font>
 						<shadowcolor>black</shadowcolor>
@@ -987,7 +1050,7 @@
 					</control>
 					<control type="label">
 						<width>auto</width>
-						<height>125</height>
+						<height>159</height>
 						<label>$INFO[Container(110).ListItem.Property(part2)]</label>
 						<font>culrc_titanone_120</font>
 						<align>center</align>
@@ -1020,7 +1083,7 @@
 					</control>
 					<control type="label">
 						<width>auto</width>
-						<height>125</height>
+						<height>159</height>
 						<label>$INFO[Container(110).ListItem.Property(part2)]</label>
 						<font>culrc_titanone_120</font>
 						<shadowcolor>black</shadowcolor>
@@ -1045,7 +1108,7 @@
 					<align>center</align>
 					<control type="label">
 						<width>auto</width>
-						<height>125</height>
+						<height>159</height>
 						<label>$INFO[Container(110).ListItem.Property(part3)]</label>
 						<font>culrc_titanone_120</font>
 						<shadowcolor>black</shadowcolor>
@@ -1081,7 +1144,7 @@
 					<align>center</align>
 					<control type="label">
 						<width>auto</width>
-						<height>125</height>
+						<height>159</height>
 						<label>$INFO[Container(110).ListItem.Property(part3)]</label>
 						<font>culrc_titanone_120</font>
 						<align>right</align>
@@ -1228,9 +1291,9 @@
 	
 			<control type="grouplist">
 				<left>1</left>
-				<top>200</top>
+				<top>183</top>
 				<width>1920</width>
-				<height>125</height>
+				<height>159</height>
 				<itemgap>10</itemgap>
 				<scrolltime>0</scrolltime>
 				<orientation>horizontal</orientation>
@@ -1243,7 +1306,7 @@
 					<effect type="rotate" center="auto" start="360" end="0" time="300" tween="sine" easing="out"/>
 				</animation>
 				<width>auto</width>
-				<height>120</height>
+				<height>159</height>
 				<label>$INFO[Container(110).ListItem.Property(part1)]</label>
 				<font>culrc_alfaslabone_120</font>
 				<shadowcolor>black</shadowcolor>
@@ -1258,7 +1321,7 @@
 					<effect type="rotate" center="auto" start="450" end="0" time="500" tween="sine" easing="out"/>
 				</animation>
 				<width>auto</width>
-				<height>120</height>
+				<height>159</height>
 				<label>$INFO[Container(110).ListItem.Property(part2)]</label>
 				<font>culrc_alfaslabone_120</font>
 				<shadowcolor>black</shadowcolor>
@@ -1273,7 +1336,7 @@
 					<effect type="rotate" center="auto" start="540" end="0" time="700" tween="sine" easing="out"/>
 				</animation>
 				<width>auto</width>
-				<height>120</height>
+				<height>159</height>
 				<label>$INFO[Container(110).ListItem.Property(part3)]</label>
 				<font>culrc_alfaslabone_120</font>
 				<shadowcolor>black</shadowcolor>
@@ -1401,9 +1464,9 @@
 						<effect type="slide" delay="800" start="0,0" end="-200,0" time="350" tween="back" easing="out"/>
 					</animation>
 					<left>50</left>
-					<top>125</top>
+					<top>102</top>
 					<width>925</width>
-					<height>125</height>
+					<height>172</height>
 					<label>$INFO[Container(110).ListItem.Property(part1)]</label>
 					<font>culrc_racingsansone_130</font>
 					<shadowcolor>black</shadowcolor>
@@ -1418,9 +1481,9 @@
 						<effect type="slide" delay="150" start="1000,0" end="0,0" time="350" tween="back" easing="out"/>
 						<effect type="slide" delay="800" start="0,0" end="-200,0" time="350" tween="back" easing="out"/>
 					</animation>
-					<top>250</top>
+					<top>227</top>
 					<width>925</width>
-					<height>125</height>
+					<height>172</height>
 					<label>$INFO[Container(110).ListItem.Property(part2)]</label>
 					<font>culrc_racingsansone_130</font>
 					<shadowcolor>black</shadowcolor>
@@ -1435,9 +1498,9 @@
 						<effect type="slide" delay="800" start="0,0" end="-200,0" time="350" tween="back" easing="out"/>
 					</animation>
 					<left>50</left>
-					<top>375</top>
+					<top>352</top>
 					<width>925</width>
-					<height>125</height>
+					<height>172</height>
 					<label>$INFO[Container(110).ListItem.Property(part3)]</label>
 					<font>culrc_racingsansone_130</font>
 					<shadowcolor>black</shadowcolor>
@@ -1466,9 +1529,9 @@
 	
 			<control type="grouplist">
 				<left>1</left>
-				<top>350</top>
+				<top>326</top>
 				<width>1920</width>
-				<height>110</height>
+				<height>159</height>
 				<itemgap>15</itemgap>
 				<scrolltime>0</scrolltime>
 				<orientation>horizontal</orientation>
@@ -1481,7 +1544,7 @@
 					</animation>
 					<animation effect="rotate" start="-6" end="6" center="auto" time="380" tween="sine" easing="inout" pulse="true" condition="true">Conditional</animation>
 					<width>auto</width>
-					<height>110</height>
+					<height>146</height>
 					<label>$INFO[Container(110).ListItem.Property(part1)]</label>
 					<font>culrc_titanone_110</font>
 					<shadowcolor>black</shadowcolor>
@@ -1497,7 +1560,7 @@
 					</animation>
 					<animation effect="rotate" start="-6" end="6" center="auto" time="380" tween="sine" easing="inout" pulse="true" condition="true">Conditional</animation>
 					<width>auto</width>
-					<height>110</height>
+					<height>146</height>
 					<label>$INFO[Container(110).ListItem.Property(part2)]</label>
 					<font>culrc_titanone_110</font>
 					<shadowcolor>black</shadowcolor>
@@ -1513,7 +1576,7 @@
 					</animation>
 					<animation effect="rotate" start="-6" end="6" center="auto" time="380" tween="sine" easing="inout" pulse="true" condition="true">Conditional</animation>
 					<width>auto</width>
-					<height>110</height>
+					<height>146</height>
 					<label>$INFO[Container(110).ListItem.Property(part3)]</label>
 					<font>culrc_titanone_110</font>
 					<shadowcolor>black</shadowcolor>
@@ -1529,7 +1592,7 @@
 					</animation>
 					<animation effect="rotate" start="-6" end="6" center="auto" time="380" tween="sine" easing="inout" pulse="true" condition="true">Conditional</animation>
 					<width>auto</width>
-					<height>110</height>
+					<height>146</height>
 					<label>$INFO[Container(110).ListItem.Property(part4)]</label>
 					<font>culrc_titanone_110</font>
 					<shadowcolor>black</shadowcolor>
@@ -1540,9 +1603,9 @@
 			</control>
 				<control type="label">
 					<left>-30</left>
-					<top>650</top>
+					<top>633</top>
 					<width>1135</width>
-					<height>125</height>
+					<height>159</height>
 					<visible>String.EndsWith(Container(110).Currentitem,17) | String.EndsWith(Container(110).Currentitem,34) | String.EndsWith(Container(110).Currentitem,51) | String.EndsWith(Container(110).Currentitem,68) | String.EndsWith(Container(110).Currentitem,85) | String.EndsWith(Container(110).Currentitem,02)</visible>
 					<animation type="Visible" reversible="false">
 						<effect type="zoom" start="0" end="100" time="400" tween="back" easing="out"/>
@@ -1559,9 +1622,9 @@
 				</control>
 				<control type="label">
 					<left>-30</left>
-					<top>650</top>
+					<top>633</top>
 					<width>1135</width>
-					<height>125</height>
+					<height>159</height>
 					<visible>String.EndsWith(Container(110).Currentitem,17) | String.EndsWith(Container(110).Currentitem,34) | String.EndsWith(Container(110).Currentitem,51) | String.EndsWith(Container(110).Currentitem,68) | String.EndsWith(Container(110).Currentitem,85) | String.EndsWith(Container(110).Currentitem,02)</visible>
 					<animation type="Visible" reversible="false">
 						<effect type="zoom" start="0" end="100" time="400" tween="back" easing="out"/>
@@ -1578,9 +1641,9 @@
 				</control>
 				<control type="label">
 					<left>795</left>
-					<top>650</top>
+					<top>633</top>
 					<width>1135</width>
-					<height>125</height>
+					<height>159</height>
 					<visible>String.EndsWith(Container(110).Currentitem,17) | String.EndsWith(Container(110).Currentitem,34) | String.EndsWith(Container(110).Currentitem,51) | String.EndsWith(Container(110).Currentitem,68) | String.EndsWith(Container(110).Currentitem,85) | String.EndsWith(Container(110).Currentitem,02)</visible>
 					<animation type="Visible" reversible="false">
 						<effect type="zoom" start="0" end="100" time="400" tween="back" easing="out"/>
@@ -1597,9 +1660,9 @@
 				</control>
 				<control type="label">
 					<left>795</left>
-					<top>650</top>
+					<top>633</top>
 					<width>1135</width>
-					<height>125</height>
+					<height>159</height>
 					<visible>String.EndsWith(Container(110).Currentitem,17) | String.EndsWith(Container(110).Currentitem,34) | String.EndsWith(Container(110).Currentitem,51) | String.EndsWith(Container(110).Currentitem,68) | String.EndsWith(Container(110).Currentitem,85) | String.EndsWith(Container(110).Currentitem,02)</visible>
 					<animation type="Visible" reversible="false">
 						<effect type="zoom" start="0" end="100" time="400" tween="back" easing="out"/>
@@ -1614,309 +1677,49 @@
 					<aligny>center</aligny>
 					<textcolor>FFFFFAF0</textcolor>
 				</control>
-		<control type="group">
-			<visible>!String.IsEmpty(Window(Home).Property(culrc.translation))</visible>
-				<control type="group">
-					<visible>[String.EndsWith(Container(112).Currentitem,1) | String.EndsWith(Container(112).Currentitem,6)]</visible>
-					<animation effect="rotate" center="auto" start="4" end="4" time="0" condition="true">Conditional</animation>
-					<animation effect="slide" start="0,-600" end="0,0" time="250" tween="sine" easing="out" reversible="false">Visible</animation>
-					<animation effect="fade" start="100" end="0" time="150">Hidden</animation>
-					<control type="label">
-						<left>960</left>
-						<top>760</top>
-						<width>400</width>
-						<height>120</height>
-						<font>culrc_luckiestguy_120</font>
-						<aligny>center</aligny>
-						<align>right</align>
-						<shadowcolor>black</shadowcolor>
-						<textcolor>FF2ECC71</textcolor>
-						<label>$INFO[Container(112).ListItem.Property(part1)]</label>
-					</control>
-					<control type="label">
-						<left>1360</left>
-						<top>760</top>
-						<width>300</width>
-						<height>120</height>
-						<font>culrc_luckiestguy_120</font>
-						<aligny>center</aligny>
-						<align>center</align>
-						<shadowcolor>black</shadowcolor>
-						<textcolor>FFF1C40F</textcolor>
-						<label>$INFO[Container(112).ListItem.Property(part2)]</label>
-					</control>
-					<control type="label">
-						<left>1660</left>
-						<top>760</top>
-						<width>260</width>
-						<height>120</height>
-						<font>culrc_luckiestguy_120</font>
-						<aligny>center</aligny>
-						<align>left</align>
-						<shadowcolor>black</shadowcolor>
-						<textcolor>FF3498DB</textcolor>
-						<label>$INFO[Container(112).ListItem.Property(part3)]</label>
-					</control>
-					<control type="label">
-						<left>960</left>
-						<top>880</top>
-						<width>920</width>
-						<height>70</height>
-						<font>font20</font>
-						<aligny>center</aligny>
-						<align>center</align>
-						<shadowcolor>black</shadowcolor>
-						<textcolor>FFFFFFFF</textcolor>
-						<label>$INFO[Container(112).ListItem.Property(part4)]</label>
-					</control>
-				</control>
-				<control type="group">
-					<visible>[String.EndsWith(Container(112).Currentitem,3) | String.EndsWith(Container(112).Currentitem,8)]</visible>
-					<animation effect="rotate" center="auto" start="4" end="4" time="0" condition="true">Conditional</animation>
-					<animation effect="slide" start="-900,0" end="0,0" time="250" tween="sine" easing="out" reversible="false">Visible</animation>
-					<animation effect="fade" start="100" end="0" time="150">Hidden</animation>
-					<control type="label">
-						<left>960</left>
-						<top>760</top>
-						<width>400</width>
-						<height>120</height>
-						<font>culrc_exo2_120</font>
-						<aligny>center</aligny>
-						<align>right</align>
-						<shadowcolor>black</shadowcolor>
-						<textcolor>FF2ECC71</textcolor>
-						<label>$INFO[Container(112).ListItem.Property(part1)]</label>
-					</control>
-					<control type="label">
-						<left>1360</left>
-						<top>760</top>
-						<width>300</width>
-						<height>120</height>
-						<font>culrc_exo2_120</font>
-						<aligny>center</aligny>
-						<align>center</align>
-						<shadowcolor>black</shadowcolor>
-						<textcolor>FFF1C40F</textcolor>
-						<label>$INFO[Container(112).ListItem.Property(part2)]</label>
-					</control>
-					<control type="label">
-						<left>1660</left>
-						<top>760</top>
-						<width>260</width>
-						<height>120</height>
-						<font>culrc_exo2_120</font>
-						<aligny>center</aligny>
-						<align>left</align>
-						<shadowcolor>black</shadowcolor>
-						<textcolor>FF3498DB</textcolor>
-						<label>$INFO[Container(112).ListItem.Property(part3)]</label>
-					</control>
-					<control type="label">
-						<left>960</left>
-						<top>880</top>
-						<width>920</width>
-						<height>70</height>
-						<font>font20</font>
-						<aligny>center</aligny>
-						<align>center</align>
-						<shadowcolor>black</shadowcolor>
-						<textcolor>FFFFFFFF</textcolor>
-						<label>$INFO[Container(112).ListItem.Property(part4)]</label>
-					</control>
-				</control>
-				<control type="group">
-					<visible>[String.EndsWith(Container(112).Currentitem,5) | String.EndsWith(Container(112).Currentitem,0)]</visible>
-					<animation effect="rotate" center="auto" start="4" end="4" time="0" condition="true">Conditional</animation>
-					<animation effect="zoom" center="auto" start="0" end="100" time="250" reversible="false">Visible</animation>
-					<animation effect="fade" start="100" end="0" time="150">Hidden</animation>
-					<control type="label">
-						<left>960</left>
-						<top>760</top>
-						<width>400</width>
-						<height>120</height>
-						<font>culrc_ranchers_120</font>
-						<aligny>center</aligny>
-						<align>right</align>
-						<shadowcolor>black</shadowcolor>
-						<textcolor>FF2ECC71</textcolor>
-						<label>$INFO[Container(112).ListItem.Property(part1)]</label>
-					</control>
-					<control type="label">
-						<left>1360</left>
-						<top>760</top>
-						<width>300</width>
-						<height>120</height>
-						<font>culrc_ranchers_120</font>
-						<aligny>center</aligny>
-						<align>center</align>
-						<shadowcolor>black</shadowcolor>
-						<textcolor>FFF1C40F</textcolor>
-						<label>$INFO[Container(112).ListItem.Property(part2)]</label>
-					</control>
-					<control type="label">
-						<left>1660</left>
-						<top>760</top>
-						<width>260</width>
-						<height>120</height>
-						<font>culrc_ranchers_120</font>
-						<aligny>center</aligny>
-						<align>left</align>
-						<shadowcolor>black</shadowcolor>
-						<textcolor>FF3498DB</textcolor>
-						<label>$INFO[Container(112).ListItem.Property(part3)]</label>
-					</control>
-					<control type="label">
-						<left>960</left>
-						<top>880</top>
-						<width>920</width>
-						<height>70</height>
-						<font>font20</font>
-						<aligny>center</aligny>
-						<align>center</align>
-						<shadowcolor>black</shadowcolor>
-						<textcolor>FFFFFFFF</textcolor>
-						<label>$INFO[Container(112).ListItem.Property(part4)]</label>
-					</control>
-				</control>
-				<control type="group">
-					<visible>[String.EndsWith(Container(112).Currentitem,7) | String.EndsWith(Container(112).Currentitem,2)]</visible>
-					<animation effect="rotate" center="auto" start="4" end="4" time="0" condition="true">Conditional</animation>
-					<animation effect="slide" start="900,0" end="0,0" time="250" tween="sine" easing="out" reversible="false">Visible</animation>
-					<animation effect="fade" start="100" end="0" time="150">Hidden</animation>
-					<control type="label">
-						<left>960</left>
-						<top>760</top>
-						<width>400</width>
-						<height>120</height>
-						<font>culrc_luckiestguy_120</font>
-						<aligny>center</aligny>
-						<align>right</align>
-						<shadowcolor>black</shadowcolor>
-						<textcolor>FF2ECC71</textcolor>
-						<label>$INFO[Container(112).ListItem.Property(part1)]</label>
-					</control>
-					<control type="label">
-						<left>1360</left>
-						<top>760</top>
-						<width>300</width>
-						<height>120</height>
-						<font>culrc_luckiestguy_120</font>
-						<aligny>center</aligny>
-						<align>center</align>
-						<shadowcolor>black</shadowcolor>
-						<textcolor>FFF1C40F</textcolor>
-						<label>$INFO[Container(112).ListItem.Property(part2)]</label>
-					</control>
-					<control type="label">
-						<left>1660</left>
-						<top>760</top>
-						<width>260</width>
-						<height>120</height>
-						<font>culrc_luckiestguy_120</font>
-						<aligny>center</aligny>
-						<align>left</align>
-						<shadowcolor>black</shadowcolor>
-						<textcolor>FF3498DB</textcolor>
-						<label>$INFO[Container(112).ListItem.Property(part3)]</label>
-					</control>
-					<control type="label">
-						<left>960</left>
-						<top>880</top>
-						<width>920</width>
-						<height>70</height>
-						<font>font20</font>
-						<aligny>center</aligny>
-						<align>center</align>
-						<shadowcolor>black</shadowcolor>
-						<textcolor>FFFFFFFF</textcolor>
-						<label>$INFO[Container(112).ListItem.Property(part4)]</label>
-					</control>
-				</control>
-				<control type="group">
-					<visible>[String.EndsWith(Container(112).Currentitem,9) | String.EndsWith(Container(112).Currentitem,4)]</visible>
-					<animation effect="rotate" center="auto" start="4" end="4" time="0" condition="true">Conditional</animation>
-					<animation effect="zoom" center="auto" start="400" end="100" time="250" reversible="false">Visible</animation>
-					<animation effect="fade" start="100" end="0" time="150">Hidden</animation>
-					<control type="label">
-						<left>960</left>
-						<top>760</top>
-						<width>400</width>
-						<height>120</height>
-						<font>culrc_exo2_120</font>
-						<aligny>center</aligny>
-						<align>right</align>
-						<shadowcolor>black</shadowcolor>
-						<textcolor>FF2ECC71</textcolor>
-						<label>$INFO[Container(112).ListItem.Property(part1)]</label>
-					</control>
-					<control type="label">
-						<left>1360</left>
-						<top>760</top>
-						<width>300</width>
-						<height>120</height>
-						<font>culrc_exo2_120</font>
-						<aligny>center</aligny>
-						<align>center</align>
-						<shadowcolor>black</shadowcolor>
-						<textcolor>FFF1C40F</textcolor>
-						<label>$INFO[Container(112).ListItem.Property(part2)]</label>
-					</control>
-					<control type="label">
-						<left>1660</left>
-						<top>760</top>
-						<width>260</width>
-						<height>120</height>
-						<font>culrc_exo2_120</font>
-						<aligny>center</aligny>
-						<align>left</align>
-						<shadowcolor>black</shadowcolor>
-						<textcolor>FF3498DB</textcolor>
-						<label>$INFO[Container(112).ListItem.Property(part3)]</label>
-					</control>
-					<control type="label">
-						<left>960</left>
-						<top>880</top>
-						<width>920</width>
-						<height>70</height>
-						<font>font20</font>
-						<aligny>center</aligny>
-						<align>center</align>
-						<shadowcolor>black</shadowcolor>
-						<textcolor>FFFFFFFF</textcolor>
-						<label>$INFO[Container(112).ListItem.Property(part4)]</label>
-					</control>
-				</control>
-		</control>
 		<!-- translation provider/coverage - mirrors culrc.translation.source on Aeon Nox 5's patched panel, see gui.py.
 		     A textbox (not label) because a hybrid result's source string carries a "[CR]" line break for its
-		     2-line "Name (92%)[CR]+ DeepL (8%)" coverage display - a <label> renders [CR] as literal text. -->
+		     2-line "Name (92%)[CR]+ DeepL (8%)" coverage display - a <label> renders [CR] as literal text.
+		     Positioned under the logo in the translation panel's left column, matching AN5's own layout. -->
 		<control type="textbox">
-			<left>960</left>
-			<top>865</top>
-			<width>920</width>
-			<height>50</height>
-			<font>font_culrc_meta</font>
+			<left>35</left>
+			<top>920</top>
+			<width>275</width>
+			<height>70</height>
+			<font>culrc_notosans_16</font>
 			<align>center</align>
 			<textcolor>FF999999</textcolor>
 			<shadowcolor>black</shadowcolor>
 			<label>$INFO[Window(Home).Property(culrc.translation.source)]</label>
 			<visible>!String.IsEmpty(Window(Home).Property(culrc.translation))</visible>
 		</control>
-		<!-- end-of-song human-translator credit, mirrors Aeon Nox 5's group id=141 - see gui.py's _maybe_show_translation_credit() -->
-		<control type="label">
-			<left>960</left>
-			<top>918</top>
-			<width>920</width>
-			<height>25</height>
-			<font>font_culrc_meta</font>
-			<align>center</align>
-			<aligny>center</aligny>
-			<textcolor>FF12B2E7</textcolor>
-			<shadowcolor>black</shadowcolor>
-			<label>$INFO[Window(Home).Property(culrc.creditmsg)]</label>
+		<!-- end-of-song human-translator credit, faithful port of Aeon Nox 5's own group id=141 (own
+		     full-width backdrop band just above the translation panel) - see gui.py's
+		     _maybe_show_translation_credit(). Absolute AN5 target (45,677) minus this window's
+		     own (10,40) <coordinates> offset. -->
+		<control type="group">
 			<visible>String.IsEqual(Window(Home).Property(culrc.creditshow),true)</visible>
 			<animation effect="fade" start="0" end="100" time="400">Visible</animation>
 			<animation effect="fade" start="100" end="0" time="400">Hidden</animation>
+			<control type="image">
+				<left>35</left>
+				<top>637</top>
+				<width>1830</width>
+				<height>62</height>
+				<texture colordiffuse="80000000">culrc-black.png</texture>
+			</control>
+			<control type="label">
+				<left>75</left>
+				<top>637</top>
+				<width>1750</width>
+				<height>62</height>
+				<align>center</align>
+				<aligny>center</aligny>
+				<font>culrc_notosans_20</font>
+				<textcolor>white</textcolor>
+				<shadowcolor>black</shadowcolor>
+				<label>$INFO[Window(Home).Property(culrc.creditmsg)]</label>
+			</control>
 		</control>
 		<control type="group">
 			<visible>false</visible>
@@ -1937,7 +1740,7 @@
 				<width>1880</width>
 				<height>30</height>
 				<label>$LOCALIZE[21870]: $INFO[Control.GetLabel(200)]</label>
-				<font>font_culrc_meta</font>
+				<font>culrc_notosans_20</font>
 				<align>right</align>
 				<aligny>center</aligny>
 				<textcolor>FF999999</textcolor>

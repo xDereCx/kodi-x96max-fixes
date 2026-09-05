@@ -75,6 +75,21 @@ DECORATIVE_FONTS = (
     ('culrc_titanone_110', 'TitanOne.ttf', 110),
     ('culrc_titanone_120', 'TitanOne.ttf', 120),
     ('culrc_titanone_60', 'TitanOne.ttf', 60),
+    # plain utility sizes for the translation panel and other non-decorative
+    # labels (title/meta) - same NotoSans-Regular + real sizes as Aeon Nox 5's
+    # own patched font_translation/font_translation_source/font_translation_current
+    # (see script.xderecx.aeonnox5lyricsfix/resources/skinfile/Font.xml.dat),
+    # since Kodi never actually loads this addon's own bundled Font.xml (see
+    # module docstring above) - these have to be installed into the active
+    # skin's Font.xml exactly like the decorative fonts above.
+    ('culrc_notosans_16', 'NotoSans-Regular.ttf', 16, False),
+    ('culrc_notosans_20', 'NotoSans-Regular.ttf', 20, False),
+    ('culrc_notosans_22', 'NotoSans-Regular.ttf', 22, False),
+    ('culrc_notosans_28', 'NotoSans-Regular.ttf', 28, False),
+    ('culrc_notosans_30b', 'NotoSans-Regular.ttf', 30, True),
+    ('culrc_notosans_34b', 'NotoSans-Regular.ttf', 34, True),
+    ('culrc_notosans_38b', 'NotoSans-Regular.ttf', 38, True),
+    ('culrc_notosans_48b', 'NotoSans-Regular.ttf', 48, True),
 )
 
 SOURCE_DIR = os.path.join(CWD, 'resources', 'fonts', 'decorative')
@@ -130,15 +145,25 @@ def _is_writable(path):
         return False
 
 
+def _iter_fonts():
+    # entries are either (name, filename, size) or (name, filename, size, bold)
+    for entry in DECORATIVE_FONTS:
+        name, filename, size = entry[0], entry[1], entry[2]
+        bold = entry[3] if len(entry) > 3 else False
+        yield name, filename, size, bold
+
+
 def _build_font_blocks():
     blocks = []
-    for name, filename, size in DECORATIVE_FONTS:
+    for name, filename, size, bold in _iter_fonts():
+        style = '\t\t\t<style>bold</style>\n' if bold else ''
         blocks.append(
             '\t\t<font>\n'
             '\t\t\t<name>%s</name>\n'
             '\t\t\t<filename>culrc/%s</filename>\n'
+            '%s'
             '\t\t\t<size>%d</size>\n'
-            '\t\t</font>\n' % (name, filename, size)
+            '\t\t</font>\n' % (name, filename, style, size)
         )
     return ''.join(blocks)
 
@@ -160,7 +185,7 @@ def install():
     fonts_dest_dir = os.path.join(skin_root, 'fonts', 'culrc')
     try:
         os.makedirs(fonts_dest_dir, exist_ok=True)
-        for name, filename, size in DECORATIVE_FONTS:
+        for name, filename, size, bold in _iter_fonts():
             src = os.path.join(SOURCE_DIR, filename)
             dst = os.path.join(fonts_dest_dir, filename)
             shutil.copy2(src, dst)

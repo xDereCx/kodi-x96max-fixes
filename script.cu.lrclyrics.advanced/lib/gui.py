@@ -7,10 +7,6 @@ from lib.embedlrc import *
 from lib.translate import strip_lrc_tags, translate_text, translate_lines, looks_like_english
 from lib.humantranslate import fetch_human_translation, fetch_human_translation_synced, is_human_source, is_fully_human_source, credit_domain_for_source, human_translation_lang
 
-# how many lines ahead of the current one to force into view, so the
-# translation panel shows more upcoming context instead of piling up
-# already-sung lines above the focused one
-TRANSLATION_SCROLL_LOOKAHEAD = 1
 
 # rapid-repeat left/right seek acceleration, same idea as Kodi's video OSD
 SEEK_STREAK_WINDOW = 1.5
@@ -1116,20 +1112,24 @@ class GUI(xbmcgui.WindowXMLDialog):
             for count, item in enumerate(self.get_parts(cleanline)):
                 listitem.setProperty('part%i' % (count + 1), item)
             self.text2.addItem(listitem)
+        # NOTE: tried calling self.setFocus(self.text2) here to cover the
+        # rare case where <defaultcontrol>112</defaultcontrol> resolves
+        # before translation is ready - reverted, since this method runs on
+        # the background fetch thread (see _show_translation_synced's
+        # threading.Thread(target=_fetch)), and setFocus() from a non-GUI
+        # thread made the confirmed-working focusedlayout (bigger current
+        # line) stop working entirely instead of just fixing the timing
+        # edge case. <defaultcontrol> alone is the confirmed-working setup.
 
     def _select_translation_line(self, pos):
-        # plain selectItem(pos) only scrolls the minimum needed to reveal
-        # pos, which (since it only ever moves forward one line at a time)
-        # leaves already-sung lines piling up above the current one and
-        # nothing shown below - select further ahead first to force the
-        # viewport to scroll past that point, then land on the real
-        # position, same trick self.scroll_line already uses for the main
-        # lyrics list
-        nums = self.text2.size()
-        if nums == 0:
+        # list 112 is a <control type="fixedlist"> with <focusposition>1</focusposition>
+        # in the skin XML - Kodi itself always keeps the selected item at that
+        # fixed on-screen slot (1 line of context above it, always), so a
+        # plain selectItem() is all that's needed here. No lookahead/scroll
+        # trick required - that was only ever a workaround for a plain
+        # <control type="list">, which has no concept of a fixed focus slot.
+        if self.text2.size() == 0:
             return
-        lookahead = min(pos + TRANSLATION_SCROLL_LOOKAHEAD, nums - 1)
-        self.text2.selectItem(lookahead)
         self.text2.selectItem(pos)
 
     def _show_translation_block(self, cache_path):
@@ -1395,7 +1395,26 @@ class GUI(xbmcgui.WindowXMLDialog):
         self.close()
 
     def onClick(self, controlId):
-        if (controlId == 110):
+        if (controlId == 112):
+            # list 112 (translation) is given real window focus so its
+            # focusedlayout can show a bigger current line - see the skin
+            # XML's comment above <control type="list" id="112">. Unlike
+            # 110, it has no click-to-seek behavior of its own, so forward
+            # OK presses to the exact same close-dialog/open-OSD logic as
+            # onAction()'s ACTION_SELECT_ITEM case (which never fires while
+            # a focused control's own onClick() already consumed the OK).
+            if not xbmc.getCondVisibility("Window.IsVisible(10120)"):
+                xbmc.executebuiltin("ActivateWindow(10120)")
+                mon = self.Monitor
+                def _reopen_when_osd_closes():
+                    xbmc.sleep(300)
+                    while xbmc.getCondVisibility('Window.IsVisible(10120)') and not mon.abortRequested():
+                        xbmc.sleep(200)
+                    if not mon.abortRequested():
+                        WIN.setProperty('culrc.force', 'TRUE')
+                threading.Thread(target=_reopen_when_osd_closes).start()
+                self.exit_gui("quit")
+        elif (controlId == 110):
             # will only work for lrc based lyrics
             try:
                 item = self.text.getSelectedItem()
