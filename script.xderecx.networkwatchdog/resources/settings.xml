@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<settings version="1">
+	<section id="script.xderecx.networkwatchdog">
+		<category id="main" label="Network watchdog">
+			<group id="1">
+				<setting id="install" type="action" label="Install / reinstall service">
+					<level>0</level>
+					<control type="button" format="action"/>
+					<data>RunScript(script.xderecx.networkwatchdog)</data>
+				</setting>
+				<setting id="remove" type="action" label="Stop and remove service" help="Stops and disables network-watchdog.service and removes its files from /storage/.config/. Run this BEFORE uninstalling this addon from the add-on browser - Kodi does not run any addon code on uninstall, so this is the only way the systemd service actually gets removed.">
+					<level>0</level>
+					<control type="button" format="action"/>
+					<data>RunScript(script.xderecx.networkwatchdog,remove)</data>
+				</setting>
+			</group>
+		</category>
+	</section>
+</settings>

@@ -1,4 +1,4 @@
-# DereC Kodi Fixes
+# DereC Kodi Addons
 
 A Kodi addon repository of small, hand-picked addon fixes and additions.
 Install the repository once, then install/update addons from it directly
@@ -22,7 +22,7 @@ own entry below for which one it's in:
    (name it e.g. `xderecx-fixes`).
 2. **Settings → Add-ons → Install from zip file**, pick the source above,
    then `repository.xderecx.kodifixes-1.1.0.zip`.
-3. **Settings → Add-ons → Install from repository → DereC Kodi Fixes**
+3. **Settings → Add-ons → Install from repository → DereC Kodi Addons**
    — install whichever addons you want from the list.
 
 From then on, Kodi checks this repository for updates the same way it
@@ -130,7 +130,12 @@ every folder under `zips/` so Kodi's browser can see what's there.
   tunnel interfaces) and restarts `connman` if none shows up. Fixes
   boots where the network never comes up on its own. Confirmed working
   on x96max+. Re-running it is a no-op if already installed and
-  enabled.
+  enabled. Its settings screen also has a "Stop and remove service"
+  action - run this **before** uninstalling the addon from the add-on
+  browser, since Kodi doesn't run any addon code on uninstall and the
+  systemd service lives outside Kodi entirely (in
+  `/storage/.config/`) - uninstalling the addon alone would leave it
+  running forever.
 
 - **`script.xderecx.hisenseblue`** — small Program add-on, same
   delivery mechanism. Run it once from **Add-ons → Program add-ons**:
@@ -142,9 +147,13 @@ every folder under `zips/` so Kodi's browser can see what's there.
   CoreELEC for it). This is a **global** keymap change, not specific
   to any one addon - useful for addons like this repo's CU LRC Lyrics
   fork, whose sync/reload/delete options live in a context menu. If
-  `custom_remote.xml` already exists with different content, asks
-  before overwriting rather than silently replacing what looks like
-  an unrelated existing customization. Restart Kodi after running it.
+  `custom_remote.xml` already exists with different content, backs it
+  up and asks before overwriting rather than silently replacing what
+  looks like an unrelated existing customization. Restart Kodi after
+  running it. Same as network watchdog above, its settings screen has
+  a "Restore original keymap" action to run **before** uninstalling -
+  restores your backed-up file, or removes the keymap entirely if
+  there wasn't one before.
 
 ## ⚠ Maintenance note: don't bulk-remove the vendored shared modules
 

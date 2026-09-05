@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="script.xderecx.hisenseblue" name="Hisense TV remote: blue button to ContextMenu" version="1.0.0" provider-name="xDereCx">
+<addon id="script.xderecx.hisenseblue" name="Hisense TV remote: blue button to ContextMenu" version="1.1.0" provider-name="xDereCx">
 	<requires>
 		<import addon="xbmc.python" version="3.0.0"/>
 	</requires>
@@ -13,6 +13,6 @@
 		<assets>
 			<icon>icon.png</icon>
 		</assets>
-		<news>1.0.0: initial release - packages the Hisense blue-button-to-ContextMenu keymap fix (previously a manual-copy-only file under keymaps/hisense-blue-contextmenu/) as a proper installable addon.</news>
+		<news>1.1.0: added a settings screen with explicit Install and "Restore original keymap" actions - Kodi has no uninstall hook for script add-ons (clicking Uninstall in the add-on browser just deletes this add-on's files, it never runs any of our code), so reverting the keymap change can only ever be this separate, explicit action, run BEFORE uninstalling. Install now also backs up an existing different custom_remote.xml before overwriting it, so Restore can bring it back. 1.0.0: initial release - packages the Hisense blue-button-to-ContextMenu keymap fix (previously a manual-copy-only file under keymaps/hisense-blue-contextmenu/) as a proper installable addon.</news>
 	</extension>
 </addon>

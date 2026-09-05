@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="script.xderecx.networkwatchdog" name="CoreELEC: Network watchdog (connman restart on boot)" version="1.0.0" provider-name="xDereCx">
+<addon id="script.xderecx.networkwatchdog" name="CoreELEC: Network watchdog (connman restart on boot)" version="1.1.0" provider-name="xDereCx">
 	<requires>
 		<import addon="xbmc.python" version="3.0.0"/>
 	</requires>
@@ -13,6 +13,6 @@
 		<assets>
 			<icon>icon.png</icon>
 		</assets>
-		<news>1.0.0: initial release - packages the network-watchdog systemd service confirmed working on x96max+.</news>
+		<news>1.1.0: added a settings screen with explicit Install and "Stop and remove service" actions - Kodi has no uninstall hook for script add-ons (clicking Uninstall in the add-on browser just deletes this add-on's files, it never runs any of our code), so the systemd service and script this addon installs to /storage/.config/ would otherwise keep running forever regardless of whether the Kodi addon itself is still installed. Run "Stop and remove service" BEFORE uninstalling. 1.0.0: initial release - packages the network-watchdog systemd service confirmed working on x96max+.</news>
 	</extension>
 </addon>

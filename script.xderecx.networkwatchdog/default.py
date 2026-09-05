@@ -1,6 +1,7 @@
 import os
 import shutil
 import subprocess
+import sys
 import xbmc
 import xbmcaddon
 import xbmcgui
@@ -66,5 +67,38 @@ def main():
     DIALOG.ok('Network watchdog', 'Installed and enabled. It will run automatically on the next boot.')
 
 
+def remove():
+    # Kodi has no uninstall hook for script add-ons - clicking "Uninstall"
+    # in the add-on browser just deletes this add-on's own folder, it
+    # never runs any of our code. The systemd service and script this
+    # addon installs to /storage/.config/ (outside Kodi entirely) would
+    # otherwise keep running forever, uninstalled-from-Kodi or not - this
+    # is the only way to actually undo that. Run it BEFORE uninstalling.
+    if not (os.path.isfile(TARGET_SCRIPT) or os.path.isfile(TARGET_SERVICE)):
+        DIALOG.notification('Network watchdog', 'Not installed, nothing to do', icon=xbmcgui.NOTIFICATION_INFO)
+        return
+
+    if not DIALOG.yesno(
+        'Network watchdog',
+        'This will stop and disable network-watchdog.service and remove:\n%s\n%s\n\nContinue?'
+        % (TARGET_SCRIPT, TARGET_SERVICE)
+    ):
+        return
+
+    subprocess.run(['systemctl', 'stop', 'network-watchdog.service'], stderr=subprocess.DEVNULL)
+    subprocess.run(['systemctl', 'disable', 'network-watchdog.service'], stderr=subprocess.DEVNULL)
+    if os.path.isfile(TARGET_SERVICE):
+        os.remove(TARGET_SERVICE)
+    if os.path.isfile(TARGET_SCRIPT):
+        os.remove(TARGET_SCRIPT)
+    subprocess.run(['systemctl', 'daemon-reload'])
+
+    xbmc.log('[networkwatchdog] removed %s and %s' % (TARGET_SCRIPT, TARGET_SERVICE), xbmc.LOGINFO)
+    DIALOG.ok('Network watchdog', 'Stopped, disabled, and removed. connman will no longer be auto-restarted on boot.')
+
+
 if __name__ == '__main__':
-    main()
+    if len(sys.argv) == 2 and sys.argv[1] == 'remove':
+        remove()
+    else:
+        main()
