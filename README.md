@@ -132,19 +132,14 @@ every folder under `zips/` so Kodi's browser can see what's there.
   on x96max+. Re-running it is a no-op if already installed and
   enabled.
 
-- **`script.xderecx.hisenseblue`** — small Program add-on, same
-  delivery mechanism. Run it once from **Add-ons → Program add-ons**:
-  installs `userdata/keymaps/custom_remote.xml`, remapping the blue
-  button on a Hisense TV remote (received over HDMI-CEC) to open
-  Kodi's ContextMenu, since the TV's own dedicated Menu button doesn't
-  pass through CEC at all on this hardware (confirmed with
-  `cec-client -m`: no `User Control Pressed` event ever reaches
-  CoreELEC for it). This is a **global** keymap change, not specific
-  to any one addon - useful for addons like this repo's CU LRC Lyrics
-  fork, whose sync/reload/delete options live in a context menu. If
-  `custom_remote.xml` already exists with different content, asks
-  before overwriting rather than silently replacing what looks like
-  an unrelated existing customization. Restart Kodi after running it.
+## Manual-install fallback (no addon)
+
+- **`keymaps/hisense-blue-contextmenu/`** — a `custom_remote.xml` for
+  `/storage/.kodi/userdata/keymaps/` that remaps the blue button on a
+  Hisense TV remote (received over HDMI-CEC) to open Kodi's
+  ContextMenu, since the TV's own dedicated Menu button doesn't pass
+  through CEC at all on this hardware. See
+  [keymaps/hisense-blue-contextmenu/README.md](keymaps/hisense-blue-contextmenu/README.md).
 
 ## ⚠ Maintenance note: don't bulk-remove the vendored shared modules
 
