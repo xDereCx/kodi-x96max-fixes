@@ -17,10 +17,15 @@
 		     addon sets regardless of active skin), invisible/no-op if that service isn't
 		     installed or hasn't set anything yet. Previously only AN5 got this, patched in
 		     by script.xderecx.aeonnox5lyricsfix - now works on any skin, since this addon's
-		     own bundled dialog is what actually renders everywhere after the 1.29.4 rename. -->
+		     own bundled dialog is what actually renders everywhere after the 1.29.4 rename.
+		     left/top counter the window's own <coordinates> offset (10,40) below - that
+		     offset applies to every control in this window, so without this the background
+		     was shifted down/right, leaving a dark, uncovered band along the top/left edges
+		     (confirmed live via a screenshot's raw pixel values: dark ~0-35px, real image
+		     content only from ~y=40 down, matching the offset almost exactly). -->
 		<control type="image">
-			<left>0</left>
-			<top>0</top>
+			<left>-10</left>
+			<top>-40</top>
 			<width>1920</width>
 			<height>1080</height>
 			<aspectratio>scale</aspectratio>
