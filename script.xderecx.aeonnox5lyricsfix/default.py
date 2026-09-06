@@ -18,13 +18,26 @@ PATCHES = [
      'fixes missing Slovak/Czech diacritics in 2 of 5 lyrics display fonts'),
 ]
 
-# new files this addon introduces rather than patches - no original to
-# back up, just installed/updated as-is if missing or out of date
-NEW_FILES = [
-    ('script-cu-lrclyrics-main.xml.dat', os.path.join('1080i', 'script-cu-lrclyrics-advanced-main.xml'),
-     'hides the topbar.png dark band over lyrics text, adds the rotating-fanart background control'),
-    ('script-cu-lrclyrics-sync.xml.dat', os.path.join('1080i', 'script-cu-lrclyrics-sync.xml'),
-     'dedicated wide sync-offset slider window, so it does not affect the shared DialogSlider.xml used for volume/seek/brightness'),
+# Formerly installed as "new files" (no original to back up) copied straight
+# into the skin folder under the exact same filename script.cu.lrclyrics.advanced
+# itself bundles - script-cu-lrclyrics-advanced-main.xml and
+# script-cu-lrclyrics-sync.xml. Kodi's skin resource lookup prefers a file
+# living directly in the ACTIVE skin's own folder over an addon-bundled one
+# with the same name, so this silently shadowed script.cu.lrclyrics.advanced's
+# own copy forever after - including every later update to it - with no
+# warning. Confirmed live 2026-09-06: hours of "why isn't my fix showing up"
+# on a real box turned out to be Kodi still rendering a stale Sept 3 snapshot
+# of script-cu-lrclyrics-advanced-main.xml from inside skin.aeon.nox.5/1080i/
+# while every edit was correctly landing in script.cu.lrclyrics.advanced's own
+# folder, just never read. script.cu.lrclyrics.advanced's own dialog is fully
+# skin-independent now (confirmed working on AN5 and Confluence alike), so
+# there is no reason for AN5 to need its own separate copy of either file -
+# OBSOLETE_FILES below exists purely to remove any such copy a previous
+# version of this addon may have left behind (see the 'remove' handling
+# in main() below).
+OBSOLETE_FILES = [
+    os.path.join('1080i', 'script-cu-lrclyrics-advanced-main.xml'),
+    os.path.join('1080i', 'script-cu-lrclyrics-sync.xml'),
 ]
 
 
@@ -80,20 +93,11 @@ def main():
             if current != fixed:
                 all_pending.append(('patch', bundled, target, '%s: %s' % (skin_id, rel_path), desc))
 
-        for bundled_name, rel_path, desc in NEW_FILES:
-            bundled = os.path.join(SKINFILE_DIR, bundled_name)
+        for rel_path in OBSOLETE_FILES:
             target = os.path.join(skin_root, rel_path)
-            if not os.path.isfile(bundled):
-                xbmc.log('[aeonnox5skinfix] bundled file missing, reinstall this addon: %s' % bundled, xbmc.LOGERROR)
-                continue
-            with open(bundled, 'rb') as f:
-                fixed = f.read()
-            current = None
             if os.path.isfile(target):
-                with open(target, 'rb') as f:
-                    current = f.read()
-            if current != fixed:
-                all_pending.append(('new', bundled, target, '%s: %s' % (skin_id, rel_path), desc))
+                all_pending.append(('remove', None, target, '%s: %s' % (skin_id, rel_path),
+                                     'obsolete copy that shadows script.cu.lrclyrics.advanced\'s own (now skin-independent) file - removing it'))
 
     if not all_pending:
         DIALOG.notification('Aeon Nox 5 Skin Fixes', 'Already applied, nothing to do', icon=xbmcgui.NOTIFICATION_INFO)
@@ -102,7 +106,7 @@ def main():
     listing = '\n'.join('- %s' % rel_path for _, _, _, rel_path, _ in all_pending)
     if not DIALOG.yesno(
         'Aeon Nox 5 Skin Fixes',
-        'This will patch/install %d skin file(s):\n%s\n\nA backup (.bak) of each original is kept if one does not already exist (new files this addon introduces need no backup). Continue?' % (len(all_pending), listing)
+        'This will patch/remove %d skin file(s):\n%s\n\nA backup (.bak) of each patched original is kept if one does not already exist. Continue?' % (len(all_pending), listing)
     ):
         return
 
@@ -111,10 +115,13 @@ def main():
             backup = target + '.bak'
             if not os.path.isfile(backup):
                 shutil.copy2(target, backup)
-        shutil.copy2(bundled, target)
-        xbmc.log('[aeonnox5skinfix] %s %s (%s)' % ('patched' if kind == 'patch' else 'installed', target, desc), xbmc.LOGINFO)
+            shutil.copy2(bundled, target)
+            xbmc.log('[aeonnox5skinfix] patched %s (%s)' % (target, desc), xbmc.LOGINFO)
+        elif kind == 'remove':
+            os.remove(target)
+            xbmc.log('[aeonnox5skinfix] removed %s (%s)' % (target, desc), xbmc.LOGINFO)
 
-    DIALOG.ok('Aeon Nox 5 Skin Fixes', 'Applied %d patch(es). Restart Kodi for it to take effect.' % len(all_pending))
+    DIALOG.ok('Aeon Nox 5 Skin Fixes', 'Applied %d change(s). Restart Kodi for it to take effect.' % len(all_pending))
 
 
 if __name__ == '__main__':

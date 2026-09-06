@@ -1112,25 +1112,27 @@ class GUI(xbmcgui.WindowXMLDialog):
             for count, item in enumerate(self.get_parts(cleanline)):
                 listitem.setProperty('part%i' % (count + 1), item)
             self.text2.addItem(listitem)
-        # NOTE: tried calling self.setFocus(self.text2) here to cover the
-        # rare case where <defaultcontrol>112</defaultcontrol> resolves
-        # before translation is ready - reverted, since this method runs on
-        # the background fetch thread (see _show_translation_synced's
-        # threading.Thread(target=_fetch)), and setFocus() from a non-GUI
-        # thread made the confirmed-working focusedlayout (bigger current
-        # line) stop working entirely instead of just fixing the timing
-        # edge case. <defaultcontrol> alone is the confirmed-working setup.
 
     def _select_translation_line(self, pos):
-        # list 112 is a <control type="fixedlist"> with <focusposition>1</focusposition>
-        # in the skin XML - Kodi itself always keeps the selected item at that
-        # fixed on-screen slot (1 line of context above it, always), so a
-        # plain selectItem() is all that's needed here. No lookahead/scroll
-        # trick required - that was only ever a workaround for a plain
-        # <control type="list">, which has no concept of a fixed focus slot.
+        # list 112 is invisible (see the skin XML) - the fixed labels around
+        # it read Container(112).ListItem(N).Label, an infolabel that's
+        # relative to whichever item is selected here, regardless of focus.
+        # Two earlier focus-based approaches (plain list + lookahead-scroll,
+        # then <control type="fixedlist"> + <focusposition>) both failed to
+        # reliably show "1 line above, bigger current line" on a clean AN5
+        # restart AND on Confluence - selectItem() alone is enough now,
+        # nothing else needs to happen here for positioning.
         if self.text2.size() == 0:
             return
         self.text2.selectItem(pos)
+        # fade pulse on genuine line changes only (this is called from more
+        # than one place, not all of which represent an actual new line -
+        # e.g. re-selecting the same pos after a translation source retry)
+        # - see the skin XML's translation label group animation.
+        if pos != getattr(self, '_last_translation_pos', None):
+            self._last_translation_pos = pos
+            WIN.setProperty('culrc.translation.pulse', '1')
+            Timer(0.35, lambda: WIN.setProperty('culrc.translation.pulse', '0')).start()
 
     def _show_translation_block(self, cache_path):
         # untimed lyrics have nothing to sync against (no per-line
@@ -1395,26 +1397,7 @@ class GUI(xbmcgui.WindowXMLDialog):
         self.close()
 
     def onClick(self, controlId):
-        if (controlId == 112):
-            # list 112 (translation) is given real window focus so its
-            # focusedlayout can show a bigger current line - see the skin
-            # XML's comment above <control type="list" id="112">. Unlike
-            # 110, it has no click-to-seek behavior of its own, so forward
-            # OK presses to the exact same close-dialog/open-OSD logic as
-            # onAction()'s ACTION_SELECT_ITEM case (which never fires while
-            # a focused control's own onClick() already consumed the OK).
-            if not xbmc.getCondVisibility("Window.IsVisible(10120)"):
-                xbmc.executebuiltin("ActivateWindow(10120)")
-                mon = self.Monitor
-                def _reopen_when_osd_closes():
-                    xbmc.sleep(300)
-                    while xbmc.getCondVisibility('Window.IsVisible(10120)') and not mon.abortRequested():
-                        xbmc.sleep(200)
-                    if not mon.abortRequested():
-                        WIN.setProperty('culrc.force', 'TRUE')
-                threading.Thread(target=_reopen_when_osd_closes).start()
-                self.exit_gui("quit")
-        elif (controlId == 110):
+        if (controlId == 110):
             # will only work for lrc based lyrics
             try:
                 item = self.text.getSelectedItem()

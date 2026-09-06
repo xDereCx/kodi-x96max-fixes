@@ -83,11 +83,13 @@ DECORATIVE_FONTS = (
     # module docstring above) - these have to be installed into the active
     # skin's Font.xml exactly like the decorative fonts above.
     ('culrc_notosans_16', 'NotoSans-Regular.ttf', 16, False),
+    ('culrc_notosans_19', 'NotoSans-Regular.ttf', 19, False),
     ('culrc_notosans_20', 'NotoSans-Regular.ttf', 20, False),
     ('culrc_notosans_22', 'NotoSans-Regular.ttf', 22, False),
     ('culrc_notosans_28', 'NotoSans-Regular.ttf', 28, False),
     ('culrc_notosans_30b', 'NotoSans-Regular.ttf', 30, True),
     ('culrc_notosans_34b', 'NotoSans-Regular.ttf', 34, True),
+    ('culrc_notosans_36b', 'NotoSans-Regular.ttf', 36, True),
     ('culrc_notosans_38b', 'NotoSans-Regular.ttf', 38, True),
     ('culrc_notosans_48b', 'NotoSans-Regular.ttf', 48, True),
 )

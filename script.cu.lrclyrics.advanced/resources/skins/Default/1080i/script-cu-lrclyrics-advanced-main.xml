@@ -11,11 +11,6 @@
 		<left>10</left>
 		<top>40</top>
 	</coordinates>
-	<!-- Gives the translation list (112) real window focus so its focusedlayout can render a
-	     bigger current line, matching Aeon Nox 5's own design - without "always", so if
-	     translation isn't showing when the window opens, Kodi falls back to no focus at all
-	     (the previous, working behavior) instead of forcing focus onto a hidden control. -->
-	<defaultcontrol>112</defaultcontrol>
 	<controls>
 		<!-- rotating artist-fanart background, if service.xderecx.musicfanart is installed
 		     and running - entirely generic (just reads a Window(Visualisation) property that
@@ -112,14 +107,10 @@
 			<focusedlayout height="70"><control type="label"><width>920</width><height>70</height></control></focusedlayout>
 		</control>
 		<!-- translation panel - a full-width dark band across the bottom of the screen, logo+source
-		     in a left column, a divider, then a REAL focused scrolling list to the right (smooth
-		     scroll between lines, current line bigger + word-wraps to a 2nd line if long, via
-		     native focusedlayout). This control is given real window focus (see <defaultcontrol>
-		     above) - unlike list 110, which deliberately never gets focus (see gui.py's disabled
-		     "self.setFocus(self.text)"/"focus-steal fix": OK on a focused list goes to onClick(),
-		     not onAction()'s ACTION_SELECT_ITEM/OSD handling - a real previously-fixed bug). List
-		     112 has no such conflicting onClick behavior of its own, so gui.py's onClick() forwards
-		     controlId==112 to the exact same close-dialog/open-OSD logic as onAction()'s OK case.
+		     in a left column, a divider, then fixed offset labels to the right reading
+		     Container(112).ListItem(N).Label (current line bigger, via its own dedicated
+		     textbox/font, not a focus-driven focusedlayout). List 112 itself deliberately never
+		     gets focus, exactly like list 110 above - see gui.py's _select_translation_line().
 		     Absolute AN5 pixel targets (45,770 etc.) minus this window's own (10,40) <coordinates>
 		     offset - see gui.py's _populate_translation_list()/_show_translation_synced()/_show_translation_block(). -->
 		<control type="image">
@@ -127,7 +118,7 @@
 			<left>35</left>
 			<top>750</top>
 			<width>1830</width>
-			<height>280</height>
+			<height>300</height>
 			<texture colordiffuse="A0000000">culrc-black.png</texture>
 			<visible>!String.IsEmpty(Window(Home).Property(culrc.translation))</visible>
 		</control>
@@ -138,7 +129,7 @@
 			<width>260</width>
 			<height>130</height>
 			<aspectratio align="center" aligny="top">keep</aspectratio>
-			<texture>culrc-logo.png</texture>
+			<texture>special://xbmc/media/icon256x256.png</texture>
 			<visible>!String.IsEmpty(Window(Home).Property(culrc.translation))</visible>
 		</control>
 		<control type="image">
@@ -150,43 +141,119 @@
 			<texture colordiffuse="white">culrc-white70.png</texture>
 			<visible>!String.IsEmpty(Window(Home).Property(culrc.translation))</visible>
 		</control>
-		<control type="fixedlist" id="112">
+		<!-- list 112 stays invisible, exactly like list 110 above - Python still needs a
+		     real list control to addItem()/selectItem() the translated lines against, but
+		     nothing about it is ever actually rendered. Two focus-based approaches (plain
+		     list with lookahead-scroll tricks, then <control type="fixedlist"> with
+		     <focusposition>) both failed to reliably show "1 line above, current line
+		     bigger, N lines below" across a clean AN5 restart AND Confluence - focus either
+		     never landed on a background-thread-populated control, or (once forced via a
+		     SetFocus() builtin) rendered every line in itemlayout with nothing highlighted
+		     and overflowed past its own declared height. Fixed offset labels below read
+		     Container(112).ListItem(N).Label - the exact same technique already reliably
+		     used for the main lyrics text below - which needs no focus at all, so none of
+		     the above failure modes can happen; the number of lines above/below is simply
+		     how many label controls exist, not a runtime layout guess. -->
+		<control type="list" id="112">
 			<left>353</left>
 			<top>770</top>
 			<width>1492</width>
 			<height>280</height>
-			<onup>112</onup>
-			<ondown>112</ondown>
-			<onleft>112</onleft>
-			<onright>112</onright>
-			<orientation>vertical</orientation>
-			<focusposition>1</focusposition>
-			<scrolltime tween="quadratic" easing="out">500</scrolltime>
+			<visible>false</visible>
+			<itemlayout height="28"><control type="label"><width>1492</width><height>28</height></control></itemlayout>
+			<focusedlayout height="28"><control type="label"><width>1492</width><height>28</height></control></focusedlayout>
+		</control>
+		<!-- wrapped in a group purely so a fade pulse (see gui.py's _select_translation_line(),
+		     which briefly sets culrc.translation.pulse to '1' then back to '0' on every line
+		     change, via a non-blocking Timer) can give line transitions some motion again,
+		     closest we can get to the old native list's smooth scrolltime slide without
+		     reintroducing a real (focus/positioning-fragile) list control - a full
+		     sliding-text animation would need each row to individually track its own
+		     previous/next content and position, which is a lot more risk for a
+		     cosmetic-only feature after two failed focus-based rebuilds today. Reversible
+		     Conditional animation: dips to 55% the instant pulse=1, automatically eases
+		     back to 100% the instant it flips back to 0. -->
+		<control type="group">
 			<visible>!String.IsEmpty(Window(Home).Property(culrc.translation))</visible>
-			<itemlayout height="28">
-				<control type="label">
-					<width>1492</width>
-					<height>28</height>
-					<font>culrc_notosans_16</font>
-					<textcolor>white</textcolor>
-					<shadowcolor>black</shadowcolor>
-					<align>left</align>
-					<aligny>center</aligny>
-					<label>$INFO[ListItem.Label]</label>
-				</control>
-			</itemlayout>
-			<focusedlayout height="85">
-				<control type="textbox">
-					<width>1492</width>
-					<height>85</height>
-					<font>culrc_notosans_30b</font>
-					<textcolor>white</textcolor>
-					<shadowcolor>black</shadowcolor>
-					<align>left</align>
-					<aligny>center</aligny>
-					<label>$INFO[ListItem.Label]</label>
-				</control>
-			</focusedlayout>
+			<animation effect="fade" start="100" end="75" time="300" condition="String.IsEqual(Window(Home).Property(culrc.translation.pulse),1)">Conditional</animation>
+			<control type="label">
+				<description>translation - 1 line of context above the current line</description>
+				<left>353</left>
+				<top>770</top>
+				<width>1492</width>
+				<height>34</height>
+				<font>culrc_notosans_19</font>
+				<textcolor>FFAAAAAA</textcolor>
+				<shadowcolor>black</shadowcolor>
+				<align>left</align>
+				<aligny>center</aligny>
+				<label>$INFO[Container(112).ListItem(-1).Label]</label>
+			</control>
+			<control type="textbox">
+				<description>translation - current line, bigger/bold, wraps to a 2nd line if long</description>
+				<left>353</left>
+				<top>804</top>
+				<width>1492</width>
+				<height>102</height>
+				<font>culrc_notosans_36b</font>
+				<textcolor>white</textcolor>
+				<shadowcolor>black</shadowcolor>
+				<align>left</align>
+				<aligny>center</aligny>
+				<label>$INFO[Container(112).ListItem(0).Label]</label>
+			</control>
+			<control type="label">
+				<description>translation - line 1 below current</description>
+				<left>353</left>
+				<top>906</top>
+				<width>1492</width>
+				<height>34</height>
+				<font>culrc_notosans_19</font>
+				<textcolor>white</textcolor>
+				<shadowcolor>black</shadowcolor>
+				<align>left</align>
+				<aligny>center</aligny>
+				<label>$INFO[Container(112).ListItem(1).Label]</label>
+			</control>
+			<control type="label">
+				<description>translation - line 2 below current</description>
+				<left>353</left>
+				<top>940</top>
+				<width>1492</width>
+				<height>34</height>
+				<font>culrc_notosans_19</font>
+				<textcolor>white</textcolor>
+				<shadowcolor>black</shadowcolor>
+				<align>left</align>
+				<aligny>center</aligny>
+				<label>$INFO[Container(112).ListItem(2).Label]</label>
+			</control>
+			<control type="label">
+				<description>translation - line 3 below current</description>
+				<left>353</left>
+				<top>974</top>
+				<width>1492</width>
+				<height>34</height>
+				<font>culrc_notosans_19</font>
+				<textcolor>white</textcolor>
+				<shadowcolor>black</shadowcolor>
+				<align>left</align>
+				<aligny>center</aligny>
+				<label>$INFO[Container(112).ListItem(3).Label]</label>
+			</control>
+			<control type="label">
+				<description>translation - line 4 below current</description>
+				<left>353</left>
+				<top>1008</top>
+				<width>1492</width>
+				<height>34</height>
+				<font>culrc_notosans_19</font>
+				<textcolor>white</textcolor>
+				<shadowcolor>black</shadowcolor>
+				<align>left</align>
+				<aligny>center</aligny>
+				<label>$INFO[Container(112).ListItem(4).Label]</label>
+			</control>
 		</control>
 		<!-- LICENSE NOTE: the entrance-animation choreography in this section (positions, timings,
 		     effect combinations for 15 of the 17 styles below) is adapted from Aeon Nox 5's own
@@ -1683,9 +1750,9 @@
 		     Positioned under the logo in the translation panel's left column, matching AN5's own layout. -->
 		<control type="textbox">
 			<left>35</left>
-			<top>920</top>
+			<top>970</top>
 			<width>275</width>
-			<height>70</height>
+			<height>60</height>
 			<font>culrc_notosans_16</font>
 			<align>center</align>
 			<textcolor>FF999999</textcolor>
