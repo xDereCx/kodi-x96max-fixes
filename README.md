@@ -151,8 +151,10 @@ every folder under `zips/` so Kodi's browser can see what's there.
   add-ons** if you'd rather do it yourself: it installs a systemd
   oneshot service + script to `/storage/.config/` that waits up to 60s
   after boot for a `192.168.x.x` LAN IP (ignoring WireGuard/OpenVPN/PPP
-  tunnel interfaces) and restarts `connman` if none shows up. Fixes
-  boots where the network never comes up on its own. Confirmed working
+  tunnel interfaces), then restarts `connman` and keeps retrying every
+  30s for as long as it takes - it only stops once a real LAN IP is
+  actually present, so a slow-to-recover router won't leave the box
+  stuck on a bad IP for the rest of that boot. Confirmed working
   on x96max+. Re-running it is a no-op if already installed and
   enabled. Its settings screen also has a "Stop and remove service"
   action - run this **before** uninstalling the addon from the add-on

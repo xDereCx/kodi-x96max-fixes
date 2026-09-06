@@ -57,7 +57,7 @@ def install():
     if not DIALOG.yesno(
         ADDONNAME,
         'This will install a systemd service to:\n%s\n%s\n\n'
-        'It restarts connman if no LAN IP shows up within 60s of boot. Continue?'
+        'It restarts connman on a loop until a real LAN IP shows up at boot. Continue?'
         % (TARGET_SCRIPT, TARGET_SERVICE)
     ):
         return False
