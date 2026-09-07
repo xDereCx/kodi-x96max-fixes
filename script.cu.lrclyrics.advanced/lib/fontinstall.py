@@ -35,8 +35,9 @@ from lib.utils import ADDON, ADDONNAME, ADDONICON, CWD, PROFILE, log
 #     Staatliches, Titan One (Faster One was tried and later dropped).
 #
 # One entry per (family, size) actually used across the current-line
-# display's 17 styles (15 ported from Aeon Nox 5 + 2 of this addon's own -
-# LyricsW "wiggle", LyricsB "balloon pop") in script-cu-lrclyrics-advanced-main.xml.
+# display's 15 styles (all ported from Aeon Nox 5 - see the LICENSE NOTE
+# in script-cu-lrclyrics-advanced-main.xml for the 2026-09-07 revert of 2
+# extra custom styles/mod-17 widening that briefly existed here).
 # Sizes for the 15 ported styles are copied directly from Aeon Nox 5's own
 # skin.aeon.nox.5/1080i/Font.xml (34 distinct font tokens there, collapsed
 # onto these families but keeping each token's own real size, e.g.
@@ -47,7 +48,6 @@ DECORATIVE_FONTS = (
     ('culrc_agbalumo_60', 'Agbalumo.ttf', 60),
     ('culrc_alfaslabone_120', 'Alfa_Slab_One.ttf', 120),
     ('culrc_alfaslabone_125', 'Alfa_Slab_One.ttf', 125),
-    ('culrc_bangers_120', 'Bangers.ttf', 120),
     ('culrc_bangers_54', 'Bangers.ttf', 54),
     ('culrc_bangers_62', 'Bangers.ttf', 62),
     ('culrc_bowlbyonesc_120', 'Bowlby_One_SC.ttf', 120),
@@ -73,7 +73,6 @@ DECORATIVE_FONTS = (
     ('culrc_rubikdirt_56', 'Rubik_Dirt.ttf', 56),
     ('culrc_staatliches_120', 'Staatliches.ttf', 120),
     ('culrc_staatliches_60', 'Staatliches.ttf', 60),
-    ('culrc_titanone_110', 'TitanOne.ttf', 110),
     ('culrc_titanone_120', 'TitanOne.ttf', 120),
     ('culrc_titanone_60', 'TitanOne.ttf', 60),
     # plain utility sizes for the translation panel and other non-decorative
