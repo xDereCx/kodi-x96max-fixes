@@ -304,12 +304,25 @@ def auto_install_if_needed():
     # skin's fonts uninstalled until the next full Kodi restart happened to
     # also be the first time that skin got used.
     # Returns (installed, result) - installed is False if nothing needed
-    # doing (already installed, or already asked/attempted before).
+    # doing (already installed).
+    #
+    # already_asked() only dedupes the one-time notification, it must NEVER
+    # block install() from being retried - confirmed live 2026-09-07: AN5
+    # ended up in font_patch_asked.json but never in installed_skins() (this
+    # boot-time call almost certainly raced the skin addon not being fully
+    # ready yet, special://skin/ resolving to nothing - install() returned
+    # ok=False early, before ever writing state), and since the old code
+    # gated the install() call itself on "not already_asked", AN5 was
+    # permanently stuck with no culrc fonts at all until a manual
+    # "installfonts" run - current line never rendered bigger, main lyrics
+    # lost all their styling, and this would have silently recurred on every
+    # future boot/skin-switch too.
     skin_id = xbmc.getSkinDir()
-    if skin_id in installed_skins() or already_asked(skin_id):
+    if skin_id in installed_skins():
         return False, None
+    notify = not already_asked(skin_id)
     mark_asked(skin_id)
     ok, result = install()
     if ok and result:
-        return True, result
+        return notify, result
     return False, None
