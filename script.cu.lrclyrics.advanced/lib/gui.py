@@ -692,21 +692,17 @@ class GUI(xbmcgui.WindowXMLDialog):
         return lines
 
     def _gui_still_alive(self):
-        # a live skin switch (or any other event that tears down the whole
-        # GUI subsystem out from under us) destroys this dialog's window at
-        # the Kodi-core level without ever calling any Python-side close
-        # hook on it - a background thread (this refresh() Timer chain, or
-        # the translation _fetch thread) that then touches self.text/etc
-        # can segfault the entire Kodi process, confirmed live 2026-09-07
-        # (crash log: XBMCAddon::xbmcgui::ControlList::getSelectedPosition()
-        # on a null/freed control, SIGSEGV - a real native crash, not a
-        # Python exception, so no try/except here could ever have caught
-        # it; refresh()'s existing bare "except: pass" already proves that
-        # wasn't enough). This check can't close the race entirely (there's
-        # still a gap between the check and the call it guards), but it
-        # narrows the window from "always vulnerable" to "vulnerable only
-        # for the few CPU cycles between this check and the next control
-        # call" - the best mitigation available from pure addon code.
+        # REVERTED 2026-09-07, same day it was added: xbmcgui.
+        # getCurrentWindowDialogId() == self.getId() evaluated false even
+        # during completely normal playback (no skin switch involved) -
+        # confirmed live, this silently killed the refresh() Timer
+        # self-rescheduling chain after its first tick, freezing lyric
+        # sync at line 1 forever. That's worse than the rare crash it was
+        # meant to prevent (see git history for the crash details/attempt -
+        # commit "Mitigate a real crash..."). Left unused rather than
+        # deleted as a reminder not to re-add this exact check without a
+        # real fix for why the id comparison doesn't hold during normal
+        # operation.
         try:
             return xbmcgui.getCurrentWindowDialogId() == self.getId()
         except Exception:
@@ -715,8 +711,6 @@ class GUI(xbmcgui.WindowXMLDialog):
     def refresh(self):
 #        self.lock.acquire()
         #Maybe Kodi is not playing any media file
-        if not self._gui_still_alive():
-            return
         try:
             customtimer, starttime = self.function()
             if customtimer:
@@ -1137,15 +1131,8 @@ class GUI(xbmcgui.WindowXMLDialog):
             self.text2.addItem(listitem)
 
     def _select_translation_line_current(self):
-        # wraps the common "self._select_translation_line(self.text.
-        # getSelectedPosition())" pattern used by the translation-fetch
-        # code paths (all run on a background thread) with the same
-        # _gui_still_alive() guard refresh() uses - see its comment for why
-        # this matters (a live skin switch tearing down the window under a
-        # background thread can segfault the whole process, confirmed live
-        # 2026-09-07 - this narrows the race, can't close it entirely).
-        if not self._gui_still_alive():
-            return
+        # was gated on _gui_still_alive() briefly - reverted same day, see
+        # that method's comment (broke normal, no-skin-switch playback).
         self._select_translation_line(self.text.getSelectedPosition())
 
     def _select_translation_line(self, pos):
