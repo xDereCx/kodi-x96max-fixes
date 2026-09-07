@@ -15,7 +15,24 @@
      no slider bar at all. Both switched to this addon's own already-proven
      working assets (culrc-black.png / culrc-white70.png, same ones the
      main dialog's translation panel backdrop uses) instead of relying on
-     an assumed Kodi fallback that doesn't actually exist. -->
+     an assumed Kodi fallback that doesn't actually exist. Confirmed live
+     again the same day: a dim (50% white) track plus a same-texture,
+     near-white nib for the position marker made the whole bar read as one
+     flat white strip with no visible indicator of the current value -
+     texturesliderbar stretches to the control's full size, but
+     textureslidernib renders at its own texture's native pixel size
+     (Kodi positions it along the bar automatically), so a generic 4x4
+     placeholder texture made it functionally invisible. culrc-slidernib.png
+     (a dedicated 26x40 solid-color marker) plus textureslidernibfocus
+     (control 11 always has default focus, and the focus/no-focus nib
+     textures are apparently not interchangeable) STILL never rendered
+     visibly - gave up guessing at Kodi's native slider nib behavior and
+     switched to a small separate image control (id 13) that sync.py
+     positions explicitly via setPosition() every time the value changes,
+     using the exact same left/width math as the slider itself. Control 11
+     is still the slider actually handling up/down/left/right input and
+     tracking the float value (untouched, was always fine) - it just no
+     longer tries to render its own nib. -->
 <window>
 	<defaultcontrol>11</defaultcontrol>
 	<controls>
@@ -36,7 +53,7 @@
 			<textcolor>white</textcolor>
 		</control>
 		<control type="slider" id="11">
-			<description>Slider</description>
+			<description>Slider - input/value handling only, see id 13 for the visible position marker</description>
 			<left>400</left>
 			<top>160</top>
 			<width>1120</width>
@@ -45,8 +62,15 @@
 			<ondown>11</ondown>
 			<onleft>11</onleft>
 			<onright>11</onright>
-			<texturesliderbar colordiffuse="white">culrc-white70.png</texturesliderbar>
-			<textureslidernib colordiffuse="FFE0E0E0">culrc-white70.png</textureslidernib>
+			<texturesliderbar colordiffuse="80FFFFFF">culrc-white70.png</texturesliderbar>
+		</control>
+		<control type="image" id="13">
+			<description>Slider position marker - positioned explicitly by sync.py's _position_marker(), not Kodi's native slider nib (never rendered, see comment above)</description>
+			<left>400</left>
+			<top>160</top>
+			<width>26</width>
+			<height>30</height>
+			<texture colordiffuse="white">culrc-slidernib.png</texture>
 		</control>
 		<control type="label" id="12">
 			<description>Slider value</description>

@@ -7,6 +7,17 @@ ADDON = xbmcaddon.Addon()
 # stay parked on top of the lyrics indefinitely after a quick up/down nudge.
 IDLE_TIMEOUT = 4.0
 
+# must match the slider (id 11) and marker (id 13) controls' own <left>/
+# <width> in script-cu-lrclyrics-sync.xml - Kodi's native slider nib never
+# rendered visibly (confirmed live, several texture attempts), so the
+# marker is a plain image control positioned by hand instead
+SLIDER_LEFT = 400
+SLIDER_WIDTH = 1120
+MARKER_WIDTH = 26
+MARKER_TOP = 160
+SLIDER_MIN = -30.0
+SLIDER_MAX = 30.0
+
 class GUI(xbmcgui.WindowXMLDialog):
     def __init__(self, *args, **kwargs):
         self.function = kwargs['function']
@@ -35,6 +46,7 @@ class GUI(xbmcgui.WindowXMLDialog):
         self.header = self.getControl(10)
         self.slider = self.getControl(11)
         self.label = self.getControl(12)
+        self.marker = self.getControl(13)
 
     def _init_values(self):
         # static legend so it's obvious which way the slider makes lyrics
@@ -42,7 +54,14 @@ class GUI(xbmcgui.WindowXMLDialog):
         self.header.setLabel(LANGUAGE(32010))
         string = self._get_string(self.offset)
         self.label.setLabel(string)
-        self.slider.setFloat((self.offset * 1.0), -30.0, 0.5, 30.0)
+        self.slider.setFloat((self.offset * 1.0), SLIDER_MIN, 0.5, SLIDER_MAX)
+        self._position_marker(self.offset)
+
+    def _position_marker(self, val):
+        pct = (val - SLIDER_MIN) / (SLIDER_MAX - SLIDER_MIN)
+        pct = min(1.0, max(0.0, pct))
+        x = SLIDER_LEFT + int(round(pct * (SLIDER_WIDTH - MARKER_WIDTH)))
+        self.marker.setPosition(x, MARKER_TOP)
 
     def _get_string(self, val):
         if val > 0.0:
@@ -61,5 +80,6 @@ class GUI(xbmcgui.WindowXMLDialog):
             self.val = round(val,1)
             string = self._get_string(self.val)
             self.label.setLabel(string)
+            self._position_marker(self.val)
             self.function(self.val)
             self.last_update = time.time()
