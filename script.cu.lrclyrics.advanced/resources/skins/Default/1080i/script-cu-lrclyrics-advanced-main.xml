@@ -132,7 +132,7 @@
 			<left>43</left>
 			<top>738</top>
 			<width>260</width>
-			<height>130</height>
+			<height>169</height>
 			<aspectratio align="center" aligny="top">keep</aspectratio>
 			<texture>special://xbmc/media/icon256x256.png</texture>
 			<visible>!String.IsEmpty(Window(Home).Property(culrc.translation))</visible>
@@ -142,7 +142,7 @@
 			<left>310</left>
 			<top>738</top>
 			<width>3</width>
-			<height>257</height>
+			<height>239</height>
 			<texture colordiffuse="white">culrc-white70.png</texture>
 			<visible>!String.IsEmpty(Window(Home).Property(culrc.translation))</visible>
 		</control>
@@ -185,8 +185,8 @@
 		     edge of the condition even though it never reverses. -->
 		<control type="group">
 			<visible>!String.IsEmpty(Window(Home).Property(culrc.translation))</visible>
-			<animation effect="slide" start="0,18" end="0,0" tween="quadratic" easing="out" time="220" reversible="false" condition="String.IsEqual(Window(Home).Property(culrc.translation.pulse),1)">Conditional</animation>
-			<animation effect="fade" start="55" end="100" time="220" reversible="false" condition="String.IsEqual(Window(Home).Property(culrc.translation.pulse),1)">Conditional</animation>
+			<animation effect="slide" start="0,36" end="0,0" tween="quadratic" easing="out" time="800" reversible="false" condition="String.IsEqual(Window(Home).Property(culrc.translation.pulse),1)">Conditional</animation>
+			<animation effect="fade" start="55" end="100" time="800" reversible="false" condition="String.IsEqual(Window(Home).Property(culrc.translation.pulse),1)">Conditional</animation>
 			<control type="label">
 				<description>translation - 1 line of context above the current line</description>
 				<left>353</left>
@@ -1735,7 +1735,7 @@
 		     Positioned under the logo in the translation panel's left column, matching AN5's own layout. -->
 		<control type="textbox">
 			<left>35</left>
-			<top>898</top>
+			<top>927</top>
 			<width>275</width>
 			<height>60</height>
 			<font>culrc_notosans_16</font>

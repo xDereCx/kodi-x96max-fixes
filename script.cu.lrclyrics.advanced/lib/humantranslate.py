@@ -2,6 +2,7 @@
 import difflib
 import hashlib
 import re
+import unicodedata
 
 import requests
 from bs4 import BeautifulSoup
@@ -29,6 +30,13 @@ _CROSS_FALLBACK = {'sk': 'cs', 'cs': 'sk'}
 _LT_LANG_NAME = {'en': 'english', 'es': 'spanish', 'de': 'german', 'sk': 'slovak', 'cs': 'czech'}
 
 HUMAN_SOURCE_PREFIXES = ('LyricsTranslate', 'KaraokeTexty')
+
+
+def _slugify(text):
+    # matches the URL-slug convention these fan sites use closely enough to
+    # compare against (lowercase, diacritics stripped, non-alnum -> hyphen)
+    text = unicodedata.normalize('NFKD', text).encode('ascii', 'ignore').decode('ascii')
+    return re.sub(r'[^a-z0-9]+', '-', text.lower()).strip('-')
 
 
 def is_human_source(name):
@@ -157,6 +165,23 @@ def _karaoketexty_find_url(lang, artist, title, debug=False):
     m = re.search(r'href="(/%s/[a-z0-9-]+/[a-z0-9-]+)"' % prefix, html)
     if not m:
         log('karaoketexty (%s): search returned no matching link' % domain, debug=debug)
+        return None
+    # the site's own search can return a result for a completely different
+    # artist as its first/only link - confirmed live 2026-09-07: searching
+    # "Aerosmith I Don't Want To Miss A Thing" returned a Disturbed song.
+    # align_by_content() downstream does catch this later (0% line
+    # alignment falls back to machine translation safely), but that wastes
+    # a full fetch+alignment pass and throws away a human translation that
+    # may well exist under the correct artist on this same site - so verify
+    # the URL's own artist slug actually matches who we searched for first.
+    url_path = m.group(1)
+    path_parts = url_path.strip('/').split('/')
+    url_artist_slug = path_parts[1] if len(path_parts) >= 2 else ''
+    expected_artist_slug = _slugify(artist)
+    if expected_artist_slug and url_artist_slug and \
+            expected_artist_slug not in url_artist_slug and url_artist_slug not in expected_artist_slug:
+        log('karaoketexty (%s): search result artist "%s" does not match "%s", rejecting' %
+            (domain, url_artist_slug, expected_artist_slug), debug=debug)
         return None
     url = 'https://%s%s' % (domain, m.group(1))
     log('karaoketexty (%s): found %s' % (domain, url), debug=debug)
