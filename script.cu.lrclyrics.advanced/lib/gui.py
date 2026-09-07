@@ -1132,7 +1132,7 @@ class GUI(xbmcgui.WindowXMLDialog):
         if pos != getattr(self, '_last_translation_pos', None):
             self._last_translation_pos = pos
             WIN.setProperty('culrc.translation.pulse', '1')
-            Timer(0.35, lambda: WIN.setProperty('culrc.translation.pulse', '0')).start()
+            Timer(0.22, lambda: WIN.setProperty('culrc.translation.pulse', '0')).start()
 
     def _show_translation_block(self, cache_path):
         # untimed lyrics have nothing to sync against (no per-line

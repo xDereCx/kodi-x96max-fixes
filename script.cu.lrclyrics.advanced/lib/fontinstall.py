@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import shutil
 
 import xbmc
@@ -91,6 +92,7 @@ DECORATIVE_FONTS = (
     ('culrc_notosans_34b', 'NotoSans-Regular.ttf', 34, True),
     ('culrc_notosans_36b', 'NotoSans-Regular.ttf', 36, True),
     ('culrc_notosans_38b', 'NotoSans-Regular.ttf', 38, True),
+    ('culrc_notosans_42b', 'NotoSans-Regular.ttf', 42, True),
     ('culrc_notosans_48b', 'NotoSans-Regular.ttf', 48, True),
 )
 
@@ -183,7 +185,6 @@ def install():
         return False, 'no Font.xml found under %s' % skin_root
 
     state = _load_state()
-    already_done_paths = {entry['font_xml'] for entry in state if entry['skin_id'] == skin_id}
     fonts_dest_dir = os.path.join(skin_root, 'fonts', 'culrc')
     try:
         os.makedirs(fonts_dest_dir, exist_ok=True)
@@ -194,33 +195,56 @@ def install():
     except OSError as e:
         return False, 'could not copy fonts into %s: %s' % (fonts_dest_dir, e)
 
+    # NOTE: deliberately does NOT skip a font_xml just because it's already
+    # in state (a previous fontinstall.py version did, via an
+    # already_done_paths check) - a skin patched before a new size/family
+    # was added to _iter_fonts() would then keep whatever font list existed
+    # at patch time forever, with no way to notice or recover short of a
+    # manual removefonts+installfonts cycle. Confirmed real 2026-09-07: this
+    # is exactly what happened when culrc_notosans_42b was added - AN5 had
+    # already been patched, so its Font.xml kept the older token list and
+    # the translation panel's current-line font silently fell back to
+    # something undefined. Every install() call now re-syncs to the CURRENT
+    # font list on every font_xml it finds, every time - any previous patch
+    # block (however old) is stripped via MARKER first, so a stale/missing
+    # size is fixed automatically the next time this runs (boot, live skin
+    # switch, or the manual settings button), no version-tracking needed.
     patched_count = 0
     for font_xml in font_xmls:
-        if font_xml in already_done_paths:
-            continue
         try:
             with open(font_xml, 'r', encoding='utf-8') as f:
-                content = f.read()
-            if MARKER in content:
-                # already patched by us in a previous run this state file
-                # doesn't know about (e.g. state file was cleared manually)
-                state.append({'skin_id': skin_id, 'font_xml': font_xml, 'backup': None, 'skin_root': skin_root})
-                continue
-            blocks = MARKER + '\n' + _build_font_blocks()
-            # insert right before each </fontset> close tag
-            new_content = content.replace('</fontset>', blocks + '\t</fontset>')
-            if new_content == content:
-                log('fontinstall: no </fontset> found in %s, skipped' % font_xml, debug=True)
-                continue
+                original_content = f.read()
+        except OSError as e:
+            log('fontinstall: failed to read %s: %s' % (font_xml, e), debug=True)
+            continue
+
+        # strip every previous patch block (there's one per <fontset>, and
+        # skins like Aeon Nox 5 define more than one) before reinserting -
+        # non-greedy so a MARKER's span never eats past its own </fontset>
+        stripped = re.sub(re.escape(MARKER) + r'.*?(?=</fontset>)', '', original_content, flags=re.DOTALL)
+        blocks = MARKER + '\n' + _build_font_blocks()
+        new_content = stripped.replace('</fontset>', blocks + '\t</fontset>')
+        if new_content == stripped:
+            log('fontinstall: no </fontset> found in %s, skipped' % font_xml, debug=True)
+            continue
+        if new_content == original_content:
+            # already exactly up to date - avoid a pointless flash-write
+            # every single boot when nothing about the font list changed
+            continue
+
+        existing = next((e for e in state if e['skin_id'] == skin_id and e['font_xml'] == font_xml), None)
+        if existing is None:
             backup_path = font_xml + '.culrc-backup'
             if not os.path.exists(backup_path):
                 shutil.copy2(font_xml, backup_path)
+            state.append({'skin_id': skin_id, 'font_xml': font_xml, 'backup': backup_path, 'skin_root': skin_root})
+
+        try:
             with open(font_xml, 'w', encoding='utf-8') as f:
                 f.write(new_content)
         except OSError as e:
             log('fontinstall: failed to patch %s: %s' % (font_xml, e), debug=True)
             continue
-        state.append({'skin_id': skin_id, 'font_xml': font_xml, 'backup': backup_path, 'skin_root': skin_root})
         patched_count += 1
 
     _save_state(state)
@@ -317,9 +341,11 @@ def auto_install_if_needed():
     # "installfonts" run - current line never rendered bigger, main lyrics
     # lost all their styling, and this would have silently recurred on every
     # future boot/skin-switch too.
+    # Does NOT early-return on "skin_id in installed_skins()" - install()
+    # itself is now a cheap no-op when the font list hasn't changed (see its
+    # own note), and needs to actually run every time to pick up newly
+    # added font sizes/families on a skin that was already patched before.
     skin_id = xbmc.getSkinDir()
-    if skin_id in installed_skins():
-        return False, None
     notify = not already_asked(skin_id)
     mark_asked(skin_id)
     ok, result = install()

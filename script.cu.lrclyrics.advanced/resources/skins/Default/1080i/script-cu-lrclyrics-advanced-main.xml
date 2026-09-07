@@ -114,18 +114,23 @@
 		     Absolute AN5 pixel targets (45,770 etc.) minus this window's own (10,40) <coordinates>
 		     offset - see gui.py's _populate_translation_list()/_show_translation_synced()/_show_translation_block(). -->
 		<control type="image">
+			<!-- height chosen so the panel's own bottom edge sits 45px from the screen bottom,
+			     matching the 45px left/right margins (left=35 +10 window-coordinate offset = 45;
+			     screen width 1920 minus (left+width+10) = 45 too) - previously only 10px, an
+			     oversight from not accounting for this window's own <coordinates><top>40</top></coordinates>
+			     offset when sizing the panel taller for the 2026-09-07 font increase -->
 			<description>translation panel backdrop, only when translation is showing</description>
 			<left>35</left>
-			<top>750</top>
+			<top>720</top>
 			<width>1830</width>
-			<height>300</height>
+			<height>275</height>
 			<texture colordiffuse="A0000000">culrc-black.png</texture>
 			<visible>!String.IsEmpty(Window(Home).Property(culrc.translation))</visible>
 		</control>
 		<control type="image">
 			<description>CU LRC Lyrics logo, left column of the translation panel</description>
 			<left>43</left>
-			<top>770</top>
+			<top>738</top>
 			<width>260</width>
 			<height>130</height>
 			<aspectratio align="center" aligny="top">keep</aspectratio>
@@ -135,9 +140,9 @@
 		<control type="image">
 			<description>divider between the logo/source column and the translated text</description>
 			<left>310</left>
-			<top>770</top>
+			<top>738</top>
 			<width>3</width>
-			<height>280</height>
+			<height>257</height>
 			<texture colordiffuse="white">culrc-white70.png</texture>
 			<visible>!String.IsEmpty(Window(Home).Property(culrc.translation))</visible>
 		</control>
@@ -156,7 +161,7 @@
 		     how many label controls exist, not a runtime layout guess. -->
 		<control type="list" id="112">
 			<left>353</left>
-			<top>770</top>
+			<top>738</top>
 			<width>1492</width>
 			<height>280</height>
 			<visible>false</visible>
@@ -175,14 +180,14 @@
 		     back to 100% the instant it flips back to 0. -->
 		<control type="group">
 			<visible>!String.IsEmpty(Window(Home).Property(culrc.translation))</visible>
-			<animation effect="fade" start="100" end="75" time="300" condition="String.IsEqual(Window(Home).Property(culrc.translation.pulse),1)">Conditional</animation>
+			<animation effect="fade" start="100" end="35" time="200" condition="String.IsEqual(Window(Home).Property(culrc.translation.pulse),1)">Conditional</animation>
 			<control type="label">
 				<description>translation - 1 line of context above the current line</description>
 				<left>353</left>
-				<top>770</top>
+				<top>738</top>
 				<width>1492</width>
-				<height>34</height>
-				<font>culrc_notosans_19</font>
+				<height>40</height>
+				<font>culrc_notosans_22</font>
 				<textcolor>FFAAAAAA</textcolor>
 				<shadowcolor>black</shadowcolor>
 				<align>left</align>
@@ -192,10 +197,10 @@
 			<control type="textbox">
 				<description>translation - current line, bigger/bold, wraps to a 2nd line if long</description>
 				<left>353</left>
-				<top>804</top>
+				<top>778</top>
 				<width>1492</width>
-				<height>102</height>
-				<font>culrc_notosans_36b</font>
+				<height>120</height>
+				<font>culrc_notosans_42b</font>
 				<textcolor>white</textcolor>
 				<shadowcolor>black</shadowcolor>
 				<align>left</align>
@@ -205,10 +210,10 @@
 			<control type="label">
 				<description>translation - line 1 below current</description>
 				<left>353</left>
-				<top>906</top>
+				<top>898</top>
 				<width>1492</width>
-				<height>34</height>
-				<font>culrc_notosans_19</font>
+				<height>40</height>
+				<font>culrc_notosans_22</font>
 				<textcolor>white</textcolor>
 				<shadowcolor>black</shadowcolor>
 				<align>left</align>
@@ -218,41 +223,15 @@
 			<control type="label">
 				<description>translation - line 2 below current</description>
 				<left>353</left>
-				<top>940</top>
+				<top>938</top>
 				<width>1492</width>
-				<height>34</height>
-				<font>culrc_notosans_19</font>
+				<height>40</height>
+				<font>culrc_notosans_22</font>
 				<textcolor>white</textcolor>
 				<shadowcolor>black</shadowcolor>
 				<align>left</align>
 				<aligny>center</aligny>
 				<label>$INFO[Container(112).ListItem(2).Label]</label>
-			</control>
-			<control type="label">
-				<description>translation - line 3 below current</description>
-				<left>353</left>
-				<top>974</top>
-				<width>1492</width>
-				<height>34</height>
-				<font>culrc_notosans_19</font>
-				<textcolor>white</textcolor>
-				<shadowcolor>black</shadowcolor>
-				<align>left</align>
-				<aligny>center</aligny>
-				<label>$INFO[Container(112).ListItem(3).Label]</label>
-			</control>
-			<control type="label">
-				<description>translation - line 4 below current</description>
-				<left>353</left>
-				<top>1008</top>
-				<width>1492</width>
-				<height>34</height>
-				<font>culrc_notosans_19</font>
-				<textcolor>white</textcolor>
-				<shadowcolor>black</shadowcolor>
-				<align>left</align>
-				<aligny>center</aligny>
-				<label>$INFO[Container(112).ListItem(4).Label]</label>
 			</control>
 		</control>
 		<!-- LICENSE NOTE: the entrance-animation choreography in this section (positions, timings,
@@ -1750,7 +1729,7 @@
 		     Positioned under the logo in the translation panel's left column, matching AN5's own layout. -->
 		<control type="textbox">
 			<left>35</left>
-			<top>970</top>
+			<top>898</top>
 			<width>275</width>
 			<height>60</height>
 			<font>culrc_notosans_16</font>
