@@ -168,19 +168,25 @@
 			<itemlayout height="28"><control type="label"><width>1492</width><height>28</height></control></itemlayout>
 			<focusedlayout height="28"><control type="label"><width>1492</width><height>28</height></control></focusedlayout>
 		</control>
-		<!-- wrapped in a group purely so a fade pulse (see gui.py's _select_translation_line(),
+		<!-- wrapped in a group purely so a transition (see gui.py's _select_translation_line(),
 		     which briefly sets culrc.translation.pulse to '1' then back to '0' on every line
-		     change, via a non-blocking Timer) can give line transitions some motion again,
-		     closest we can get to the old native list's smooth scrolltime slide without
-		     reintroducing a real (focus/positioning-fragile) list control - a full
-		     sliding-text animation would need each row to individually track its own
-		     previous/next content and position, which is a lot more risk for a
-		     cosmetic-only feature after two failed focus-based rebuilds today. Reversible
-		     Conditional animation: dips to 55% the instant pulse=1, automatically eases
-		     back to 100% the instant it flips back to 0. -->
+		     change, via a non-blocking Timer) can give line changes some motion again, closest
+		     we can get to the old native list's smooth scrolltime slide without reintroducing a
+		     real (focus/positioning-fragile) list control - a full sliding-text animation would
+		     need each row to individually track its own previous/next content and position,
+		     which is a lot more risk for a cosmetic-only feature after two failed focus-based
+		     rebuilds today. A first attempt used a reversible fade dip (100%->35%, easing back
+		     up when pulse dropped back to 0) - looked like a blink/flicker, not motion, since
+		     opacity alone carries no sense of direction. This version instead slides the whole
+		     group up a short distance while fading in from partial opacity, reversible="false"
+		     so it only ever plays forward (an "arriving" ease-in) - reversible would have made
+		     it visibly slide back down again the instant pulse dropped to 0, right after
+		     arriving, undoing the effect. Kodi still replays it on every fresh false->true
+		     edge of the condition even though it never reverses. -->
 		<control type="group">
 			<visible>!String.IsEmpty(Window(Home).Property(culrc.translation))</visible>
-			<animation effect="fade" start="100" end="35" time="200" condition="String.IsEqual(Window(Home).Property(culrc.translation.pulse),1)">Conditional</animation>
+			<animation effect="slide" start="0,18" end="0,0" tween="quadratic" easing="out" time="220" reversible="false" condition="String.IsEqual(Window(Home).Property(culrc.translation.pulse),1)">Conditional</animation>
+			<animation effect="fade" start="55" end="100" time="220" reversible="false" condition="String.IsEqual(Window(Home).Property(culrc.translation.pulse),1)">Conditional</animation>
 			<control type="label">
 				<description>translation - 1 line of context above the current line</description>
 				<left>353</left>
