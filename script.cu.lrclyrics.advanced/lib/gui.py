@@ -691,9 +691,32 @@ class GUI(xbmcgui.WindowXMLDialog):
         self.blockOSD = False
         return lines
 
+    def _gui_still_alive(self):
+        # a live skin switch (or any other event that tears down the whole
+        # GUI subsystem out from under us) destroys this dialog's window at
+        # the Kodi-core level without ever calling any Python-side close
+        # hook on it - a background thread (this refresh() Timer chain, or
+        # the translation _fetch thread) that then touches self.text/etc
+        # can segfault the entire Kodi process, confirmed live 2026-09-07
+        # (crash log: XBMCAddon::xbmcgui::ControlList::getSelectedPosition()
+        # on a null/freed control, SIGSEGV - a real native crash, not a
+        # Python exception, so no try/except here could ever have caught
+        # it; refresh()'s existing bare "except: pass" already proves that
+        # wasn't enough). This check can't close the race entirely (there's
+        # still a gap between the check and the call it guards), but it
+        # narrows the window from "always vulnerable" to "vulnerable only
+        # for the few CPU cycles between this check and the next control
+        # call" - the best mitigation available from pure addon code.
+        try:
+            return xbmcgui.getCurrentWindowDialogId() == self.getId()
+        except Exception:
+            return False
+
     def refresh(self):
 #        self.lock.acquire()
         #Maybe Kodi is not playing any media file
+        if not self._gui_still_alive():
+            return
         try:
             customtimer, starttime = self.function()
             if customtimer:
@@ -955,7 +978,7 @@ class GUI(xbmcgui.WindowXMLDialog):
             # cache hit - already have everything, show it all at once
             self._populate_translation_list(translated_lines)
             self.translation_synced = True
-            self._select_translation_line(self.text.getSelectedPosition())
+            self._select_translation_line_current()
             WIN.setProperty('culrc.translation', 'shown')
             WIN.setProperty('culrc.translation.source', source or '')
             # a cache-hit is only ever reached for a fully-human source
@@ -979,7 +1002,7 @@ class GUI(xbmcgui.WindowXMLDialog):
         # used to leave the whole panel blank for 20-30s on a full song
         self._populate_translation_list(original_lines)
         self.translation_synced = True
-        self._select_translation_line(self.text.getSelectedPosition())
+        self._select_translation_line_current()
         WIN.setProperty('culrc.translation', 'shown')
         WIN.setProperty('culrc.translation.song', self._song_fingerprint(self.lyrics.song))
         WIN.setProperty('culrc.translation.active', 'true')
@@ -1095,7 +1118,7 @@ class GUI(xbmcgui.WindowXMLDialog):
                 # lands regardless of which provider actually served it
                 self._populate_translation_list(lines)
                 if self.translation_synced:
-                    self._select_translation_line(self.text.getSelectedPosition())
+                    self._select_translation_line_current()
             else:
                 self.dialog.ok(LANGUAGE(32178), LANGUAGE(32181))
 
@@ -1112,6 +1135,18 @@ class GUI(xbmcgui.WindowXMLDialog):
             for count, item in enumerate(self.get_parts(cleanline)):
                 listitem.setProperty('part%i' % (count + 1), item)
             self.text2.addItem(listitem)
+
+    def _select_translation_line_current(self):
+        # wraps the common "self._select_translation_line(self.text.
+        # getSelectedPosition())" pattern used by the translation-fetch
+        # code paths (all run on a background thread) with the same
+        # _gui_still_alive() guard refresh() uses - see its comment for why
+        # this matters (a live skin switch tearing down the window under a
+        # background thread can segfault the whole process, confirmed live
+        # 2026-09-07 - this narrows the race, can't close it entirely).
+        if not self._gui_still_alive():
+            return
+        self._select_translation_line(self.text.getSelectedPosition())
 
     def _select_translation_line(self, pos):
         # list 112 is invisible (see the skin XML) - the fixed labels around
