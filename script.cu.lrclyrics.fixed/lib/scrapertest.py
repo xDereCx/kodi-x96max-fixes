@@ -263,6 +263,14 @@ def test_scrapers():
         log('%s - %i' % (item[0], item[1]), debug=True)
     log('=======================================', debug=True)
     if FAILED:
-        dialog = xbmcgui.Dialog().ok(ADDONNAME, LANGUAGE(32165) % ' / '.join(FAILED))
+        # a single test run against one specific test song each isn't proof
+        # a scraper is permanently broken (could be a temporary outage, rate
+        # limit, or just that one test song missing from that one site) -
+        # ask instead of silently disabling, so the user's own judgement
+        # decides, not a one-shot automated test
+        if xbmcgui.Dialog().yesno(ADDONNAME, (LANGUAGE(32165) % ' / '.join(FAILED)) + ' ' + LANGUAGE(32195)):
+            for scraper_id in FAILED:
+                ADDON.setSettingBool(scraper_id, False)
+            log('disabled failed scraper(s): %s' % str(FAILED), debug=True)
     else:
         dialog = xbmcgui.Dialog().ok(ADDONNAME, LANGUAGE(32164))

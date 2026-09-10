@@ -166,6 +166,10 @@ msgctxt "#32194"
 msgid "Translation: %s by %s - please support them by visiting %s"
 msgstr ""
 
+msgctxt "#32195"
+msgid "Disable them now?"
+msgstr "Disable them now?"
+
 # empty strings from id 32013 to 32100 (except 32171-32191 above)
 # Settings labels
 
