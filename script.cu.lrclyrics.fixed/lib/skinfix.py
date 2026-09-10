@@ -4,6 +4,14 @@ import xbmc
 import xbmcaddon
 import xbmcvfs
 
+# Aeon Nox 5 skin patches - formerly a separate addon (script.xderecx.aeonnox5lyricsfix),
+# merged directly into this addon 2026-09-10 to eliminate a mutual <requires>
+# dependency cycle between the two (confirmed cause of a full GUI-thread
+# freeze when installing either one from the repo - Kodi's addon-dependency
+# resolver appears unable to safely walk a true A-requires-B-requires-A
+# graph). This addon is Aeon Nox 5-only anyway (see addon.xml description),
+# so there was no real reason for these to be two addons in the first place.
+
 ADDON = xbmcaddon.Addon()
 ADDON_PATH = xbmcvfs.translatePath(ADDON.getAddonInfo('path'))
 SKINFILE_DIR = os.path.join(ADDON_PATH, 'resources', 'skinfile')
@@ -17,7 +25,7 @@ PATCHES = [
     ('Font.xml.dat', os.path.join('1080i', 'Font.xml'),
      'fixes missing Slovak/Czech diacritics in 2 of 5 lyrics display fonts'),
     ('MusicOSD.xml.dat', os.path.join('1080i', 'MusicOSD.xml'),
-     'fixes the OSD Lyrics button (control 703) calling the pre-fork original script.cu.lrclyrics instead of script.cu.lrclyrics.fixed - silently did nothing once only the fork was installed'),
+     'fixes the OSD Lyrics button (control 703) calling the pre-fork original script.cu.lrclyrics instead of this addon'),
 ]
 
 # new files this addon introduces rather than patches - no original to
@@ -34,26 +42,6 @@ NEW_FILES = [
 # source of truth again at any time, so every patch/new-file here must be
 # kept in sync on BOTH copies or a skin reset silently reverts every fix.
 SKIN_IDS = ['skin.aeon.nox.5', 'skin.aeon.nox.5.skinbase']
-
-# The original, unrelated upstream addon (different addon id entirely) that
-# script.cu.lrclyrics.fixed was forked from. Kodi's <requires> dependency
-# system only ever adds addons, never removes unrelated ones, so if both this
-# original and the fork end up installed side by side there's no error -
-# whichever one Kodi's skin-resource lookup happens to prefer wins silently.
-ORIGINAL_LYRICS_ADDON_ID = 'script.cu.lrclyrics'
-
-
-def find_original_lyrics_addon():
-    try:
-        original = xbmcaddon.Addon(ORIGINAL_LYRICS_ADDON_ID)
-    except RuntimeError:
-        return None
-    return xbmcvfs.translatePath(original.getAddonInfo('path'))
-
-
-def remove_original_lyrics_addon(original_path):
-    shutil.rmtree(original_path, ignore_errors=True)
-    xbmc.log('[aeonnox5skinfix] removed conflicting %s at %s' % (ORIGINAL_LYRICS_ADDON_ID, original_path), xbmc.LOGINFO)
 
 
 def find_skin_roots():
@@ -74,10 +62,10 @@ def find_pending(skin_roots):
             bundled = os.path.join(SKINFILE_DIR, bundled_name)
             target = os.path.join(skin_root, rel_path)
             if not os.path.isfile(bundled):
-                xbmc.log('[aeonnox5skinfix] bundled file missing, reinstall this addon: %s' % bundled, xbmc.LOGERROR)
+                xbmc.log('[culrc.skinfix] bundled file missing, reinstall this addon: %s' % bundled, xbmc.LOGERROR)
                 continue
             if not os.path.isfile(target):
-                xbmc.log('[aeonnox5skinfix] expected skin file not found, skin layout may have changed: %s' % target, xbmc.LOGWARNING)
+                xbmc.log('[culrc.skinfix] expected skin file not found, skin layout may have changed: %s' % target, xbmc.LOGWARNING)
                 continue
             with open(bundled, 'rb') as f:
                 fixed = f.read()
@@ -90,7 +78,7 @@ def find_pending(skin_roots):
             bundled = os.path.join(SKINFILE_DIR, bundled_name)
             target = os.path.join(skin_root, rel_path)
             if not os.path.isfile(bundled):
-                xbmc.log('[aeonnox5skinfix] bundled file missing, reinstall this addon: %s' % bundled, xbmc.LOGERROR)
+                xbmc.log('[culrc.skinfix] bundled file missing, reinstall this addon: %s' % bundled, xbmc.LOGERROR)
                 continue
             with open(bundled, 'rb') as f:
                 fixed = f.read()
@@ -110,4 +98,19 @@ def apply_pending(pending):
             if not os.path.isfile(backup):
                 shutil.copy2(target, backup)
         shutil.copy2(bundled, target)
-        xbmc.log('[aeonnox5skinfix] %s %s (%s)' % ('patched' if kind == 'patch' else 'installed', target, desc), xbmc.LOGINFO)
+        xbmc.log('[culrc.skinfix] %s %s (%s)' % ('patched' if kind == 'patch' else 'installed', target, desc), xbmc.LOGINFO)
+
+
+def apply_skin_fixes_silently():
+    """Called once on every Kodi startup, before the lyrics service takes over.
+    No confirmation dialog - every patch here is idempotent with a .bak kept,
+    so there is nothing destructive to confirm, and this is what makes
+    installing this addon on a fresh Aeon Nox 5 box 'just work'."""
+    skin_roots = find_skin_roots()
+    if not skin_roots:
+        return 0
+    pending = find_pending(skin_roots)
+    if pending:
+        apply_pending(pending)
+        xbmc.log('[culrc.skinfix] auto-applied %d skin patch(es) on startup' % len(pending), xbmc.LOGINFO)
+    return len(pending)

@@ -1,3 +1,4 @@
+import os
 from lib.utils import *
 
 log('script version %s started' % ADDONVERSION, debug=True)
@@ -7,6 +8,18 @@ log('script version %s started' % ADDONVERSION, debug=True)
 # left enabled, it's what actually ends up running as the lyrics service
 if sys.argv == ['']:
     disable_conflicting_addon()
+
+    # Aeon Nox 5 skin patches (formerly a separate addon, merged in 2026-09-10
+    # to remove a mutual <requires> dependency cycle - see lib/skinfix.py).
+    # Must run before gui.MAIN() below takes over the process.
+    from lib import skinfix
+    _applied = skinfix.apply_skin_fixes_silently()
+    if _applied and not xbmc.Monitor().waitForAbort(3):
+        if xbmcgui.Dialog().yesno(
+            ADDONNAME,
+            'Applied %d Aeon Nox 5 skin fix(es). Restart Kodi now for them to take effect?' % _applied
+        ):
+            os.system('systemctl restart kodi &')
 
 # kodi startup, service is disabled, exit
 if sys.argv == [''] and not ADDON.getSettingBool('service'):
