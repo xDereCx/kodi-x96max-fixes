@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="repository.xderecx.kodifixes" name="DereC Kodi Addons" version="1.2.0" provider-name="xDereCx">
+<addon id="repository.xderecx.kodifixes" name="DereC Kodi Addons" version="1.2.1" provider-name="xDereCx">
 	<extension point="xbmc.addon.repository" name="DereC Kodi Addons">
 		<dir>
 			<info compressed="false">https://xderecx.github.io/kodi-x96max-fixes/zips/addons.xml</info>
