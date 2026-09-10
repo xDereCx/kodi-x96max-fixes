@@ -6,6 +6,7 @@ log('script version %s started' % ADDONVERSION, debug=True)
 # regardless of whether our own service setting is on - if the original is
 # left enabled, it's what actually ends up running as the lyrics service
 if sys.argv == ['']:
+    autodetect_language_once()
     disable_conflicting_addon()
 
 # kodi startup: once per skin ever, auto-install the decorative fonts the

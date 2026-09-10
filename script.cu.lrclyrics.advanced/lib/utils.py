@@ -9,7 +9,7 @@ import xbmcaddon
 import xbmcgui
 import xbmcvfs
 
-from lib.localization import get_string as LANGUAGE, INTERFACE_LANGS, current_language as current_interface_language
+from lib.localization import get_string as LANGUAGE, INTERFACE_LANGS, current_language as current_interface_language, autodetect_language_once
 
 ADDON = xbmcaddon.Addon()
 ADDONNAME = ADDON.getAddonInfo('name')
@@ -253,8 +253,14 @@ class Song:
         # stay unchanged.
         offset_str = ''
         song.filepath = xbmc.getInfoLabel('Player%s.Filenameandpath' % offset_str)
-        song.title = xbmc.getInfoLabel('MusicPlayer%s.Title' % offset_str).replace('\\', ' & ').replace('/', ' & ').replace('  ',' ').replace(':','-').strip('.')
-        song.artist = xbmc.getInfoLabel('MusicPlayer%s.Artist' % offset_str).replace('\\', ' & ').replace('/', ' & ').replace('  ',' ').replace(':','-').strip('.')
+        # NOTE: deliberately NOT replacing '/' (or '\\') here - Kodi's own
+        # library scanner already splits genuine multi-artist tags using its
+        # configured <artistseparators> and rejoins them for this infolabel,
+        # so by this point '/' is real band-name punctuation, not a leftover
+        # separator (e.g. "AC/DC" - blindly replacing it turned every lookup
+        # into "AC & DC", which no lyrics/KaraokeTexty site recognizes).
+        song.title = xbmc.getInfoLabel('MusicPlayer%s.Title' % offset_str).replace('  ',' ').replace(':','-').strip('.')
+        song.artist = xbmc.getInfoLabel('MusicPlayer%s.Artist' % offset_str).replace('  ',' ').replace(':','-').strip('.')
         song.embed = xbmc.getInfoLabel('MusicPlayer%s.Lyrics' % offset_str)
         song.source = xbmc.getInfoLabel('MusicPlayer%s.Property(culrc.source)' % offset_str)
         # used by scrapers to reject lyrics timed for a different edit/remix
