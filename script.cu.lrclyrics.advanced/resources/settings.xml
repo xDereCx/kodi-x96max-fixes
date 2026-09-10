@@ -258,6 +258,9 @@
 				<setting help="32176" id="deepl_api_key" label="32175" type="string">
 					<level>0</level>
 					<default/>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
 					<dependencies>
 						<dependency type="enable">
 							<condition operator="is" setting="translate_enabled">true</condition>
