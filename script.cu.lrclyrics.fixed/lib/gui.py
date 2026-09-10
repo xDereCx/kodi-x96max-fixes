@@ -12,15 +12,6 @@ from lib.humantranslate import fetch_human_translation, fetch_human_translation_
 # already-sung lines above the focused one
 TRANSLATION_SCROLL_LOOKAHEAD = 1
 
-# rapid-repeat left/right seek acceleration, same idea as Kodi's video OSD
-SEEK_STREAK_WINDOW = 1.5
-SEEK_STEPS = [10, 30, 60]
-
-# how long the seek progress-bar overlay stays visible after the last
-# left/right press before it auto-hides itself, same idea as Kodi's own
-# video seek OSD
-SEEK_OSD_HOLD = 1.5
-
 # how long the "translation by X, support them at Y" credit stays on
 # screen after the last timed lyric line has passed, human sources only
 CREDIT_DISPLAY_SECONDS = 25
@@ -614,10 +605,6 @@ class GUI(xbmcgui.WindowXMLDialog):
         self.deleted = False
         self.sync_dialog = None
         self.translation_synced = False
-        self._seek_last_press_time = 0
-        self._seek_last_action = None
-        self._seek_streak = 0
-        self._seek_hide_timer = None
         self._credit_hide_timer = None
         self._credit_shown_for_song = False
 
@@ -1117,27 +1104,6 @@ class GUI(xbmcgui.WindowXMLDialog):
         except Exception as e:
             log('failed to save translation: %s' % e, debug=self.DEBUG)
 
-    def _show_seek_osd(self, delta):
-        # a translucent progress bar + elapsed/total time, same idea as
-        # Kodi's own video seek OSD - this modal dialog swallows that one
-        # entirely (see the left/right handling in onAction), so without
-        # this there is no visual feedback at all for where a seek landed.
-        # Player.Progress/Player.Time/Player.Duration are built-in Kodi
-        # infolabels the skin control binds to directly, so no per-frame
-        # polling is needed here - only show/hide and the delta text are
-        # driven from Python.
-        WIN.setProperty('culrc.seekdelta', self._format_seek_delta(delta))
-        WIN.setProperty('culrc.seekosd', 'true')
-        if self._seek_hide_timer:
-            self._seek_hide_timer.cancel()
-        self._seek_hide_timer = Timer(SEEK_OSD_HOLD, self._hide_seek_osd)
-        self._seek_hide_timer.daemon = True
-        self._seek_hide_timer.start()
-
-    def _hide_seek_osd(self):
-        WIN.clearProperty('culrc.seekosd')
-        WIN.clearProperty('culrc.seekdelta')
-
     def _maybe_show_translation_credit(self):
         # once the last timed line has passed, there's nothing left
         # competing for the lyrics area - a good moment to thank whoever
@@ -1179,14 +1145,6 @@ class GUI(xbmcgui.WindowXMLDialog):
     def _hide_translation_credit(self):
         WIN.clearProperty('culrc.creditshow')
         WIN.clearProperty('culrc.creditmsg')
-
-    @staticmethod
-    def _format_seek_delta(delta):
-        sign = '+' if delta > 0 else '-'
-        secs = abs(delta)
-        if secs >= 60:
-            return '%s%d:%02d' % (sign, secs // 60, secs % 60)
-        return '%s%ds' % (sign, secs)
 
     def open_sync_dialog(self):
         # reuse an already-open slider instead of stacking a new one on top
@@ -1322,10 +1280,6 @@ class GUI(xbmcgui.WindowXMLDialog):
         self.allowtimer = False
         self.stop_refresh()
         self.showgui = False
-        if self._seek_hide_timer:
-            self._seek_hide_timer.cancel()
-        WIN.clearProperty('culrc.seekosd')
-        WIN.clearProperty('culrc.seekdelta')
         self.close()
 
     def onClick(self, controlId):
@@ -1357,24 +1311,19 @@ class GUI(xbmcgui.WindowXMLDialog):
             self.context_menu()
         elif actionId in (1, 2):  # ACTION_MOVE_LEFT / ACTION_MOVE_RIGHT - seek
             # this modal dialog swallows all remote input, including the
-            # left/right seek that would normally work during playback
-            # with no dialog open at all - forward it manually instead of
-            # leaving seeking dead the whole time lyrics are on screen.
-            # Same rapid-repeat acceleration as Kodi's video seek OSD:
-            # 1st press 10s, 2nd (within SEEK_STREAK_WINDOW) 30s, 3rd+ 1min
-            player = xbmc.Player()
-            if player.isPlayingAudio():
-                now = time.time()
-                if actionId == self._seek_last_action and (now - self._seek_last_press_time) <= SEEK_STREAK_WINDOW:
-                    self._seek_streak = min(self._seek_streak + 1, len(SEEK_STEPS))
-                else:
-                    self._seek_streak = 1
-                self._seek_last_press_time = now
-                self._seek_last_action = actionId
-                step = SEEK_STEPS[self._seek_streak - 1]
-                delta = -step if actionId == 1 else step
-                player.seekTime(max(0, player.getTime() + delta))
-                self._show_seek_osd(delta)
+            # left/right seek that would normally work during playback with
+            # no dialog open at all - forward it via Kodi's own StepBack/
+            # StepForward builtin (same thing native left/right triggers on
+            # the plain visualisation screen) instead of calling
+            # player.seekTime() directly, so it uses the user's own
+            # configured Kodi seek-step settings and - critically - sets
+            # the real Player.Seeking engine state, which is what now
+            # (2026-09-10) makes AN5's own DialogSeekBar.xml show its
+            # native seek OSD during music too (see skinfix.py's
+            # DialogSeekBar.xml patch) - no separate Python-drawn OSD
+            # needed in this addon at all anymore.
+            if xbmc.Player().isPlayingAudio():
+                xbmc.executebuiltin('Action(%s)' % ('StepBack' if actionId == 1 else 'StepForward'))
                 # same reason as onClick's lyric-line jump: refresh() only
                 # reschedules itself for the NEXT line boundary each time it
                 # runs, so without an immediate resync here the highlighted

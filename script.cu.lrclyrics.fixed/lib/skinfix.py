@@ -26,6 +26,11 @@ PATCHES = [
      'fixes missing Slovak/Czech diacritics in 2 of 5 lyrics display fonts'),
     ('MusicOSD.xml.dat', os.path.join('1080i', 'MusicOSD.xml'),
      'fixes the OSD Lyrics button (control 703) calling the pre-fork original script.cu.lrclyrics instead of this addon'),
+    ('DialogSeekBar.xml.dat', os.path.join('1080i', 'DialogSeekBar.xml'),
+     "shows the native seek progress bar during music playback too, not just video - AN5's own copy required "
+     "VideoPlayer.IsFullscreen (always false for audio) as well as Player.Seeking, so seeking during music never "
+     "showed any visual feedback at all; added '| Window.IsActive(visualisation)' as an alternative, matching how "
+     "Kodi's own reference Estuary skin already gates this same window"),
 ]
 
 # new files this addon introduces rather than patches - no original to
