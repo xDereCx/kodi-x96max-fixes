@@ -1,11 +1,14 @@
 import os
 import re
 
+import xbmc
 import xbmcaddon
 import xbmcvfs
 
 ADDON = xbmcaddon.Addon()
 CWD = xbmcvfs.translatePath(ADDON.getAddonInfo('path'))
+PROFILE = xbmcvfs.translatePath(ADDON.getAddonInfo('profile'))
+_AUTODETECT_MARKER = os.path.join(PROFILE, '.language_autodetected')
 
 # order must match the addon_language spinner options in settings.xml -
 # index into this list is what the setting actually stores
@@ -71,6 +74,37 @@ def current_language():
     if 0 <= idx < len(INTERFACE_LANGS):
         return INTERFACE_LANGS[idx]
     return 'en'
+
+
+def autodetect_language_once():
+    # runs once ever, on first service startup after install (marker file
+    # in the addon's own profile dir, not a setting - a setting value can't
+    # tell "still at its default" apart from "user picked English on
+    # purpose", a plain file's mere existence can). Matches Kodi's own
+    # active skin/system language to the closest supported option instead
+    # of always defaulting to English regardless of what the user's actual
+    # system language is - the addon_language setting itself is untouched
+    # (still fully user-changeable) after this one-time sync, per user
+    # request 2026-09-10.
+    if os.path.isfile(_AUTODETECT_MARKER):
+        return
+    try:
+        iso = xbmc.getLanguage(xbmc.ISO_639_1) or ''
+    except Exception:
+        iso = ''
+    iso = iso.lower()
+    if iso in INTERFACE_LANGS:
+        try:
+            ADDON.setSettingInt('addon_language', INTERFACE_LANGS.index(iso))
+        except Exception:
+            pass
+    try:
+        if not os.path.isdir(PROFILE):
+            os.makedirs(PROFILE)
+        with open(_AUTODETECT_MARKER, 'w') as f:
+            f.write(iso)
+    except OSError:
+        pass
 
 
 def get_string(id_):
