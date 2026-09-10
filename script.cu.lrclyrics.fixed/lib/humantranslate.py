@@ -1,6 +1,7 @@
 #-*- coding: UTF-8 -*-
 import difflib
 import hashlib
+import json
 import re
 
 import requests
@@ -145,20 +146,77 @@ def _get(url, params=None, debug=False, what=''):
 
 # ---------------------------------------------------------------- KaraokeTexty
 
+# the real search backend behind the site's own autocomplete box (found by
+# reading the site's own JS - the crude '/search?q=artist+title' HTML
+# results page this used to scrape is a much worse, separate legacy search
+# that frequently returns the wrong/a lower-quality duplicate entry for a
+# well-known song (confirmed live: 'AC/DC Back in Black' via '/search'
+# always returned a bare-lyrics-only duplicate page with no translation
+# column at all, never the real, properly-categorized page that actually
+# has one) - shared by both .sk and .cz frontends regardless of target lang
+_SEARCH_API = 'https://search.karaoketexty.cz/index.php'
+
+# the site's own JSON search response uses this Greek letter (looks like
+# AC/DC's own lightning-bolt logo) as a stylistic stand-in for a literal
+# '/' inside a song's "label" field (e.g. "ACϟDC - Back In Black") -
+# confirmed live. Needed only for matching an artist name against that
+# field; never used anywhere else (the actual page URL doesn't need this
+# at all, see below).
+_LABEL_SLASH = 'ϟ'
+
+
+def _normalize_artist_for_match(text):
+    if not text:
+        return ''
+    text = text.replace(_LABEL_SLASH, '/').lower()
+    return re.sub(r'[^a-z0-9]+', '', text)
+
+
 def _karaoketexty_find_url(lang, artist, title, debug=False):
     domain = _KARAOKETEXTY_DOMAIN.get(lang)
     if not domain:
         return None
-    html = _get('https://%s/search' % domain, params={'q': '%s %s' % (artist, title)},
-                 debug=debug, what='karaoketexty search')
-    if not html:
+    # query by TITLE ONLY - combining artist+title against this backend
+    # frequently returns zero results even when a title-only query finds
+    # the right song immediately as its top (by views) hit; confirmed live
+    raw = _get(_SEARCH_API, params={'q': title, 'lang': lang}, debug=debug,
+               what='karaoketexty search api')
+    if not raw:
+        return None
+    try:
+        # response is always wrapped in parens (JSONP-style) even for a
+        # plain, callback-less request
+        candidates = json.loads(raw.strip().lstrip('(').rstrip(')') or '[]')
+    except ValueError:
+        log('karaoketexty search api: bad JSON response', debug=debug)
+        return None
+    target = _normalize_artist_for_match(artist)
+    song_id = None
+    for item in candidates:
+        if item.get('type') != 'song':
+            continue
+        label = item.get('label') or ''
+        label_artist = label.split(' - ', 1)[0]
+        if _normalize_artist_for_match(label_artist) == target:
+            song_id = item.get('id')
+            break
+    if not song_id:
+        log('karaoketexty (%s): no matching artist in %d search result(s)' %
+            (domain, len(candidates)), debug=debug)
         return None
     prefix = _KARAOKETEXTY_PATH_PREFIX[lang]
-    m = re.search(r'href="(/%s/[a-z0-9-]+/[a-z0-9-]+)"' % prefix, html)
-    if not m:
-        log('karaoketexty (%s): search returned no matching link' % domain, debug=debug)
+    # the site redirects any URL with this song's real numeric id to its
+    # own canonical artist/title slug regardless of what the slug text in
+    # the request itself says - confirmed live, so there's no need to
+    # separately guess/build the correct slug ourselves at all
+    try:
+        resp = requests.get('https://%s/%s/x/x-%s' % (domain, prefix, song_id),
+                             headers=HEADERS, timeout=10)
+        resp.raise_for_status()
+    except Exception as e:
+        log('karaoketexty resolve id error: %s' % e, debug=debug)
         return None
-    url = 'https://%s%s' % (domain, m.group(1))
+    url = resp.url
     log('karaoketexty (%s): found %s' % (domain, url), debug=debug)
     return url
 

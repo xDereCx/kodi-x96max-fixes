@@ -1,8 +1,8 @@
 #-*- coding: UTF-8 -*-
 import difflib
 import hashlib
+import json
 import re
-import unicodedata
 
 import requests
 from bs4 import BeautifulSoup
@@ -30,13 +30,6 @@ _CROSS_FALLBACK = {'sk': 'cs', 'cs': 'sk'}
 _LT_LANG_NAME = {'en': 'english', 'es': 'spanish', 'de': 'german', 'sk': 'slovak', 'cs': 'czech'}
 
 HUMAN_SOURCE_PREFIXES = ('LyricsTranslate', 'KaraokeTexty')
-
-
-def _slugify(text):
-    # matches the URL-slug convention these fan sites use closely enough to
-    # compare against (lowercase, diacritics stripped, non-alnum -> hyphen)
-    text = unicodedata.normalize('NFKD', text).encode('ascii', 'ignore').decode('ascii')
-    return re.sub(r'[^a-z0-9]+', '-', text.lower()).strip('-')
 
 
 def is_human_source(name):
@@ -153,37 +146,84 @@ def _get(url, params=None, debug=False, what=''):
 
 # ---------------------------------------------------------------- KaraokeTexty
 
+# the real search backend behind the site's own autocomplete box (found by
+# reading the site's own JS - the crude '/search?q=artist+title' HTML
+# results page this used to scrape is a much worse, separate legacy search
+# that frequently returns the wrong/a lower-quality duplicate entry for a
+# well-known song (confirmed live: 'AC/DC Back in Black' via '/search'
+# always returned a bare-lyrics-only duplicate page with no translation
+# column at all, never the real, properly-categorized page that actually
+# has one) - shared by both .sk and .cz frontends regardless of target lang.
+# Supersedes the previous artist-slug-validation safety net added
+# 2026-09-07 (still correct in spirit - reject a wrong-artist match rather
+# than trust a single unverified search result - but that only ever
+# avoided showing a wrong translation, it could never actually FIND the
+# right one once the crude search returned something else instead; this
+# fixes that root cause directly and makes that separate check obsolete
+# here, since a matching artist is now required before an id is ever used).
+_SEARCH_API = 'https://search.karaoketexty.cz/index.php'
+
+# the site's own JSON search response uses this Greek letter (looks like
+# AC/DC's own lightning-bolt logo) as a stylistic stand-in for a literal
+# '/' inside a song's "label" field (e.g. "ACϟDC - Back In Black") -
+# confirmed live. Needed only for matching an artist name against that
+# field; never used anywhere else (the actual page URL doesn't need this
+# at all, see below).
+_LABEL_SLASH = 'ϟ'
+
+
+def _normalize_artist_for_match(text):
+    if not text:
+        return ''
+    text = text.replace(_LABEL_SLASH, '/').lower()
+    return re.sub(r'[^a-z0-9]+', '', text)
+
+
 def _karaoketexty_find_url(lang, artist, title, debug=False):
     domain = _KARAOKETEXTY_DOMAIN.get(lang)
     if not domain:
         return None
-    html = _get('https://%s/search' % domain, params={'q': '%s %s' % (artist, title)},
-                 debug=debug, what='karaoketexty search')
-    if not html:
+    # query by TITLE ONLY - combining artist+title against this backend
+    # frequently returns zero results even when a title-only query finds
+    # the right song immediately as its top (by views) hit; confirmed live
+    raw = _get(_SEARCH_API, params={'q': title, 'lang': lang}, debug=debug,
+               what='karaoketexty search api')
+    if not raw:
+        return None
+    try:
+        # response is always wrapped in parens (JSONP-style) even for a
+        # plain, callback-less request
+        candidates = json.loads(raw.strip().lstrip('(').rstrip(')') or '[]')
+    except ValueError:
+        log('karaoketexty search api: bad JSON response', debug=debug)
+        return None
+    target = _normalize_artist_for_match(artist)
+    song_id = None
+    for item in candidates:
+        if item.get('type') != 'song':
+            continue
+        label = item.get('label') or ''
+        label_artist = label.split(' - ', 1)[0]
+        if _normalize_artist_for_match(label_artist) == target:
+            song_id = item.get('id')
+            break
+    if not song_id:
+        log('karaoketexty (%s): no matching artist in %d search result(s)' %
+            (domain, len(candidates)), debug=debug)
         return None
     prefix = _KARAOKETEXTY_PATH_PREFIX[lang]
-    m = re.search(r'href="(/%s/[a-z0-9-]+/[a-z0-9-]+)"' % prefix, html)
-    if not m:
-        log('karaoketexty (%s): search returned no matching link' % domain, debug=debug)
+    # the site redirects any URL with this song's real numeric id to its
+    # own canonical artist/title slug regardless of what the slug text in
+    # the request itself says - confirmed live, so there's no need to
+    # separately guess/build the correct slug ourselves at all
+    try:
+        resp = requests.get('https://%s/%s/x/x-%s' % (domain, prefix, song_id),
+                             headers=HEADERS, timeout=10)
+        resp.raise_for_status()
+    except Exception as e:
+        log('karaoketexty resolve id error: %s' % e, debug=debug)
         return None
-    # the site's own search can return a result for a completely different
-    # artist as its first/only link - confirmed live 2026-09-07: searching
-    # "Aerosmith I Don't Want To Miss A Thing" returned a Disturbed song.
-    # align_by_content() downstream does catch this later (0% line
-    # alignment falls back to machine translation safely), but that wastes
-    # a full fetch+alignment pass and throws away a human translation that
-    # may well exist under the correct artist on this same site - so verify
-    # the URL's own artist slug actually matches who we searched for first.
-    url_path = m.group(1)
-    path_parts = url_path.strip('/').split('/')
-    url_artist_slug = path_parts[1] if len(path_parts) >= 2 else ''
-    expected_artist_slug = _slugify(artist)
-    if expected_artist_slug and url_artist_slug and \
-            expected_artist_slug not in url_artist_slug and url_artist_slug not in expected_artist_slug:
-        log('karaoketexty (%s): search result artist "%s" does not match "%s", rejecting' %
-            (domain, url_artist_slug, expected_artist_slug), debug=debug)
-        return None
-    url = 'https://%s%s' % (domain, m.group(1))
+    url = resp.url
     log('karaoketexty (%s): found %s' % (domain, url), debug=debug)
     return url
 
