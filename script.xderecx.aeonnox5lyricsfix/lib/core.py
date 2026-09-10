@@ -1,34 +1,8 @@
-import json
 import os
 import shutil
 import xbmc
 import xbmcaddon
 import xbmcvfs
-
-# The companion lyrics addon this one is built to patch skin support for.
-# Deliberately NOT declared as a <requires> import in addon.xml - Kodi treats
-# that as a hard dependency and refuses to uninstall either addon while the
-# other is installed (confirmed live 2026-09-10, in both uninstall orders).
-# Installed via JSON-RPC instead, a soft "make sure it's there" step that
-# still gets a fresh box fully working with zero manual steps, but leaves
-# both addons independently, freely uninstallable through the Kodi GUI.
-LYRICS_ADDON_ID = 'script.cu.lrclyrics.fixed'
-
-
-def ensure_lyrics_addon_installed():
-    try:
-        xbmcaddon.Addon(LYRICS_ADDON_ID)
-        return False
-    except RuntimeError:
-        pass
-    req = json.dumps({
-        'jsonrpc': '2.0', 'id': 1, 'method': 'Addons.InstallAddon',
-        'params': {'addonid': LYRICS_ADDON_ID}
-    })
-    resp = json.loads(xbmc.executeJSONRPC(req))
-    ok = resp.get('result') == 'OK'
-    xbmc.log('[aeonnox5skinfix] service: install of %s via JSON-RPC %s' % (LYRICS_ADDON_ID, 'succeeded' if ok else 'failed: %s' % resp), xbmc.LOGINFO if ok else xbmc.LOGERROR)
-    return ok
 
 ADDON = xbmcaddon.Addon()
 ADDON_PATH = xbmcvfs.translatePath(ADDON.getAddonInfo('path'))
