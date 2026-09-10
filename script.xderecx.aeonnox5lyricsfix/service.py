@@ -11,10 +11,19 @@ from lib import core
 # makes installing this addon on a fresh Aeon Nox 5 box "just work" with no
 # separate manual step.
 
+installed_lyrics = core.ensure_lyrics_addon_installed()
+
 original_path = core.find_original_lyrics_addon()
 if original_path:
     core.remove_original_lyrics_addon(original_path)
     xbmc.log('[aeonnox5skinfix] service: auto-removed conflicting %s' % core.ORIGINAL_LYRICS_ADDON_ID, xbmc.LOGINFO)
+
+# If script.cu.lrclyrics.fixed was just installed for the first time this
+# run, its skin files won't exist on disk yet at this exact point - Kodi's
+# JSON-RPC install call returns as soon as the install is queued, not once
+# unpacking is actually done. Give it a moment before scanning for patches.
+if installed_lyrics:
+    xbmc.Monitor().waitForAbort(2)
 
 skin_roots = core.find_skin_roots()
 if skin_roots:
