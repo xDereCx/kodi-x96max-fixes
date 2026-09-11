@@ -252,7 +252,7 @@
 			<group id="1">
 				<setting help="32186" id="translate_enabled" label="32172" type="boolean">
 					<level>0</level>
-					<default>false</default>
+					<default>true</default>
 					<control type="toggle"/>
 				</setting>
 				<setting help="32176" id="deepl_api_key" label="32175" type="string">
