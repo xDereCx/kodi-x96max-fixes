@@ -15,6 +15,16 @@ import xbmcvfs
 ADDON = xbmcaddon.Addon()
 ADDON_PATH = xbmcvfs.translatePath(ADDON.getAddonInfo('path'))
 SKINFILE_DIR = os.path.join(ADDON_PATH, 'resources', 'skinfile')
+# ADDON.getAddonInfo('path') has a trailing slash on this Kodi build
+# (confirmed live: '/storage/.kodi/addons/script.cu.lrclyrics.fixed/') -
+# os.path.dirname() on a path WITH a trailing slash returns that same path
+# unchanged, not its parent, so this silently computed ADDONS_ROOT as this
+# addon's own folder instead of the real addons root. That made every
+# find_skin_roots() lookup below fail (skin.aeon.nox.5 itself included,
+# not just the optional skinbase copy), which meant NO skin patches were
+# ever applied and the caller (default.py) never even reached this bug's
+# real symptom - it was masking a second, unrelated one. rstrip first.
+ADDONS_ROOT = os.path.dirname(ADDON_PATH.rstrip('/'))
 
 # (bundled .dat filename, skin-relative path, one-line description shown in the confirm dialog)
 PATCHES = [
@@ -52,11 +62,24 @@ SKIN_IDS = ['skin.aeon.nox.5', 'skin.aeon.nox.5.skinbase']
 def find_skin_roots():
     roots = []
     for skin_id in SKIN_IDS:
+        # skin.aeon.nox.5.skinbase (the "reset skin to default" backup copy)
+        # isn't installed on every box - confirmed live on a fresh install
+        # this crashed the whole service script (including
+        # autodetect_language_once() and gui.MAIN() below it in default.py)
+        # before it ever showed lyrics at all. try/except Exception around
+        # xbmcaddon.Addon() itself does NOT catch this - confirmed live,
+        # whatever Kodi does for a genuinely unknown addon id isn't a normal
+        # catchable Python exception (looks like a hard abort inside the
+        # native binding). Only reliable fix: never call xbmcaddon.Addon()
+        # for an id that isn't actually installed - check addon.xml exists
+        # on disk first instead.
+        if not os.path.isfile(os.path.join(ADDONS_ROOT, skin_id, 'addon.xml')):
+            continue
         try:
             skin_addon = xbmcaddon.Addon(skin_id)
-        except RuntimeError:
+            roots.append((skin_id, xbmcvfs.translatePath(skin_addon.getAddonInfo('path'))))
+        except Exception:
             continue
-        roots.append((skin_id, xbmcvfs.translatePath(skin_addon.getAddonInfo('path'))))
     return roots
 
 
