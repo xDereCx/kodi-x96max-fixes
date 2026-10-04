@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addons>
-<addon id="plugin.program.xderecx.openhab" name="openHAB Domácnosť" version="1.0.0" provider-name="xDereCx">
+<addon id="plugin.program.xderecx.openhab" name="openHAB Domácnosť" version="1.1.0" provider-name="xDereCx">
 	<requires>
 		<import addon="xbmc.python" version="3.0.0"/>
 	</requires>
@@ -17,7 +17,7 @@
 		<assets>
 			<icon>icon.png</icon>
 		</assets>
-		<news>1.0.0: initial release - floors/rooms/equipment from the openHAB semantic model, switch toggle, setpoint and option dialogs, house status list (also as widget).</news>
+		<news>1.1.0: floor plans - Prizemie and Poschodie open a drawn plan of the rooms (from the house layout) with each room's temperature, orange = heating, red = problem; arrows move between rooms, OK opens the room, "Zoznam izieb" opens the plain list; also reachable from a skin menu (plugin://plugin.program.xderecx.openhab/?action=plan&amp;name=<floor item>). Terrace on a floor no longer shown twice. 1.0.0: initial release - floors/rooms/equipment from the openHAB semantic model, switch toggle, setpoint and option dialogs, house status list (also as widget).</news>
 	</extension>
 </addon>
 <addon id="repository.xderecx.kodifixes" name="DereC Kodi Addons" version="1.2.1" provider-name="xDereCx">

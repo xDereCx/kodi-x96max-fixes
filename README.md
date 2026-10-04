@@ -118,7 +118,10 @@ every folder under `zips/` so Kodi's browser can see what's there.
   control an openHAB server from Kodi, any skin. Reads openHAB's semantic
   model over the REST API: floors (and outdoor locations) → rooms →
   equipment → points; rooms with radiator valves show "now → target
-  (preset)". Switches toggle on OK, setpoints open a temperature list,
+  (preset)". Floors with a drawn plan (`resources/lib/floorplan.py`, rooms
+  as rectangles in the house's own layout) open that plan first: each room
+  shows its temperature, orange = heating, red = problem, arrows move between
+  rooms, OK opens the room. Switches toggle on OK, setpoints open a temperature list,
   items with options (e.g. valve preset programming/manual) open a
   selection list. **Stav domu** (house status) lists problems first
   (offline devices, batteries ≤ 20 %, alarms, boiler errors), then
