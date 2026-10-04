@@ -315,7 +315,14 @@ def plan_info(m, plan_def):
             state = 'ok'
         else:
             state = 'empty'
-        info[loc] = (state, oh.label(it[loc]), m.location_summary(loc))
+        cur = target = ''
+        for eq in m.equipment_at.get(loc, []):
+            c, t = m.role_point(eq, 'temperature'), m.role_point(eq, 'setpoint')
+            if c or t:
+                cur = oh.display_state(c) if c else ''
+                target = oh.display_state(t) if t else ''
+                break
+        info[loc] = (state, oh.label(it[loc]), m.location_summary(loc), cur, target)
     return info
 
 

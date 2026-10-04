@@ -66,6 +66,27 @@ def plan(items, floor):
     return {'size': (w, h), 'areas': sorted(areas, key=lambda a: (a[2], a[1]))}
 
 
+def _bridges(part, main, max_gap=14):
+    """Screen rectangles that fill the gap (a drawn wall, up to max_gap px) between a part and its main rectangle
+    where they face each other, so that they look like one room."""
+    px, py, pw, ph = part
+    mx, my, mw, mh = main
+    out = []
+    ov_y = (max(py, my) + 2, min(py + ph, my + mh) - 2)
+    ov_x = (max(px, mx) + 2, min(px + pw, mx + mw) - 2)
+    if ov_y[1] > ov_y[0]:
+        if 0 <= mx - (px + pw) <= max_gap:                # part left of main
+            out.append((px + pw - 2, ov_y[0], mx - (px + pw) + 4, ov_y[1] - ov_y[0]))
+        elif 0 <= px - (mx + mw) <= max_gap:              # part right of main
+            out.append((mx + mw - 2, ov_y[0], px - (mx + mw) + 4, ov_y[1] - ov_y[0]))
+    if ov_x[1] > ov_x[0]:
+        if 0 <= my - (py + ph) <= max_gap:                # part above main
+            out.append((ov_x[0], py + ph - 2, ov_x[1] - ov_x[0], my - (py + ph) + 4))
+        elif 0 <= py - (my + mh) <= max_gap:              # part below main
+            out.append((ov_x[0], my + mh - 2, ov_x[1] - ov_x[0], py - (my + mh) + 4))
+    return out
+
+
 def neighbours(rects):
     """For each focusable rect index: (up, down, left, right) index of the nearest rect in that direction."""
     def centre(r):
@@ -116,30 +137,67 @@ class PlanWindow(xbmcgui.WindowDialog):
         scale = min((W - 2 * margin) / float(pw), (H - top - margin - 50) / float(ph))
         ox = int((W - pw * scale) / 2)
         white, frame, clear = media + 'white.png', media + 'frame.png', media + 'clear.png'
+        icons = media + 'icons/'
 
         self.addControl(xbmcgui.ControlImage(0, 0, W, H, white, colorDiffuse='F0101215'))
         self.addControl(xbmcgui.ControlLabel(margin, 20, W - 2 * margin, 40, title, font='font30',
                                              textColor='FFFFFFFF', alignment=ALIGN_CENTER_X))
-        self.addControl(xbmcgui.ControlLabel(
-            margin, 55, W - 2 * margin, 30,
-            '[COLOR FFC2501E]■[/COLOR] %s   [COLOR FFA02828]■[/COLOR] %s   %s' % (
-                texts['heating'], texts['problem'], texts['keys']),
-            font='font12', textColor='FFAAAAAA', alignment=ALIGN_CENTER_X))
-        focusable, rects = [], []
+        legend_y = 58
+        self.addControl(xbmcgui.ControlImage(W // 2 - 260, legend_y, 22, 22, icons + 'flame.png', colorDiffuse=COLORS['heating']))
+        self.addControl(xbmcgui.ControlLabel(W // 2 - 234, legend_y - 2, 120, 26, texts['heating'], font='font12',
+                                             textColor='FFAAAAAA'))
+        self.addControl(xbmcgui.ControlImage(W // 2 - 120, legend_y, 22, 22, icons + 'warning.png', colorDiffuse='FFE05050'))
+        self.addControl(xbmcgui.ControlLabel(W // 2 - 94, legend_y - 2, 120, 26, texts['problem'], font='font12',
+                                             textColor='FFAAAAAA'))
+        self.addControl(xbmcgui.ControlLabel(W // 2 + 20, legend_y - 2, 300, 26, texts['keys'], font='font12',
+                                             textColor='FFAAAAAA'))
+        screen = []   # (loc, kind, rx, ry, rw, rh) before insets
         for loc, x, y, w, h, kind, override in plan_def['areas']:
-            rx, ry, rw, rh = ox + int(x * scale), top + int(y * scale), int(w * scale), int(h * scale)
-            state, name, detail = info.get(loc, ('empty', loc, ''))
+            screen.append((loc, kind, override, ox + int(x * scale), top + int(y * scale), int(w * scale), int(h * scale)))
+        # fills; parts of one room are bridged to its main rectangle across a wall-sized gap -> one shape (L, niches)
+        mains = {s[0]: s for s in screen if s[1] != 'part'}
+        for loc, kind, override, rx, ry, rw, rh in screen:
+            state = info.get(loc, ('empty',))[0]
             color = COLORS['outdoor'] if kind == 'outdoor' and state in ('ok', 'empty') else COLORS[state]
             self.addControl(xbmcgui.ControlImage(rx + 2, ry + 2, rw - 4, rh - 4, white, colorDiffuse=color))
-            # button labels are single-line, so name and status are two labels under a transparent button
-            title_y = ry + rh // 2 - (26 if detail and kind != 'part' else 13)
-            self.addControl(xbmcgui.ControlLabel(rx + 4, title_y, rw - 8, 26, override or name, font='font13',
-                                                 textColor='FFFFFFFF', alignment=ALIGN_CENTER_X))
+            if kind == 'part' and loc in mains:
+                for bx, by, bw, bh in _bridges((rx, ry, rw, rh), mains[loc][3:]):
+                    self.addControl(xbmcgui.ControlImage(bx, by, bw, bh, white, colorDiffuse=color))
+        focusable, rects = [], []
+        for loc, kind, override, rx, ry, rw, rh in screen:
             if kind == 'part':
+                if override:
+                    self.addControl(xbmcgui.ControlLabel(rx + 4, ry + rh // 2 - 13, rw - 8, 26, override,
+                                                         font='font13', textColor='FFFFFFFF', alignment=ALIGN_CENTER_X))
                 continue
-            if detail:
-                self.addControl(xbmcgui.ControlLabel(rx + 4, title_y + 26, rw - 8, 24, detail, font='font12',
+            entry = info.get(loc, ('empty', loc, '', '', ''))
+            state, name = entry[0], entry[1]
+            cur, target = (entry[3], entry[4]) if len(entry) > 4 else ('', '')
+            # temperature text by the room's width on screen: "22 → 18 °C", "22 °C" or nothing
+            temp = ''
+            if cur and target and rw >= 130:
+                temp = '%s → %s' % (cur.replace(' °C', ''), target)
+            elif cur and rw >= 56:
+                temp = cur
+            # button labels are single-line, so name and status are labels/icons under a transparent button
+            title_y = ry + rh // 2 - (26 if temp else 13)
+            self.addControl(xbmcgui.ControlLabel(rx + 2, title_y, rw - 4, 26, override or name,
+                                                 font='font13' if rw >= 90 else 'font12',
+                                                 textColor='FFFFFFFF', alignment=ALIGN_CENTER_X))
+            if temp:
+                if rw >= 130:   # thermometer icon left of a centred text block (text ~7 px per character)
+                    tw = 7 * len(temp)
+                    ix = rx + max(4, (rw - tw) // 2 - 24)
+                    self.addControl(xbmcgui.ControlImage(ix, title_y + 28, 20, 20, icons + 'thermometer.png',
+                                                         colorDiffuse='FFBBCCDD'))
+                self.addControl(xbmcgui.ControlLabel(rx + 2, title_y + 26, rw - 4, 24, temp, font='font12',
                                                      textColor='FFDDDDDD', alignment=ALIGN_CENTER_X))
+            if state == 'heating':
+                self.addControl(xbmcgui.ControlImage(rx + rw - 30, ry + 6, 24, 24, icons + 'flame.png',
+                                                     colorDiffuse='FFFFA040'))
+            elif state == 'problem':
+                self.addControl(xbmcgui.ControlImage(rx + rw - 30, ry + 6, 24, 24, icons + 'warning.png',
+                                                     colorDiffuse='FFFFD0D0'))
             btn = xbmcgui.ControlButton(rx, ry, rw, rh, '', focusTexture=frame, noFocusTexture=clear)
             self.addControl(btn)
             self.buttons[btn.getId()] = loc

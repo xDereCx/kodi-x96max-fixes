@@ -10,6 +10,8 @@ Browse and control an [openHAB](https://www.openhab.org/) server from Kodi, in a
 - **Control:** switches toggle on OK, temperature setpoints open a list of temperatures, items with options
   (e.g. a radiator valve preset) open a selection list, other numbers/strings an input dialog.
 - **Languages:** English, Slovak (follows the Kodi interface language).
+- **Icons:** white PNGs rendered from Google's Material Icons (Apache License 2.0,
+  `resources/media/icons/LICENSE-material-icons.txt`).
 
 Nothing about a specific house is in the add-on. Floor plans, the status list, readable labels and problem
 conditions are read from **item metadata** in your openHAB (namespace `kodi`, see step 3).

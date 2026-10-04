@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.program.xderecx.openhab" name="openHAB Home" version="2.0.1" provider-name="xDereCx">
+<addon id="plugin.program.xderecx.openhab" name="openHAB Home" version="2.1.0" provider-name="xDereCx">
 	<requires>
 		<import addon="xbmc.python" version="3.0.0"/>
 	</requires>
@@ -17,6 +17,6 @@
 		<assets>
 			<icon>icon.png</icon>
 		</assets>
-		<news>2.0.1: floor plan rooms can have up to 8 extra rectangles (x2…x9, for L shapes and niches). 2.0.0: general add-on - floor plans, house status items, labels and problem conditions now come from openHAB item metadata (namespace "kodi") instead of the code; English + Slovak via language files; room temperature from points marked temperature/setpoint/mode/heating; problems from metadata conditions; full setup guide in the add-on's README. Settings and the Aeon Nox 5 menu entry stay as they are.</news>
+		<news>2.1.0: floor plan icons (Material Icons, Apache 2.0): thermometer with "now → target" (shortened for narrow rooms), flame when heating, warning on problems, icon legend; rectangles of one room are joined across the wall gap so L-shaped rooms and niches look like one room. 2.0.1: floor plan rooms can have up to 8 extra rectangles (x2…x9, for L shapes and niches). 2.0.0: general add-on - floor plans, house status items, labels and problem conditions now come from openHAB item metadata (namespace "kodi") instead of the code; English + Slovak via language files; room temperature from points marked temperature/setpoint/mode/heating; problems from metadata conditions; full setup guide in the add-on's README. Settings and the Aeon Nox 5 menu entry stay as they are.</news>
 	</extension>
 </addon>
