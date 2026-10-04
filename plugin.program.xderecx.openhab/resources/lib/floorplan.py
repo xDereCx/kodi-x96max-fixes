@@ -3,8 +3,8 @@
 
 On a location item (room, corridor, outdoor area):  kodi="plan" [x=…, y=…, w=…, h=…]
   optional: floor=<floor item> (when the location is not part of the floor in the semantic model, e.g. a yard
-  drawn on the ground floor plan), label=…, x2/y2/w2/h2 + label2 = a second, non-selectable rectangle of the same
-  room (L-shaped rooms).
+  drawn on the ground floor plan), label=…, x2/y2/w2/h2 + label2 … x9/y9/w9/h9 + label9 = further, non-selectable
+  rectangles of the same room (L-shaped rooms, niches).
 On the floor item (optional): kodi="plan" [w=…, h=…] = size of the drawing; default = bounding box of the rooms.
 Units are free (cm, pixels of a drawing…); the window scales them to the screen.
 """
@@ -54,9 +54,10 @@ def plan(items, floor):
             continue
         kind = 'outdoor' if oh.semantics(it)[0].startswith('Location_Outdoor') else 'room'
         areas.append((name, rect[0], rect[1], rect[2], rect[3], kind, cfg.get('label')))
-        rect2 = [_num(cfg, k) for k in ('x2', 'y2', 'w2', 'h2')]
-        if None not in rect2:
-            areas.append((name, rect2[0], rect2[1], rect2[2], rect2[3], 'part', cfg.get('label2') or ''))
+        for n in range(2, 10):   # further, non-selectable rectangles of the same room (L/U shapes, niches)
+            extra = [_num(cfg, '%s%d' % (k, n)) for k in ('x', 'y', 'w', 'h')]
+            if None not in extra:
+                areas.append((name, extra[0], extra[1], extra[2], extra[3], 'part', cfg.get('label%d' % n) or ''))
     if not areas:
         return None
     fcfg = oh.kodi(items[floor])[1] if floor in items else {}

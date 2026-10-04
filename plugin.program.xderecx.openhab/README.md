@@ -61,7 +61,7 @@ an `.items` file, or over the REST API (`PUT /rest/items/<item>/metadata/kodi`).
 | Item | value | config |
 |---|---|---|
 | floor (optional) | `plan` | `w`, `h` = size of the drawing (default: bounding box of its rooms) |
-| room / location | `plan` | `x`, `y`, `w`, `h` = rectangle; optional `label`, `floor` (draw it on this floor although it is not part of it in the model, e.g. a yard), `x2`, `y2`, `w2`, `h2`, `label2` = a second, non-selectable rectangle of the same room (L-shaped rooms) |
+| room / location | `plan` | `x`, `y`, `w`, `h` = rectangle; optional `label`, `floor` (draw it on this floor although it is not part of it in the model, e.g. a yard), `x2`, `y2`, `w2`, `h2`, `label2` … up to `x9`…`label9` = further, non-selectable rectangles of the same room (L-shaped rooms, niches) |
 
 Units are up to you (cm, pixels of a drawing…); the plan is scaled to the screen. `y` grows downwards.
 A floor with at least one room with a plan opens as a plan; the plan has a "Room list" button.
