@@ -126,8 +126,16 @@ every folder under `zips/` so Kodi's browser can see what's there.
   selection list. **Stav domu** (house status) lists problems first
   (offline devices, batteries ≤ 20 %, alarms, boiler errors), then
   presence, room temperatures, boiler, fridge and UPS - also usable as a
-  home-screen widget in skins with plugin widgets (Aeon Nox 5: main menu
-  customizer → widget → `plugin://plugin.program.xderecx.openhab/?action=status`).
+  home-screen widget in skins with plugin widgets.
+  **Main menu:** in Aeon Nox 5 the add-on adds itself ("Pridať Domácnosť do
+  hlavného menu (Aeon Nox 5)": first free Custom1-6 slot + "Stav domu"
+  widget, via `Skin.SetString`, no skin files patched). Other skins keep the
+  menu differently: skins with a home menu editor (Skin Shortcuts, e.g.
+  Arctic Horizon 2, Estuary Mod V2) → customize home menu → add item →
+  Add-on → openHAB Domácnosť; Estuary has no custom main menu items (use
+  Add-ons → Program add-ons). Paths: `RunAddon(plugin.program.xderecx.openhab)`,
+  `plugin://plugin.program.xderecx.openhab/?action=plan&name=<floor item>`
+  (`…<floor item>`), widget `plugin://plugin.program.xderecx.openhab/?action=status`.
   Settings: openHAB URL and an API token of a **non-admin** openHAB user
   (the token is stored on the box in plain text). Create that user in the
   openHAB console: `openhab:users add kodi <password> user`, then
