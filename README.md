@@ -114,35 +114,16 @@ every folder under `zips/` so Kodi's browser can see what's there.
   optionally, install `script.xderecx.aeonnox5lyricsfix` (below) for a
   rotating full-screen background bound to this same property.
 
-- **`plugin.program.xderecx.openhab`** ("openHAB Domácnosť") — browse and
-  control an openHAB server from Kodi, any skin. Reads openHAB's semantic
-  model over the REST API: floors (and outdoor locations) → rooms →
-  equipment → points; rooms with radiator valves show "now → target
-  (preset)". Floors with a drawn plan (`resources/lib/floorplan.py`, rooms
-  as rectangles in the house's own layout) open that plan first: each room
-  shows its temperature, orange = heating, red = problem, arrows move between
-  rooms, OK opens the room. Switches toggle on OK, setpoints open a temperature list,
-  items with options (e.g. valve preset programming/manual) open a
-  selection list. **Stav domu** (house status) lists problems first
-  (offline devices, batteries ≤ 20 %, alarms, boiler errors), then
-  presence, room temperatures, boiler, fridge and UPS - also usable as a
-  home-screen widget in skins with plugin widgets.
-  **Main menu:** in Aeon Nox 5 the add-on adds itself ("Pridať Domácnosť do
-  hlavného menu (Aeon Nox 5)": first free Custom1-6 slot + "Stav domu"
-  widget, via `Skin.SetString`, no skin files patched). Other skins keep the
-  menu differently: skins with a home menu editor (Skin Shortcuts, e.g.
-  Arctic Horizon 2, Estuary Mod V2) → customize home menu → add item →
-  Add-on → openHAB Domácnosť; Estuary has no custom main menu items (use
-  Add-ons → Program add-ons). Paths: `RunAddon(plugin.program.xderecx.openhab)`,
-  `plugin://plugin.program.xderecx.openhab/?action=plan&name=<floor item>`
-  (`…<floor item>`), widget `plugin://plugin.program.xderecx.openhab/?action=status`.
-  Settings: openHAB URL and an API token of a **non-admin** openHAB user
-  (the token is stored on the box in plain text). Create that user in the
-  openHAB console: `openhab:users add kodi <password> user`, then
-  `openhab:users addApiToken kodi kodiboxy admin` (token name: letters and
-  digits only). Full step-by-step setup incl. writing the settings over
-  SSH and the Aeon Nox 5 menu paths:
-  https://github.com/xDereCx/openhab_nut_zigbee (private) → README "Kodi".
+- **`plugin.program.xderecx.openhab`** ("openHAB Home") — browse and
+  control an openHAB server from Kodi, any skin: floors → rooms → devices
+  from openHAB's semantic model, floor plans with room temperatures
+  (orange = heating, red = problem), a "House status" list/widget
+  (problems first), switches, temperature and option dialogs. Nothing
+  house-specific is in the code: floor plans, status items, labels and
+  problem conditions come from openHAB item metadata (namespace `kodi`).
+  English + Slovak. In Aeon Nox 5 it can add itself to the main menu
+  (with the status widget). **Full setup guide (openHAB + Kodi):**
+  [`plugin.program.xderecx.openhab/README.md`](plugin.program.xderecx.openhab/README.md).
 
 ### Aeon Nox 5 special (optional, frozen — not being extended further)
 

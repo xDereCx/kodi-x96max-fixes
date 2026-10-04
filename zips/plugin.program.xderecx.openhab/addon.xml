@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="plugin.program.xderecx.openhab" name="openHAB Home" version="2.0.0" provider-name="xDereCx">
+	<requires>
+		<import addon="xbmc.python" version="3.0.0"/>
+	</requires>
+	<extension point="xbmc.python.pluginsource" library="default.py">
+		<provides>executable</provides>
+	</extension>
+	<extension point="xbmc.addon.metadata">
+		<summary lang="en_GB">openHAB in Kodi: floors, rooms, devices, floor plans and a house status widget</summary>
+		<summary lang="sk_SK">openHAB v Kodi: poschodia, izby, zariadenia, pôdorysy a widget so stavom domu</summary>
+		<description lang="en_GB">Browse and control an openHAB server from Kodi in any skin: floors, rooms and devices from openHAB's semantic model, floor plans with room temperatures (orange = heating, red = problem), a House status list usable as a widget (problems first), switches, temperature and option dialogs. Floor plans, status items, labels and problem conditions come from item metadata (namespace "kodi") in your openHAB, nothing house-specific is in the add-on.[CR][CR]Setup: an openHAB user with role "user" and its API token (openHAB console: openhab:users add kodi PASSWORD user, openhab:users addApiToken kodi kodi admin - token name letters/digits only), then the openHAB address and token in the add-on settings.[CR][CR]Main menu: Aeon Nox 5 - "Add to the main menu (Aeon Nox 5)" in the add-on (first free Custom1-6 slot + House status widget). Skins with a home menu editor (Skin Shortcuts, e.g. Arctic Horizon 2): customize home menu - add item - Add-on - openHAB Home. Estuary: Add-ons - Program add-ons.[CR][CR]Full guide incl. the metadata format: https://github.com/xDereCx/kodi-x96max-fixes/tree/master/plugin.program.xderecx.openhab</description>
+		<description lang="sk_SK">Prehliadanie a ovládanie servera openHAB z Kodi v ľubovoľnom skine: poschodia, izby a zariadenia zo sémantického modelu openHABu, pôdorysy s teplotami izieb (oranžová = kúri, červená = problém), zoznam Stav domu použiteľný aj ako widget (najprv problémy), vypínače, výber teploty a možností. Pôdorysy, položky stavu, názvy a podmienky problémov sú v metadátach items (menný priestor "kodi") v tvojom openHABe, v doplnku nie je nič o konkrétnom dome.[CR][CR]Nastavenie: používateľ openHAB s rolou "user" a jeho API token (konzola openHAB: openhab:users add kodi HESLO user, openhab:users addApiToken kodi kodi admin - názov tokenu len písmená a číslice), potom adresa openHAB a token v nastaveniach doplnku.[CR][CR]Hlavné menu: Aeon Nox 5 - "Pridať do hlavného menu (Aeon Nox 5)" v doplnku (prvý voľný slot Custom1-6 + widget Stav domu). Skiny s editorom menu (Skin Shortcuts, napr. Arctic Horizon 2): úprava hlavného menu - pridať položku - Doplnok - openHAB Home. Estuary: Doplnky - Programové doplnky.[CR][CR]Celý návod vrátane formátu metadát: https://github.com/xDereCx/kodi-x96max-fixes/tree/master/plugin.program.xderecx.openhab</description>
+		<platform>all</platform>
+		<license>CC-BY-NC-SA-4.0</license>
+		<source>https://github.com/xDereCx/kodi-x96max-fixes</source>
+		<assets>
+			<icon>icon.png</icon>
+		</assets>
+		<news>2.0.0: general add-on - floor plans, house status items, labels and problem conditions now come from openHAB item metadata (namespace "kodi") instead of the code; English + Slovak via language files; room temperature from points marked temperature/setpoint/mode/heating; problems from metadata conditions; full setup guide in the add-on's README. Settings and the Aeon Nox 5 menu entry stay as they are.</news>
+	</extension>
+</addon>

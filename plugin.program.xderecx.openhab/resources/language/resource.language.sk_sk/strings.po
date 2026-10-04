@@ -1,0 +1,150 @@
+# Kodi Media Center language file
+# Addon Name: openHAB Home
+# Addon id: plugin.program.xderecx.openhab
+msgid ""
+msgstr ""
+"Project-Id-Version: plugin.program.xderecx.openhab\n"
+"Language: sk_SK\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgctxt "#32000"
+msgid "openHAB"
+msgstr "openHAB"
+
+msgctxt "#32001"
+msgid "openHAB address (http://IP:port)"
+msgstr "Adresa openHAB (http://IP:port)"
+
+msgctxt "#32002"
+msgid "API token (openHAB user with role \"user\", not admin)"
+msgstr "API token (používateľ openHAB s rolou \"user\", nie admin)"
+
+msgctxt "#32003"
+msgid "Connection timeout (s)"
+msgstr "Časový limit spojenia (s)"
+
+msgctxt "#32004"
+msgid "Main menu (Aeon Nox 5)"
+msgstr "Hlavné menu (Aeon Nox 5)"
+
+msgctxt "#32005"
+msgid "Add to the Aeon Nox 5 main menu (with the house status widget)"
+msgstr "Pridať do hlavného menu Aeon Nox 5 (aj s widgetom Stav domu)"
+
+msgctxt "#32006"
+msgid "House status widget type (layout in the skin)"
+msgstr "Typ widgetu Stav domu (rozloženie v skine)"
+
+msgctxt "#32007"
+msgid "Apply widget type"
+msgstr "Použiť typ widgetu"
+
+msgctxt "#32008"
+msgid "Remove from the main menu"
+msgstr "Odstrániť z hlavného menu"
+
+msgctxt "#32010"
+msgid "House status"
+msgstr "Stav domu"
+
+msgctxt "#32011"
+msgid "Everything is fine"
+msgstr "Všetko v poriadku"
+
+msgctxt "#32012"
+msgid "Other"
+msgstr "Ostatné"
+
+msgctxt "#32013"
+msgid "Add-on settings"
+msgstr "Nastavenia doplnku"
+
+msgctxt "#32014"
+msgid "Add to the main menu (Aeon Nox 5)"
+msgstr "Pridať do hlavného menu (Aeon Nox 5)"
+
+msgctxt "#32015"
+msgid "floor plan"
+msgstr "pôdorys"
+
+msgctxt "#32016"
+msgid "Room list"
+msgstr "Zoznam izieb"
+
+msgctxt "#32017"
+msgid "heating"
+msgstr "kúri"
+
+msgctxt "#32018"
+msgid "problem"
+msgstr "problém"
+
+msgctxt "#32019"
+msgid "OK = room, Back = close"
+msgstr "OK = izba, Späť = zavrieť"
+
+msgctxt "#32020"
+msgid "Set the openHAB address and an API token (user with role \"user\") in the add-on settings."
+msgstr "Nastav adresu openHAB a API token (používateľ s rolou \"user\") v nastaveniach doplnku."
+
+msgctxt "#32021"
+msgid "openHAB not reachable: %s"
+msgstr "openHAB nedostupný: %s"
+
+msgctxt "#32022"
+msgid "Command failed: %s"
+msgstr "Príkaz zlyhal: %s"
+
+msgctxt "#32024"
+msgid "(now %s)"
+msgstr "(teraz %s)"
+
+msgctxt "#32025"
+msgid "Adding to the main menu automatically works only in Aeon Nox 5 (every skin stores its menu differently). Other skins: Add-ons → Program add-ons, or the skin's own menu editor (see the add-on description)."
+msgstr "Automatické pridanie do hlavného menu funguje len v Aeon Nox 5 (každý skin má menu uložené inak). Iné skiny: Doplnky → Programové doplnky, alebo editor menu skinu (pozri popis doplnku)."
+
+msgctxt "#32026"
+msgid "%s is already in the main menu (slot Custom%d)."
+msgstr "%s už je v hlavnom menu (slot Custom%d)."
+
+msgctxt "#32027"
+msgid "There is no free Custom1-6 slot in the Aeon Nox 5 main menu."
+msgstr "V hlavnom menu Aeon Nox 5 nie je voľný slot Custom1-6."
+
+msgctxt "#32028"
+msgid "Add \"%s\" to the main menu (free slot Custom%d)?"
+msgstr "Pridať \"%s\" do hlavného menu (voľný slot Custom%d)?"
+
+msgctxt "#32029"
+msgid "Added to the main menu (Custom%d)"
+msgstr "Pridané do hlavného menu (Custom%d)"
+
+msgctxt "#32030"
+msgid "Could not write the skin setting"
+msgstr "Nepodarilo sa zapísať nastavenie skinu"
+
+msgctxt "#32031"
+msgid "%s is not in the main menu."
+msgstr "%s v hlavnom menu nie je."
+
+msgctxt "#32032"
+msgid "Remove \"%s\" from the main menu (slot Custom%d)?"
+msgstr "Odstrániť \"%s\" z hlavného menu (slot Custom%d)?"
+
+msgctxt "#32033"
+msgid "Removed from the main menu"
+msgstr "Odstránené z hlavného menu"
+
+msgctxt "#32034"
+msgid "Add it to the Aeon Nox 5 main menu first."
+msgstr "Najprv ho pridaj do hlavného menu Aeon Nox 5."
+
+msgctxt "#32035"
+msgid "House status widget set (type %s)"
+msgstr "Widget Stav domu nastavený (typ %s)"
+
+msgctxt "#32036"
+msgid "Home"
+msgstr "Domácnosť"

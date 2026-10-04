@@ -1,0 +1,150 @@
+# Kodi Media Center language file
+# Addon Name: openHAB Home
+# Addon id: plugin.program.xderecx.openhab
+msgid ""
+msgstr ""
+"Project-Id-Version: plugin.program.xderecx.openhab\n"
+"Language: en_GB\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgctxt "#32000"
+msgid "openHAB"
+msgstr ""
+
+msgctxt "#32001"
+msgid "openHAB address (http://IP:port)"
+msgstr ""
+
+msgctxt "#32002"
+msgid "API token (openHAB user with role \"user\", not admin)"
+msgstr ""
+
+msgctxt "#32003"
+msgid "Connection timeout (s)"
+msgstr ""
+
+msgctxt "#32004"
+msgid "Main menu (Aeon Nox 5)"
+msgstr ""
+
+msgctxt "#32005"
+msgid "Add to the Aeon Nox 5 main menu (with the house status widget)"
+msgstr ""
+
+msgctxt "#32006"
+msgid "House status widget type (layout in the skin)"
+msgstr ""
+
+msgctxt "#32007"
+msgid "Apply widget type"
+msgstr ""
+
+msgctxt "#32008"
+msgid "Remove from the main menu"
+msgstr ""
+
+msgctxt "#32010"
+msgid "House status"
+msgstr ""
+
+msgctxt "#32011"
+msgid "Everything is fine"
+msgstr ""
+
+msgctxt "#32012"
+msgid "Other"
+msgstr ""
+
+msgctxt "#32013"
+msgid "Add-on settings"
+msgstr ""
+
+msgctxt "#32014"
+msgid "Add to the main menu (Aeon Nox 5)"
+msgstr ""
+
+msgctxt "#32015"
+msgid "floor plan"
+msgstr ""
+
+msgctxt "#32016"
+msgid "Room list"
+msgstr ""
+
+msgctxt "#32017"
+msgid "heating"
+msgstr ""
+
+msgctxt "#32018"
+msgid "problem"
+msgstr ""
+
+msgctxt "#32019"
+msgid "OK = room, Back = close"
+msgstr ""
+
+msgctxt "#32020"
+msgid "Set the openHAB address and an API token (user with role \"user\") in the add-on settings."
+msgstr ""
+
+msgctxt "#32021"
+msgid "openHAB not reachable: %s"
+msgstr ""
+
+msgctxt "#32022"
+msgid "Command failed: %s"
+msgstr ""
+
+msgctxt "#32024"
+msgid "(now %s)"
+msgstr ""
+
+msgctxt "#32025"
+msgid "Adding to the main menu automatically works only in Aeon Nox 5 (every skin stores its menu differently). Other skins: Add-ons → Program add-ons, or the skin's own menu editor (see the add-on description)."
+msgstr ""
+
+msgctxt "#32026"
+msgid "%s is already in the main menu (slot Custom%d)."
+msgstr ""
+
+msgctxt "#32027"
+msgid "There is no free Custom1-6 slot in the Aeon Nox 5 main menu."
+msgstr ""
+
+msgctxt "#32028"
+msgid "Add \"%s\" to the main menu (free slot Custom%d)?"
+msgstr ""
+
+msgctxt "#32029"
+msgid "Added to the main menu (Custom%d)"
+msgstr ""
+
+msgctxt "#32030"
+msgid "Could not write the skin setting"
+msgstr ""
+
+msgctxt "#32031"
+msgid "%s is not in the main menu."
+msgstr ""
+
+msgctxt "#32032"
+msgid "Remove \"%s\" from the main menu (slot Custom%d)?"
+msgstr ""
+
+msgctxt "#32033"
+msgid "Removed from the main menu"
+msgstr ""
+
+msgctxt "#32034"
+msgid "Add it to the Aeon Nox 5 main menu first."
+msgstr ""
+
+msgctxt "#32035"
+msgid "House status widget set (type %s)"
+msgstr ""
+
+msgctxt "#32036"
+msgid "Home"
+msgstr ""

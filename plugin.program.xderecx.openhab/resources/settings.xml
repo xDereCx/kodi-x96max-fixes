@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<settings>
+	<category label="32000">
+		<setting id="url" type="text" label="32001" default="http://localhost:8080"/>
+		<setting id="token" type="text" option="hidden" label="32002" default=""/>
+		<setting id="timeout" type="slider" label="32003" default="8" range="2,1,30" option="int"/>
+	</category>
+	<category label="32004">
+		<setting type="action" label="32005" action="RunPlugin(plugin://plugin.program.xderecx.openhab/?action=addmenu)"/>
+		<setting id="widgettype" type="labelenum" label="32006" values="1|2|3|4|5|6|7|8|9|10|11|12|13" default="1"/>
+		<setting type="action" label="32007" action="RunPlugin(plugin://plugin.program.xderecx.openhab/?action=setwidget)"/>
+		<setting type="action" label="32008" action="RunPlugin(plugin://plugin.program.xderecx.openhab/?action=removemenu)"/>
+	</category>
+</settings>
