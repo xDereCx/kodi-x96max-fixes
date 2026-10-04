@@ -129,7 +129,12 @@ every folder under `zips/` so Kodi's browser can see what's there.
   home-screen widget in skins with plugin widgets (Aeon Nox 5: main menu
   customizer → widget → `plugin://plugin.program.xderecx.openhab/?action=status`).
   Settings: openHAB URL and an API token of a **non-admin** openHAB user
-  (the token is stored on the box in plain text).
+  (the token is stored on the box in plain text). Create that user in the
+  openHAB console: `openhab:users add kodi <password> user`, then
+  `openhab:users addApiToken kodi kodiboxy admin` (token name: letters and
+  digits only). Full step-by-step setup incl. writing the settings over
+  SSH and the Aeon Nox 5 menu paths:
+  https://github.com/xDereCx/openhab_nut_zigbee (private) → README "Kodi".
 
 ### Aeon Nox 5 special (optional, frozen — not being extended further)
 
