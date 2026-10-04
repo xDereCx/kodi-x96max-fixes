@@ -148,3 +148,23 @@ msgstr "Widget Stav domu nastavený (typ %s)"
 msgctxt "#32036"
 msgid "Home"
 msgstr "Domácnosť"
+
+msgctxt "#32040"
+msgid "Rooms"
+msgstr "Izby"
+
+msgctxt "#32041"
+msgid "House"
+msgstr "Dom"
+
+msgctxt "#32042"
+msgid "updated"
+msgstr "aktualizované"
+
+msgctxt "#32043"
+msgid "House status picture as the background of the menu item"
+msgstr "Obrázok Stav domu ako pozadie položky menu"
+
+msgctxt "#32044"
+msgid "Refresh the picture every (minutes)"
+msgstr "Obnovovať obrázok každých (minút)"

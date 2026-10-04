@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.program.xderecx.openhab" name="openHAB Home" version="2.1.0" provider-name="xDereCx">
+<addon id="plugin.program.xderecx.openhab" name="openHAB Home" version="2.2.0" provider-name="xDereCx">
 	<requires>
 		<import addon="xbmc.python" version="3.0.0"/>
 	</requires>
 	<extension point="xbmc.python.pluginsource" library="default.py">
 		<provides>executable</provides>
 	</extension>
+	<extension point="xbmc.service" library="service.py"/>
 	<extension point="xbmc.addon.metadata">
 		<summary lang="en_GB">openHAB in Kodi: floors, rooms, devices, floor plans and a house status widget</summary>
 		<summary lang="sk_SK">openHAB v Kodi: poschodia, izby, zariadenia, pôdorysy a widget so stavom domu</summary>
@@ -17,6 +18,6 @@
 		<assets>
 			<icon>icon.png</icon>
 		</assets>
-		<news>2.1.0: floor plan icons (Material Icons, Apache 2.0): thermometer with "now → target" (shortened for narrow rooms), flame when heating, warning on problems, icon legend; rectangles of one room are joined across the wall gap so L-shaped rooms and niches look like one room. 2.0.1: floor plan rooms can have up to 8 extra rectangles (x2…x9, for L shapes and niches). 2.0.0: general add-on - floor plans, house status items, labels and problem conditions now come from openHAB item metadata (namespace "kodi") instead of the code; English + Slovak via language files; room temperature from points marked temperature/setpoint/mode/heating; problems from metadata conditions; full setup guide in the add-on's README. Settings and the Aeon Nox 5 menu entry stay as they are.</news>
+		<news>2.2.0: house status picture as the background of the add-on's Aeon Nox 5 main menu item - a background service draws it every 5 minutes (setting) in pure Python (problems, rooms with temperature and flame when heating, items marked status with their icon) and sets it as the item's background; bundled DejaVu font atlases; status items can have an icon (metadata config icon=flame|water|fridge|freezer|person|ups|…). 2.1.0: floor plan icons (Material Icons, Apache 2.0): thermometer with "now → target" (shortened for narrow rooms), flame when heating, warning on problems, icon legend; rectangles of one room are joined across the wall gap so L-shaped rooms and niches look like one room. 2.0.1: floor plan rooms can have up to 8 extra rectangles (x2…x9, for L shapes and niches). 2.0.0: general add-on - floor plans, house status items, labels and problem conditions now come from openHAB item metadata (namespace "kodi") instead of the code; English + Slovak via language files; room temperature from points marked temperature/setpoint/mode/heating; problems from metadata conditions; full setup guide in the add-on's README. Settings and the Aeon Nox 5 menu entry stay as they are.</news>
 	</extension>
 </addon>

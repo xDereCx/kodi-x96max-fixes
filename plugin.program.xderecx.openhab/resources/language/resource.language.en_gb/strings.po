@@ -148,3 +148,23 @@ msgstr ""
 msgctxt "#32036"
 msgid "Home"
 msgstr ""
+
+msgctxt "#32040"
+msgid "Rooms"
+msgstr ""
+
+msgctxt "#32041"
+msgid "House"
+msgstr ""
+
+msgctxt "#32042"
+msgid "updated"
+msgstr ""
+
+msgctxt "#32043"
+msgid "House status picture as the background of the menu item"
+msgstr ""
+
+msgctxt "#32044"
+msgid "Refresh the picture every (minutes)"
+msgstr ""

@@ -11,7 +11,8 @@ Browse and control an [openHAB](https://www.openhab.org/) server from Kodi, in a
   (e.g. a radiator valve preset) open a selection list, other numbers/strings an input dialog.
 - **Languages:** English, Slovak (follows the Kodi interface language).
 - **Icons:** white PNGs rendered from Google's Material Icons (Apache License 2.0,
-  `resources/media/icons/LICENSE-material-icons.txt`).
+  `resources/media/icons/LICENSE-material-icons.txt`). **Font** of the status picture: DejaVu Sans as bitmap
+  atlases (`resources/media/font`, license `LICENSE-dejavu.txt`).
 
 Nothing about a specific house is in the add-on. Floor plans, the status list, readable labels and problem
 conditions are read from **item metadata** in your openHAB (namespace `kodi`, see step 3).
@@ -101,6 +102,7 @@ Use value `-` (or a role above) and these config parameters:
 | `order` | position among the points of its equipment (lower first) and in the status list |
 | `hidden=true` | not listed in its equipment |
 | `status=true` | listed in **House status** as `label: state` |
+| `icon` | icon of a status item in the house status picture: `person`, `person_off`, `home`, `flame`, `water`, `fridge`, `freezer`, `ups`, `power`, `door`, `window`, `thermometer`, `info`… (files in `resources/media/icons`) |
 | `problem` | condition; when the state matches, the item is listed as a problem (status list first, room red on the plan) |
 | `problem_text` | text of the problem, `{state}` = current state (default: `equipment – label: state`) |
 
@@ -147,6 +149,10 @@ Every skin stores its main menu differently:
   It uses the first free main menu slot Custom1-6 (`Skin.SetString`, no skin file is changed), adds the
   House status widget under it and reloads the skin. The widget layout (type 1-13) can be changed in the
   settings ("Apply widget type"); "Remove from the main menu" undoes it.
+- **Aeon Nox 5 background:** the add-on's background service draws a **house status picture** (problems,
+  rooms with temperature and a flame when heating, items marked `status` with their icon) every 5 minutes
+  (settings: on/off, interval) and sets it as the background of its main menu item (`MultiFanart`). It is
+  drawn in pure Python (Kodi on CoreELEC/LibreELEC has no Pillow); about 0.5 s on an Amlogic S905X3 box.
 - **Skins with a home menu editor** (Skin Shortcuts, e.g. Arctic Horizon 2, Estuary Mod V2): skin settings →
   customize home menu → add item → Add-on → openHAB Home; widget: Add-on → openHAB Home → House status.
 - **Estuary** (default skin) has no custom main menu items: Add-ons → Program add-ons → openHAB Home.
