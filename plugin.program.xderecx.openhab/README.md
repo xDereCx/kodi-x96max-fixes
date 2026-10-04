@@ -146,9 +146,9 @@ systemctl start kodi
 Every skin stores its main menu differently:
 
 - **Aeon Nox 5:** open the add-on → "Add to the main menu (Aeon Nox 5)" (also in the add-on settings).
-  It uses the first free main menu slot Custom1-6 (`Skin.SetString`, no skin file is changed), adds the
-  House status widget under it and reloads the skin. The widget layout (type 1-13) can be changed in the
-  settings ("Apply widget type"); "Remove from the main menu" undoes it.
+  It uses the first free main menu slot Custom1-6 (`Skin.SetString`, no skin file is changed) and reloads
+  the skin; "Remove from the main menu" undoes it. No widget is added (the house status is the item's
+  background, see below); a widget can still be set in the skin's own menu settings with the path below.
 - **Aeon Nox 5 background:** the add-on's background service draws a **house status picture** (1920x1080:
   the floor plans with each room's temperature, red below its setpoint / green ok, a flame when heat is needed;
   problems; items marked `status` with their icon in a strip at the bottom) every 5 minutes

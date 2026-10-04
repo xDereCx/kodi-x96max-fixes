@@ -239,12 +239,11 @@ def do_plan(floor):
 
 
 # ---- Aeon Nox 5 main menu entry ----------------------------------------------------------------------
-# Aeon Nox 5 keeps its main menu in skin strings Custom<N>HomeItem.* (Label, Path, Icon, Widget, WidgetLabel,
-# WidgetType; Includes_Home.xml). Skin.SetString changes them live, no skin file is patched. Other skins store
+# Aeon Nox 5 keeps its main menu in skin strings Custom<N>HomeItem.* (Label, Path, Icon, MultiFanart, Widget…;
+# Includes_Home.xml). Skin.SetString changes them live, no skin file is patched. Other skins store
 # their menu differently - see README. RunAddon has no commas, so no quoting issues in Skin.SetString.
 AN5 = 'skin.aeon.nox.5'
 MENU_PATH = 'RunAddon(plugin.program.xderecx.openhab)'
-WIDGET_PATH = 'plugin://plugin.program.xderecx.openhab/?action=status'
 SLOTS = range(1, 7)
 
 
@@ -261,12 +260,6 @@ def an5_free_slot():
                 not xbmc.getInfoLabel('Skin.String(Custom%dHomeItem.Path)' % n):
             return n
     return None
-
-
-def an5_set_widget(n):
-    xbmc.executebuiltin('Skin.SetString(Custom%dHomeItem.Widget,%s)' % (n, WIDGET_PATH))
-    xbmc.executebuiltin('Skin.SetString(Custom%dHomeItem.WidgetLabel,%s)' % (n, S(32010)))
-    xbmc.executebuiltin('Skin.SetString(Custom%dHomeItem.WidgetType,%s)' % (n, ADDON.getSetting('widgettype') or '1'))
 
 
 def do_addmenu():
@@ -288,22 +281,11 @@ def do_addmenu():
     xbmc.executebuiltin('Skin.SetString(Custom%dHomeItem.Path,%s)' % (n, MENU_PATH))
     xbmc.executebuiltin('Skin.SetString(Custom%dHomeItem.Icon,%s)' % (
         n, 'special://home/addons/plugin.program.xderecx.openhab/icon.png'))
-    an5_set_widget(n)
     xbmc.sleep(300)
     ok = xbmc.getInfoLabel('Skin.String(Custom%dHomeItem.Path)' % n) == MENU_PATH
     notify(S(32029) % n if ok else S(32030), xbmcgui.NOTIFICATION_INFO if ok else xbmcgui.NOTIFICATION_ERROR)
     if ok:
         xbmc.executebuiltin('ReloadSkin()')
-
-
-def do_setwidget():
-    n = an5_slot_with_us() if xbmc.getSkinDir() == AN5 else None
-    if not n:
-        xbmcgui.Dialog().ok(NAME, S(32034))
-        return
-    an5_set_widget(n)
-    notify(S(32035) % (ADDON.getSetting('widgettype') or '1'))
-    xbmc.executebuiltin('ReloadSkin()')
 
 
 def do_removemenu():
@@ -314,7 +296,8 @@ def do_removemenu():
         return
     if not xbmcgui.Dialog().yesno(NAME, S(32032) % (label, n)):
         return
-    for key in ('Label', 'Path', 'Icon', 'Widget', 'WidgetLabel', 'WidgetType'):
+    # Widget* also clears the widget that versions before 2.4.0 added; MultiFanart = the background picture
+    for key in ('Label', 'Path', 'Icon', 'Widget', 'WidgetLabel', 'WidgetType', 'MultiFanart'):
         xbmc.executebuiltin('Skin.Reset(Custom%dHomeItem.%s)' % (n, key))
     notify(S(32033))
     xbmc.executebuiltin('ReloadSkin()')
@@ -410,8 +393,6 @@ def main():
         xbmc.executebuiltin('Container.Refresh')
     elif action == 'removemenu':
         do_removemenu()
-    elif action == 'setwidget':
-        do_setwidget()
     elif action == 'settings':
         ADDON.openSettings()
         xbmc.executebuiltin('Container.Refresh')

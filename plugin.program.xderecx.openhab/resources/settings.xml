@@ -9,8 +9,6 @@
 		<setting type="action" label="32005" action="RunPlugin(plugin://plugin.program.xderecx.openhab/?action=addmenu)"/>
 		<setting id="bg_enable" type="bool" label="32043" default="true"/>
 		<setting id="bg_interval" type="slider" label="32044" default="5" range="1,1,60" option="int"/>
-		<setting id="widgettype" type="labelenum" label="32006" values="1|2|3|4|5|6|7|8|9|10|11|12|13" default="1"/>
-		<setting type="action" label="32007" action="RunPlugin(plugin://plugin.program.xderecx.openhab/?action=setwidget)"/>
 		<setting type="action" label="32008" action="RunPlugin(plugin://plugin.program.xderecx.openhab/?action=removemenu)"/>
 	</category>
 </settings>

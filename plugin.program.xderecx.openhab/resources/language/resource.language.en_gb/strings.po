@@ -30,15 +30,7 @@ msgid "Main menu (Aeon Nox 5)"
 msgstr ""
 
 msgctxt "#32005"
-msgid "Add to the Aeon Nox 5 main menu (with the house status widget)"
-msgstr ""
-
-msgctxt "#32006"
-msgid "House status widget type (layout in the skin)"
-msgstr ""
-
-msgctxt "#32007"
-msgid "Apply widget type"
+msgid "Add to the Aeon Nox 5 main menu"
 msgstr ""
 
 msgctxt "#32008"
@@ -135,14 +127,6 @@ msgstr ""
 
 msgctxt "#32033"
 msgid "Removed from the main menu"
-msgstr ""
-
-msgctxt "#32034"
-msgid "Add it to the Aeon Nox 5 main menu first."
-msgstr ""
-
-msgctxt "#32035"
-msgid "House status widget set (type %s)"
 msgstr ""
 
 msgctxt "#32036"

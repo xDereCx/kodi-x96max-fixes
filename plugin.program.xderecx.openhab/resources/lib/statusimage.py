@@ -90,6 +90,21 @@ def _draw_plan(c, a, model, floor, box):
             c.mask(rx + rw - 44, ry + 8, a.icon('flame', 36), ORANGE)
 
 
+def _marked(items):
+    """Items marked status=true as (order, label, item, icon), sorted."""
+    marked = []
+    for item in items.values():
+        cfg = oh.kodi(item)[1]
+        if str(cfg.get('status', '')).lower() in ('true', '1', 'yes'):
+            try:
+                order = float(cfg.get('order', 999))
+            except ValueError:
+                order = 999
+            marked.append((order, oh.label(item).lower(), item, cfg.get('icon') or 'info'))
+    marked.sort(key=lambda m: (m[0], m[1]))
+    return marked
+
+
 def render(model, path, texts, assets):
     """Draws the picture to `path`; texts: {'title','ok','updated'} (localised). Returns seconds taken."""
     t0 = time.time()
@@ -100,8 +115,11 @@ def render(model, path, texts, assets):
     stamp = '%s %s' % (texts['updated'], time.strftime('%H:%M'))
     c.text(W - 60 - a.small.width(stamp), 52, stamp, a.small, DIM)
 
+    marked = _marked(it)
+    cols, rh = 5, 56
+    rows = max(2, -(-len(marked) // cols))   # more rows -> lower plans, no item is dropped
     floors = [f for f in model.tops() if floorplan.plan(it, f)]
-    plan_y, plan_h = 110, 720
+    plan_y, plan_h = 110, 832 - rows * rh
     if floors:
         gap = 40
         fw = (W - 120 - gap * (len(floors) - 1)) // len(floors)
@@ -121,20 +139,10 @@ def render(model, path, texts, assets):
         c.text(106, y + 4, texts['ok'], a.text, GREY)
 
     # strip with the items marked status=true
-    marked = []
-    for n, item in it.items():
-        cfg = oh.kodi(item)[1]
-        if str(cfg.get('status', '')).lower() in ('true', '1', 'yes'):
-            try:
-                order = float(cfg.get('order', 999))
-            except ValueError:
-                order = 999
-            marked.append((order, oh.label(item).lower(), item, cfg.get('icon') or 'info'))
-    marked.sort(key=lambda m: (m[0], m[1]))
     sy = y + 60
     c.rect(60, sy, W - 120, H - sy - 30, PANEL)
-    cols, cw, rh = 5, (W - 120) // 5, 56
-    for i, (_o, _l, item, icon) in enumerate(marked[:cols * max(1, (H - sy - 40) // rh)]):
+    cw = (W - 120) // cols
+    for i, (_o, _l, item, icon) in enumerate(marked):
         cx, cy = 60 + (i % cols) * cw + 20, sy + 14 + (i // cols) * rh
         on = item.get('type') == 'Switch' and item.get('state') == 'ON'
         c.mask(cx, cy, a.icon(icon, 36), ORANGE if (icon == 'flame' and on) else BLUE)
