@@ -63,7 +63,7 @@ an `.items` file, or over the REST API (`PUT /rest/items/<item>/metadata/kodi`).
 
 | Item | value | config |
 |---|---|---|
-| floor (optional) | `plan` | `w`, `h` = size of the drawing (default: bounding box of its rooms) |
+| floor (optional) | `plan` | `w`, `h` = size of the drawing (default: bounding box of its rooms); `stretch=true` = in the house status picture draw it as large as the biggest plan in scale (for a sketch that is not measured) |
 | room / location | `plan` | `x`, `y`, `w`, `h` = rectangle; optional `label`, `floor` (draw it on this floor although it is not part of it in the model, e.g. a yard), `x2`, `y2`, `w2`, `h2`, `label2` … up to `x9`…`label9` = further, non-selectable rectangles of the same room (L-shaped rooms, niches) |
 
 Units are up to you (cm, pixels of a drawing…); the plan is scaled to the screen. `y` grows downwards.
@@ -101,10 +101,17 @@ Use value `-` (or a role above) and these config parameters:
 | `label` | name shown in Kodi instead of the item label |
 | `order` | position among the points of its equipment (lower first) and in the status list |
 | `hidden=true` | not listed in its equipment |
-| `status=true` | listed in **House status** as `label: state` |
-| `icon` | icon of a status item in the house status picture: `person`, `person_off`, `home`, `flame`, `water`, `fridge`, `freezer`, `ups`, `power`, `door`, `window`, `thermometer`, `info`… (files in `resources/media/icons`) |
+| `status=true` | listed in **House status** as `label: state`; in the house status picture drawn in its room (see below) |
+| `icon` | icon of a status item in the house status picture: `person`, `person_off`, `home`, `flame`, `water`, `fridge`, `freezer`, `ups`, `power`, `door`, `window`, `thermometer`, `valve`, `info`… (files in `resources/media/icons`) |
+| `room` | status item: draw it in this location (item name) instead of its semantic location, e.g. for virtual items without a location |
+| `part` | status item: rectangle of the room it is drawn in: `1` = main (default), `2` = `x2/y2/w2/h2` … |
+| `align` | status item: `left` (default, stacked from the top left), `right` (top right), `center` (centred lines) |
+| `compact=true` | status item: icon and value only, without the label (small rooms) |
 | `problem` | condition; when the state matches, the item is listed as a problem (status list first, room red on the plan) |
 | `problem_text` | text of the problem, `{state}` = current state (default: `equipment – label: state`) |
+
+States are shown as openHAB formats them (state description pattern / transformation); a state that matches
+one of the item's state description options is shown with that option's label (e.g. `SOLAR=Solar heating`).
 
 Conditions: `== ON`, `!= online`, `<= 20`, `>= 30`, `< 5`, `> 90` (numbers compared numerically, the unit is
 ignored), `~ regex` (state matches), `!~ regex` (state does not match). NULL/UNDEF never match.
@@ -150,10 +157,13 @@ Every skin stores its main menu differently:
   the skin; "Remove from the main menu" undoes it. No widget is added (the house status is the item's
   background, see below); a widget can still be set in the skin's own menu settings with the path below.
 - **Aeon Nox 5 background:** the add-on's background service draws a **house status picture** (1920x1080:
-  the floor plans with each room's temperature, red below its setpoint / green ok, a flame when heat is needed;
-  problems; items marked `status` with their icon in a strip at the bottom) every 5 minutes
-  (settings: on/off, interval) and sets it as the background of its main menu item (`MultiFanart`). It is
-  drawn in pure Python (Kodi on CoreELEC/LibreELEC has no Pillow); about 0.5 s on an Amlogic S905X3 box.
+  the floor plans with each room's temperature, red below its setpoint / green ok, a flame when heat is needed,
+  the font fitted to the room; items marked `status` with their icon drawn in their rooms, items without a room
+  on a plan in a strip at the bottom; problems) every 5 minutes and sets it as the background of its main menu
+  item (`MultiFanart`). Settings: on/off, interval, picture area (whole screen, top 3/4 or left 3/4 - the part
+  the skin's menu does not cover; default top 3/4). It is drawn in pure Python (Kodi on CoreELEC/LibreELEC has
+  no Pillow); about 0.5 s on an Amlogic S905X3 box. If no picture appears, the Kodi log (`kodi.log`, lines with
+  `plugin.program.xderecx.openhab`) says why: not in the main menu, no token, other skin, openHAB not reachable.
 - **Skins with a home menu editor** (Skin Shortcuts, e.g. Arctic Horizon 2, Estuary Mod V2): skin settings →
   customize home menu → add item → Add-on → openHAB Home; widget: Add-on → openHAB Home → House status.
 - **Estuary** (default skin) has no custom main menu items: Add-ons → Program add-ons → openHAB Home.

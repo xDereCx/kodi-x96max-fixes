@@ -1,20 +1,27 @@
 # -*- coding: utf-8 -*-
 """House status picture (1920x1080 PNG) for a skin background: the floor plans with each room's temperature
-(red = below its setpoint, green = ok, flame = needs heat / heating), problems, and the items marked
-status=true in a strip at the bottom. Pure Python (canvas.py); data = the add-on's model and metadata."""
+(red = below its setpoint, green = ok, flame = needs heat / heating) and the items marked status=true drawn in
+their rooms, problems below; items without a room on a plan go to a strip at the bottom. The picture can be kept
+in a part of the screen (top 3/4, left 3/4) that the skin's menu does not cover. Pure Python (canvas.py);
+data = the add-on's model and metadata."""
 import os
 import time
 
 import canvas
 import floorplan
 import openhab as oh
+from model import flag
 
 W, H = 1920, 1080
+AREAS = {'full': (W, H), 'top': (W, H * 3 // 4), 'left': (W * 3 // 4, H)}
 BG = (16, 18, 21)
 PANEL = (30, 34, 40)
 ROOM, EMPTY, OUTDOOR = (52, 58, 66), (36, 40, 46), (44, 46, 50)
 WHITE, GREY, DIM = (235, 235, 235), (165, 172, 182), (105, 112, 122)
 RED, GREEN, ORANGE, BLUE = (240, 90, 90), (110, 205, 120), (255, 150, 60), (150, 190, 230)
+M = 50          # margin
+ROW = 40        # row of an item drawn in a room
+STRIP_ROW = 52  # row of the strip at the bottom
 
 
 class Assets:
@@ -25,7 +32,7 @@ class Assets:
             return canvas.Font(os.path.join(f, name + '.png'), os.path.join(f, name + '.json'))
         self.title = font('bold-44')
         self.floor = font('bold-30')
-        self.temp = font('bold-36')
+        self.temps = [font('bold-36'), font('bold-30'), font('bold-26')]   # largest that fits the room
         self.text = font('regular-24')
         self.small = font('regular-20')
         self._icons = {}
@@ -47,6 +54,11 @@ def _state_text(item):
     return oh.display_state(item)
 
 
+def _icon_colour(item, icon):
+    on = item.get('type') == 'Switch' and item.get('state') == 'ON'
+    return ORANGE if (icon == 'flame' and on) else BLUE
+
+
 def _room_temps(model, loc):
     for eq in model.equipment_at.get(loc, []):
         c, t = model.role_point(eq, 'temperature'), model.role_point(eq, 'setpoint')
@@ -55,28 +67,95 @@ def _room_temps(model, loc):
     return None, None
 
 
-def _draw_plan(c, a, model, floor, box):
-    """One floor plan in box (x, y, w, h): rooms, no names, temperature in red/green, flame when needed."""
+def _location_of(items, name, depth=0):
+    """Semantic location of an item: itself if it is a location, else via hasLocation / isPointOf / isPartOf."""
+    it = items.get(name)
+    if not it or depth > 6:
+        return None
+    cls, cfg = oh.semantics(it)
+    if cls.startswith('Location'):
+        return name
+    if cfg.get('hasLocation'):
+        return cfg['hasLocation']
+    for key in ('isPointOf', 'isPartOf'):
+        if cfg.get(key):
+            return _location_of(items, cfg[key], depth + 1)
+    return None
+
+
+def _marked(items):
+    """Items marked status=true as (order, label, item, icon, config), sorted."""
+    marked = []
+    for item in items.values():
+        cfg = oh.kodi(item)[1]
+        if flag(cfg, 'status'):
+            try:
+                order = float(cfg.get('order', 999))
+            except ValueError:
+                order = 999
+            marked.append((order, oh.label(item).lower(), item, cfg.get('icon') or 'info', cfg))
+    marked.sort(key=lambda m: (m[0], m[1]))
+    return marked
+
+
+def _rect(cfg, part):
+    """Rectangle of a room in plan units: part 1 = x/y/w/h, part n = xn/yn/wn/hn."""
+    sfx = '' if part == 1 else str(part)
+    r = [floorplan._num(cfg, k + sfx) for k in ('x', 'y', 'w', 'h')]
+    return None if None in r else r
+
+
+def _draw_items(c, a, rect, align, entries):
+    """Status items inside a room rectangle (screen px): stacked from the top (left/right) or centred lines."""
+    rx, ry, rw, rh = rect
+    rows = []
+    for item, icon, cfg in entries:
+        st = _state_text(item)
+        txt = st if flag(cfg, 'compact') else '%s %s' % (oh.label(item), st)
+        rows.append((icon, txt, _icon_colour(item, icon), min(42 + a.small.width(txt), rw - 20), item))
+    if align == 'center':
+        lines, cur = [], []
+        for r in rows:
+            if cur and sum(q[3] for q in cur) + 24 * len(cur) + r[3] > rw - 20:
+                lines.append(cur)
+                cur = []
+            cur.append(r)
+        lines.append(cur)
+        y = ry + (rh - ROW * len(lines) + 4) // 2
+        for line in lines:
+            x = rx + (rw - sum(r[3] for r in line) - 24 * (len(line) - 1)) // 2
+            for icon, txt, col, w, _it in line:
+                c.mask(x, y, a.icon(icon, 36), col)
+                c.text(x + 42, y + 6, txt, a.small, WHITE, w - 42)
+                x += w + 24
+            y += ROW
+        return
+    y = ry + 10
+    for icon, txt, col, w, _it in rows:
+        x = rx + 10 if align == 'left' else rx + rw - 10 - w
+        c.mask(x, y, a.icon(icon, 36), col)
+        c.text(x + 42, y + 6, txt, a.small, WHITE, w - 42)
+        y += ROW
+
+
+def _draw_plan(c, a, model, floor, pd, x0, y0, dw, dh, placed):
+    """One floor plan, drawn dw x dh px below its name at (x0, y0): rooms (no names), temperature in red/green
+    (font fitted to the room), flame when needed, status items placed in its rooms."""
     items = model.items
-    pd = floorplan.plan(items, floor)
-    x0, y0, bw, bh = box
     c.text(x0, y0, oh.label(items[floor]), a.floor, GREY)
-    top = y0 + a.floor.height + 12
+    top = y0 + a.floor.height + 10
     pw, ph = pd['size']
-    sc = min(bw / float(pw), (bh - (top - y0)) / float(ph))
-    ox = x0 + int((bw - pw * sc) / 2)
-    screen = [(loc, kind, ox + int(x * sc), top + int(y * sc), int(w * sc), int(h * sc))
-              for loc, x, y, w, h, kind, _label in pd['areas']]
-    mains = {s[0]: s[2:] for s in screen if s[1] != 'part'}
-    for loc, kind, rx, ry, rw, rh in screen:
+    sx, sy = dw / float(pw), dh / float(ph)   # equal for a plan in scale, different for a stretched one
+
+    def screen(r):
+        return x0 + int(r[0] * sx), top + int(r[1] * sy), int(r[2] * sx), int(r[3] * sy)
+    areas = [(loc, kind) + screen((x, y, w, h)) for loc, x, y, w, h, kind, _l in pd['areas']]
+    mains = {s[0]: s[2:] for s in areas if s[1] != 'part'}
+    for loc, kind, rx, ry, rw, rh in areas:
         has = bool(model.equipment_at.get(loc) or model.points_at.get(loc))
         colour = ROOM if has else (OUTDOOR if kind == 'outdoor' else EMPTY)
-        if kind == 'part' and loc in mains:
-            m = mains[loc]
-            # same colour as its main rectangle, joined across the wall gap
-            mhas = bool(model.equipment_at.get(loc) or model.points_at.get(loc))
-            colour = ROOM if mhas else EMPTY
-            for bx, by, bw2, bh2 in floorplan._bridges((rx, ry, rw, rh), m):
+        if kind == 'part' and loc in mains:   # joined to its main rectangle across the wall gap
+            for bx, by, bw2, bh2 in floorplan._bridges((rx, ry, rw, rh), mains[loc]):
                 c.rect(bx, by, bw2, bh2, colour)
         c.rect(rx + 2, ry + 2, rw - 4, rh - 4, colour)
     for loc, (rx, ry, rw, rh) in mains.items():
@@ -84,70 +163,95 @@ def _draw_plan(c, a, model, floor, box):
         need = cur is not None and target is not None and cur < target
         if cur is not None:
             txt = ('%.1f°' % cur).replace('.0°', '°')
-            tw = a.temp.width(txt)
-            c.text(rx + (rw - tw) // 2, ry + (rh - a.temp.height) // 2, txt, a.temp, RED if need else GREEN)
+            f = next((f for f in a.temps if f.width(txt) <= rw - 12 and f.height <= rh - 8), a.temps[-1])
+            c.text(rx + (rw - f.width(txt)) // 2, ry + (rh - f.height) // 2, txt, f, RED if need else GREEN)
         if need or model.heating(loc):
-            c.mask(rx + rw - 44, ry + 8, a.icon('flame', 36), ORANGE)
+            wide = rw >= 90   # narrow room: flame at the bottom, below the number
+            c.mask(rx + rw - 42 if wide else rx + (rw - 36) // 2, ry + 6 if wide else ry + rh - 42,
+                   a.icon('flame', 36), ORANGE)
+    groups = {}
+    for loc, part, align, item, icon, cfg in placed:
+        if loc in mains:
+            groups.setdefault((loc, part, align), []).append((item, icon, cfg))
+    for (loc, part, align), entries in groups.items():
+        r = _rect(oh.kodi(items[loc])[1], part) if part != 1 else None
+        _draw_items(c, a, screen(r) if r else mains[loc], align, entries)
 
 
-def _marked(items):
-    """Items marked status=true as (order, label, item, icon), sorted."""
-    marked = []
-    for item in items.values():
-        cfg = oh.kodi(item)[1]
-        if str(cfg.get('status', '')).lower() in ('true', '1', 'yes'):
-            try:
-                order = float(cfg.get('order', 999))
-            except ValueError:
-                order = 999
-            marked.append((order, oh.label(item).lower(), item, cfg.get('icon') or 'info'))
-    marked.sort(key=lambda m: (m[0], m[1]))
-    return marked
-
-
-def render(model, path, texts, assets):
-    """Draws the picture to `path`; texts: {'title','ok','updated'} (localised). Returns seconds taken."""
+def render(model, path, texts, assets, area='full'):
+    """Draws the picture to `path`; texts: {'title','ok','updated'} (localised); area: full | top | left
+    (everything inside that part of the screen). Returns seconds taken."""
     t0 = time.time()
-    it = model.items
-    c = canvas.Canvas(W, H, BG)
+    items = model.items
     a = assets
-    c.text(60, 34, texts['title'], a.title, WHITE)
+    aw, ah = AREAS.get(area, AREAS['full'])
+    c = canvas.Canvas(W, H, BG)
+    c.text(M, 26, texts['title'], a.title, WHITE)
     stamp = '%s %s' % (texts['updated'], time.strftime('%H:%M'))
-    c.text(W - 60 - a.small.width(stamp), 52, stamp, a.small, DIM)
+    c.text(aw - M - a.small.width(stamp), 44, stamp, a.small, DIM)
 
-    marked = _marked(it)
-    cols, rh = 5, 56
-    rows = max(2, -(-len(marked) // cols))   # more rows -> lower plans, no item is dropped
-    floors = [f for f in model.tops() if floorplan.plan(it, f)]
-    plan_y, plan_h = 110, 832 - rows * rh
+    floors = []
+    for f in model.tops():
+        pd = floorplan.plan(items, f)
+        if pd:
+            floors.append((f, pd))
+    on_plan = {loc for _f, pd in floors for loc, _x, _y, _w, _h, kind, _l in pd['areas'] if kind != 'part'}
+
+    # status items: into their room (kodi config room=…, else the semantic location) when it is on a plan
+    placed, strip = [], []
+    for _o, _l, item, icon, cfg in _marked(items):
+        loc = cfg.get('room') or _location_of(items, item['name'])
+        if loc in on_plan:
+            try:
+                part = max(1, min(9, int(float(cfg.get('part', 1)))))
+            except ValueError:
+                part = 1
+            align = cfg.get('align') if cfg.get('align') in ('left', 'right', 'center') else 'left'
+            placed.append((loc, part, align, item, icon, cfg))
+        else:
+            strip.append((item, icon))
+
+    cols = max(1, (aw - 2 * M) // 360)
+    strip_h = (-(-len(strip) // cols)) * STRIP_ROW + 20 if strip else 0
+    sy = ah - 20 - strip_h
+    py = (sy if strip else ah - 20) - 52   # problems line
+    top, gap = 96, 40
+
     if floors:
-        gap = 40
-        fw = (W - 120 - gap * (len(floors) - 1)) // len(floors)
-        for i, floor in enumerate(floors):
-            _draw_plan(c, a, model, floor, (60 + i * (fw + gap), plan_y, fw, plan_h))
+        avail_h = py - 16 - top - a.floor.height - 10
+        avail_w = (aw - 2 * M - gap * (len(floors) - 1)) // len(floors)
 
-    # problems (red) above the strip, or a quiet "everything is fine"
-    y = plan_y + plan_h + 20
+        def fit(pd):
+            pw, ph = pd['size']
+            s = min(avail_w / float(pw), avail_h / float(ph))
+            return int(pw * s), int(ph * s)
+        # a floor with stretch=true (e.g. a sketch, not measured) gets the size of the largest plan in scale
+        scaled = [fit(pd) for f, pd in floors if not flag(oh.kodi(items[f])[1] if f in items else {}, 'stretch')]
+        ref = max(scaled, key=lambda s: s[0] * s[1]) if scaled else (avail_w, avail_h)
+        sizes = [ref if flag(oh.kodi(items[f])[1] if f in items else {}, 'stretch') else fit(pd) for f, pd in floors]
+        x = (aw - sum(s[0] for s in sizes) - gap * (len(floors) - 1)) // 2
+        for (f, pd), (dw, dh) in zip(floors, sizes):
+            _draw_plan(c, a, model, f, pd, x, top, dw, dh, placed)
+            x += dw + gap
+
     problems = model.problems()
     if problems:
-        x = 60
+        x = M
         for text, _owner in problems[:3]:
-            c.mask(x, y, a.icon('warning', 36), RED)
-            x = c.text(x + 46, y + 4, text, a.text, RED, 560) + 40
+            c.mask(x, py, a.icon('warning', 36), RED)
+            x = c.text(x + 46, py + 4, text, a.text, RED, 560) + 40
     else:
-        c.mask(60, y, a.icon('ok', 36), GREEN)
-        c.text(106, y + 4, texts['ok'], a.text, GREY)
+        c.mask(M, py, a.icon('ok', 36), GREEN)
+        c.text(M + 46, py + 4, texts['ok'], a.text, GREY)
 
-    # strip with the items marked status=true
-    sy = y + 60
-    c.rect(60, sy, W - 120, H - sy - 30, PANEL)
-    cw = (W - 120) // cols
-    for i, (_o, _l, item, icon) in enumerate(marked):
-        cx, cy = 60 + (i % cols) * cw + 20, sy + 14 + (i // cols) * rh
-        on = item.get('type') == 'Switch' and item.get('state') == 'ON'
-        c.mask(cx, cy, a.icon(icon, 36), ORANGE if (icon == 'flame' and on) else BLUE)
-        st = _state_text(item)
-        x = c.text(cx + 46, cy + 4, oh.label(item), a.text, WHITE, cw - 46 - 30 - a.text.width(st) - 16)
-        c.text(x + 12, cy + 4, st, a.text, GREY)
+    if strip:
+        c.rect(M, sy, aw - 2 * M, strip_h, PANEL)
+        cw = (aw - 2 * M) // cols
+        for i, (item, icon) in enumerate(strip):
+            cx, cy = M + (i % cols) * cw + 20, sy + 10 + (i // cols) * STRIP_ROW
+            c.mask(cx, cy, a.icon(icon, 36), _icon_colour(item, icon))
+            st = _state_text(item)
+            tx = c.text(cx + 46, cy + 4, oh.label(item), a.text, WHITE, cw - 46 - 30 - a.text.width(st) - 16)
+            c.text(tx + 12, cy + 4, st, a.text, GREY)
     c.save_png(path)
     return time.time() - t0

@@ -42,15 +42,28 @@ def setting_on(key, default=True):
     return default if v == '' else v.lower() == 'true'
 
 
+_last_skip = [None]
+
+
+def skip(reason):
+    """Logs why no picture is drawn, once per reason (not every interval)."""
+    if _last_skip[0] != reason:
+        _last_skip[0] = reason
+        log('status picture not drawn: ' + reason)
+
+
 def update(assets, outdir):
     if not setting_on('bg_enable'):
-        return
-    slot = an5_slot() if xbmc.getSkinDir() == AN5 else None
+        return skip('switched off in the add-on settings')
+    if xbmc.getSkinDir() != AN5:
+        return skip('skin is %s, the background works in Aeon Nox 5 only' % xbmc.getSkinDir())
+    slot = an5_slot()
     if not slot:
-        return
+        return skip('the add-on is not in the Aeon Nox 5 main menu (open the add-on - Add to the main menu)')
     token = ADDON.getSetting('token')
     if not token:
-        return
+        return skip('no API token in the add-on settings')
+    _last_skip[0] = None
     try:
         c = oh.OpenHAB(ADDON.getSetting('url') or 'http://localhost:8080', token,
                        int(float(ADDON.getSetting('timeout') or 8)))
@@ -60,8 +73,9 @@ def update(assets, outdir):
         return
     m = Model(items)
     path = os.path.join(outdir, 'status-%s.png' % time.strftime('%Y%m%d-%H%M%S'))
+    area = {'0': 'full', '1': 'top', '2': 'left'}.get(ADDON.getSetting('bg_area'), 'top')
     try:
-        secs = statusimage.render(m, path, {'title': S(32010), 'ok': S(32011), 'updated': S(32042)}, assets)
+        secs = statusimage.render(m, path, {'title': S(32010), 'ok': S(32011), 'updated': S(32042)}, assets, area)
     except Exception as err:
         log('status picture failed: %s' % err, xbmc.LOGERROR)
         return
@@ -76,6 +90,7 @@ def update(assets, outdir):
 
 
 def main():
+    log('background service %s started' % ADDON.getAddonInfo('version'))
     monitor = xbmc.Monitor()
     outdir = xbmcvfs.translatePath('special://profile/addon_data/plugin.program.xderecx.openhab/background')
     os.makedirs(outdir, exist_ok=True)

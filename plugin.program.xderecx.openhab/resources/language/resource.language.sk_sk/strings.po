@@ -152,3 +152,19 @@ msgstr "Obrázok Stav domu ako pozadie položky menu"
 msgctxt "#32044"
 msgid "Refresh the picture every (minutes)"
 msgstr "Obnovovať obrázok každých (minút)"
+
+msgctxt "#32045"
+msgid "Picture area (the part of the screen the menu does not cover)"
+msgstr "Plocha obrázka (časť obrazovky, ktorú nezakrýva menu)"
+
+msgctxt "#32046"
+msgid "Whole screen"
+msgstr "Celá obrazovka"
+
+msgctxt "#32047"
+msgid "Top 3/4"
+msgstr "Horné 3/4"
+
+msgctxt "#32048"
+msgid "Left 3/4"
+msgstr "Ľavé 3/4"

@@ -74,10 +74,14 @@ _NUM = re.compile(r'^(-?\d+(?:\.\d+)?)(?:E[-+]?\d+)?(\s.*)?$')
 
 
 def display_state(item):
-    """Readable state: transformedState if the item has one, numbers rounded to 1 decimal."""
+    """Readable state: transformedState if the item has one, else the label of a state option (state description),
+    numbers rounded to 1 decimal."""
     st = item.get('transformedState') or item.get('state')
     if st in (None, 'NULL', 'UNDEF'):
         return '–'
+    for opt in (item.get('stateDescription') or {}).get('options') or []:
+        if opt.get('value') == st and opt.get('label'):
+            return opt['label']
     m = _NUM.match(st)
     if m:
         num = float(m.group(1))

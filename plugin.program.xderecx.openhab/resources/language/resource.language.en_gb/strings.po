@@ -152,3 +152,19 @@ msgstr ""
 msgctxt "#32044"
 msgid "Refresh the picture every (minutes)"
 msgstr ""
+
+msgctxt "#32045"
+msgid "Picture area (the part of the screen the menu does not cover)"
+msgstr ""
+
+msgctxt "#32046"
+msgid "Whole screen"
+msgstr ""
+
+msgctxt "#32047"
+msgid "Top 3/4"
+msgstr ""
+
+msgctxt "#32048"
+msgid "Left 3/4"
+msgstr ""
