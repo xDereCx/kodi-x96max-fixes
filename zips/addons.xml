@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addons>
-<addon id="plugin.program.xderecx.openhab" name="openHAB Domácnosť" version="1.2.0" provider-name="xDereCx">
+<addon id="plugin.program.xderecx.openhab" name="openHAB Domácnosť" version="1.3.0" provider-name="xDereCx">
 	<requires>
 		<import addon="xbmc.python" version="3.0.0"/>
 	</requires>
@@ -17,7 +17,7 @@
 		<assets>
 			<icon>icon.png</icon>
 		</assets>
-		<news>1.2.0: "Pridať Domácnosť do hlavného menu" (add-on root list and settings, Aeon Nox 5 only) - puts the add-on into the first free Aeon Nox 5 main menu slot (skin strings Custom1-6HomeItem.Label/Path/Icon via Skin.SetString, no skin file patched) and reloads the skin; "Odstrániť" in the settings removes it again. 1.1.0: floor plans - Prizemie and Poschodie open a drawn plan of the rooms (from the house layout) with each room's temperature, orange = heating, red = problem; arrows move between rooms, OK opens the room, "Zoznam izieb" opens the plain list; also reachable from a skin menu (plugin://plugin.program.xderecx.openhab/?action=plan&amp;name=<floor item>). Terrace on a floor no longer shown twice. 1.0.0: initial release - floors/rooms/equipment from the openHAB semantic model, switch toggle, setpoint and option dialogs, house status list (also as widget).</news>
+		<news>1.3.0: adding to the Aeon Nox 5 main menu also sets the "Stav domu" widget under the item (Custom&lt;N&gt;HomeItem.Widget/WidgetLabel/WidgetType); widget layout type 1-13 selectable in the settings + "Použiť typ widgetu". 1.2.0: "Pridať Domácnosť do hlavného menu" (add-on root list and settings, Aeon Nox 5 only) - puts the add-on into the first free Aeon Nox 5 main menu slot (skin strings Custom1-6HomeItem.Label/Path/Icon via Skin.SetString, no skin file patched) and reloads the skin; "Odstrániť" in the settings removes it again. 1.1.0: floor plans - Prizemie and Poschodie open a drawn plan of the rooms (from the house layout) with each room's temperature, orange = heating, red = problem; arrows move between rooms, OK opens the room, "Zoznam izieb" opens the plain list; also reachable from a skin menu (plugin://plugin.program.xderecx.openhab/?action=plan&amp;name=<floor item>). Terrace on a floor no longer shown twice. 1.0.0: initial release - floors/rooms/equipment from the openHAB semantic model, switch toggle, setpoint and option dialogs, house status list (also as widget).</news>
 	</extension>
 </addon>
 <addon id="repository.xderecx.kodifixes" name="DereC Kodi Addons" version="1.2.1" provider-name="xDereCx">
