@@ -114,6 +114,20 @@ every folder under `zips/` so Kodi's browser can see what's there.
   optionally, install `script.xderecx.aeonnox5lyricsfix` (below) for a
   rotating full-screen background bound to this same property.
 
+- **`plugin.program.xderecx.openhab`** ("openHAB Domácnosť") — browse and
+  control an openHAB server from Kodi, any skin. Reads openHAB's semantic
+  model over the REST API: floors (and outdoor locations) → rooms →
+  equipment → points; rooms with radiator valves show "now → target
+  (preset)". Switches toggle on OK, setpoints open a temperature list,
+  items with options (e.g. valve preset programming/manual) open a
+  selection list. **Stav domu** (house status) lists problems first
+  (offline devices, batteries ≤ 20 %, alarms, boiler errors), then
+  presence, room temperatures, boiler, fridge and UPS - also usable as a
+  home-screen widget in skins with plugin widgets (Aeon Nox 5: main menu
+  customizer → widget → `plugin://plugin.program.xderecx.openhab/?action=status`).
+  Settings: openHAB URL and an API token of a **non-admin** openHAB user
+  (the token is stored on the box in plain text).
+
 ### Aeon Nox 5 special (optional, frozen — not being extended further)
 
 - **`script.xderecx.aeonnox5lyricsfix`** ("Aeon Nox 5 Skin Fixes") —

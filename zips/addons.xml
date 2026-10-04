@@ -1,5 +1,25 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addons>
+<addon id="plugin.program.xderecx.openhab" name="openHAB Domácnosť" version="1.0.0" provider-name="xDereCx">
+	<requires>
+		<import addon="xbmc.python" version="3.0.0"/>
+	</requires>
+	<extension point="xbmc.python.pluginsource" library="default.py">
+		<provides>executable</provides>
+	</extension>
+	<extension point="xbmc.addon.metadata">
+		<summary lang="en_GB">openHAB smart home: floors, rooms, devices and a house status widget</summary>
+		<summary lang="sk_SK">openHAB: poschodia, izby, zariadenia a widget so stavom domu</summary>
+		<description lang="en_GB">Browses and controls an openHAB server (REST API, API token) from Kodi on any skin. The menu follows openHAB's semantic model: floors and outdoor locations, their rooms, the equipment in each room and its points. Switches toggle, setpoints (e.g. radiator valve temperature) and option items (e.g. valve preset programming/manual) open a selection dialog. "Stav domu" (house status) is a short list of what matters and what is wrong (offline devices, low batteries, alarms, boiler errors) - usable as a home-screen widget in skins that support plugin widgets (e.g. Aeon Nox 5: plugin://plugin.program.xderecx.openhab/?action=status). Set the openHAB address and an API token of a non-admin openHAB user in the add-on settings.</description>
+		<platform>all</platform>
+		<license>CC-BY-NC-SA-4.0</license>
+		<source>https://github.com/xDereCx/kodi-x96max-fixes</source>
+		<assets>
+			<icon>icon.png</icon>
+		</assets>
+		<news>1.0.0: initial release - floors/rooms/equipment from the openHAB semantic model, switch toggle, setpoint and option dialogs, house status list (also as widget).</news>
+	</extension>
+</addon>
 <addon id="repository.xderecx.kodifixes" name="DereC Kodi Addons" version="1.2.1" provider-name="xDereCx">
 	<extension point="xbmc.addon.repository" name="DereC Kodi Addons">
 		<dir>
