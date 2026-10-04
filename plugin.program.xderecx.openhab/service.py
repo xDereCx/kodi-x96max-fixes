@@ -61,8 +61,7 @@ def update(assets, outdir):
     m = Model(items)
     path = os.path.join(outdir, 'status-%s.png' % time.strftime('%Y%m%d-%H%M%S'))
     try:
-        secs = statusimage.render(m, path, {'title': S(32010), 'ok': S(32011), 'rooms': S(32040),
-                                            'house': S(32041), 'updated': S(32042)}, assets)
+        secs = statusimage.render(m, path, {'title': S(32010), 'ok': S(32011), 'updated': S(32042)}, assets)
     except Exception as err:
         log('status picture failed: %s' % err, xbmc.LOGERROR)
         return

@@ -1,26 +1,33 @@
 # -*- coding: utf-8 -*-
-"""House status picture (1280x720 PNG) for a skin background: problems, rooms with temperatures, status items.
-Pure Python (canvas.py); everything shown comes from the same model/metadata as the add-on's lists."""
+"""House status picture (1920x1080 PNG) for a skin background: the floor plans with each room's temperature
+(red = below its setpoint, green = ok, flame = needs heat / heating), problems, and the items marked
+status=true in a strip at the bottom. Pure Python (canvas.py); data = the add-on's model and metadata."""
 import os
 import time
 
 import canvas
+import floorplan
 import openhab as oh
 
-W, H = 1280, 720
+W, H = 1920, 1080
 BG = (16, 18, 21)
 PANEL = (30, 34, 40)
-WHITE, GREY, DIM = (240, 240, 240), (170, 176, 186), (110, 116, 126)
-RED, ORANGE, BLUE, GREEN = (235, 90, 90), (255, 150, 60), (150, 190, 230), (110, 200, 120)
+ROOM, EMPTY, OUTDOOR = (52, 58, 66), (36, 40, 46), (44, 46, 50)
+WHITE, GREY, DIM = (235, 235, 235), (165, 172, 182), (105, 112, 122)
+RED, GREEN, ORANGE, BLUE = (240, 90, 90), (110, 205, 120), (255, 150, 60), (150, 190, 230)
 
 
 class Assets:
     def __init__(self, media):
         f = os.path.join(media, 'font')
-        self.title = canvas.Font(os.path.join(f, 'bold-44.png'), os.path.join(f, 'bold-44.json'))
-        self.text = canvas.Font(os.path.join(f, 'regular-26.png'), os.path.join(f, 'regular-26.json'))
-        self.bold = canvas.Font(os.path.join(f, 'bold-26.png'), os.path.join(f, 'bold-26.json'))
-        self.small = canvas.Font(os.path.join(f, 'regular-20.png'), os.path.join(f, 'regular-20.json'))
+
+        def font(name):
+            return canvas.Font(os.path.join(f, name + '.png'), os.path.join(f, name + '.json'))
+        self.title = font('bold-44')
+        self.floor = font('bold-30')
+        self.temp = font('bold-36')
+        self.text = font('regular-24')
+        self.small = font('regular-20')
         self._icons = {}
         self.icondir = os.path.join(media, 'icons', 'small')
 
@@ -40,42 +47,80 @@ def _state_text(item):
     return oh.display_state(item)
 
 
+def _room_temps(model, loc):
+    for eq in model.equipment_at.get(loc, []):
+        c, t = model.role_point(eq, 'temperature'), model.role_point(eq, 'setpoint')
+        if c or t:
+            return (oh.number(c) if c else None), (oh.number(t) if t else None)
+    return None, None
+
+
+def _draw_plan(c, a, model, floor, box):
+    """One floor plan in box (x, y, w, h): rooms, no names, temperature in red/green, flame when needed."""
+    items = model.items
+    pd = floorplan.plan(items, floor)
+    x0, y0, bw, bh = box
+    c.text(x0, y0, oh.label(items[floor]), a.floor, GREY)
+    top = y0 + a.floor.height + 12
+    pw, ph = pd['size']
+    sc = min(bw / float(pw), (bh - (top - y0)) / float(ph))
+    ox = x0 + int((bw - pw * sc) / 2)
+    screen = [(loc, kind, ox + int(x * sc), top + int(y * sc), int(w * sc), int(h * sc))
+              for loc, x, y, w, h, kind, _label in pd['areas']]
+    mains = {s[0]: s[2:] for s in screen if s[1] != 'part'}
+    for loc, kind, rx, ry, rw, rh in screen:
+        has = bool(model.equipment_at.get(loc) or model.points_at.get(loc))
+        colour = ROOM if has else (OUTDOOR if kind == 'outdoor' else EMPTY)
+        if kind == 'part' and loc in mains:
+            m = mains[loc]
+            # same colour as its main rectangle, joined across the wall gap
+            mhas = bool(model.equipment_at.get(loc) or model.points_at.get(loc))
+            colour = ROOM if mhas else EMPTY
+            for bx, by, bw2, bh2 in floorplan._bridges((rx, ry, rw, rh), m):
+                c.rect(bx, by, bw2, bh2, colour)
+        c.rect(rx + 2, ry + 2, rw - 4, rh - 4, colour)
+    for loc, (rx, ry, rw, rh) in mains.items():
+        cur, target = _room_temps(model, loc)
+        need = cur is not None and target is not None and cur < target
+        if cur is not None:
+            txt = ('%.1f°' % cur).replace('.0°', '°')
+            tw = a.temp.width(txt)
+            c.text(rx + (rw - tw) // 2, ry + (rh - a.temp.height) // 2, txt, a.temp, RED if need else GREEN)
+        if need or model.heating(loc):
+            c.mask(rx + rw - 44, ry + 8, a.icon('flame', 36), ORANGE)
+
+
 def render(model, path, texts, assets):
-    """Draws the picture to `path`. texts: {'title','ok','rooms','house','updated'} (localised)."""
+    """Draws the picture to `path`; texts: {'title','ok','updated'} (localised). Returns seconds taken."""
     t0 = time.time()
     it = model.items
     c = canvas.Canvas(W, H, BG)
     a = assets
-    # title + time
     c.text(60, 34, texts['title'], a.title, WHITE)
     stamp = '%s %s' % (texts['updated'], time.strftime('%H:%M'))
     c.text(W - 60 - a.small.width(stamp), 52, stamp, a.small, DIM)
-    y = 110
-    # problems (or "everything is fine")
+
+    floors = [f for f in model.tops() if floorplan.plan(it, f)]
+    plan_y, plan_h = 110, 720
+    if floors:
+        gap = 40
+        fw = (W - 120 - gap * (len(floors) - 1)) // len(floors)
+        for i, floor in enumerate(floors):
+            _draw_plan(c, a, model, floor, (60 + i * (fw + gap), plan_y, fw, plan_h))
+
+    # problems (red) above the strip, or a quiet "everything is fine"
+    y = plan_y + plan_h + 20
     problems = model.problems()
     if problems:
-        for text, _owner in problems[:4]:
-            c.rect(60, y, W - 120, 46, (70, 30, 34))
-            c.mask(72, y + 5, a.icon('warning'), RED)
-            c.text(124, y + 8, text, a.text, WHITE, W - 200)
-            y += 54
+        x = 60
+        for text, _owner in problems[:3]:
+            c.mask(x, y, a.icon('warning', 36), RED)
+            x = c.text(x + 46, y + 4, text, a.text, RED, 560) + 40
     else:
-        c.mask(60, y, a.icon('ok'), GREEN)
-        c.text(110, y + 3, texts['ok'], a.text, GREY)
-        y += 50
-    y += 12
-    col_w = (W - 120 - 30) // 2
-    # left column: rooms with a temperature
-    rooms = []
-    for loc in model.by_label([n for n in it if oh.semantics(it[n])[0].startswith('Location')]):
-        cur = target = None
-        for eq in model.equipment_at.get(loc, []):
-            cur, target = model.role_point(eq, 'temperature'), model.role_point(eq, 'setpoint')
-            if cur or target:
-                break
-        if cur or target:
-            rooms.append((oh.label(it[loc]), cur, target, model.heating(loc)))
-    # right column: items marked status=true
+        c.mask(60, y, a.icon('ok', 36), GREEN)
+        c.text(106, y + 4, texts['ok'], a.text, GREY)
+
+    # strip with the items marked status=true
     marked = []
     for n, item in it.items():
         cfg = oh.kodi(item)[1]
@@ -86,32 +131,15 @@ def render(model, path, texts, assets):
                 order = 999
             marked.append((order, oh.label(item).lower(), item, cfg.get('icon') or 'info'))
     marked.sort(key=lambda m: (m[0], m[1]))
-    row_h = 44
-    rows = max(1, (H - y - 70) // row_h)
-    for col, (header, x) in enumerate(((texts['rooms'], 60), (texts['house'], 60 + col_w + 30))):
-        c.rect(x, y, col_w, min(H - y - 30, 50 + row_h * rows), PANEL)
-        c.text(x + 18, y + 10, header, a.bold, GREY)
-    yy = y + 56
-    for name, cur, target, heating in rooms[:rows]:
-        x = 78
-        c.mask(x, yy + 2, a.icon('flame' if heating else 'thermometer'), ORANGE if heating else BLUE)
-        temp = oh.display_state(cur) if cur else ''
-        if target:
-            temp += ' → ' + oh.display_state(target)
-        tw = a.text.width(temp)
-        c.text(x + 46, yy + 5, name, a.text, WHITE, col_w - 18 - tw - 20 - (x + 46 - 60))
-        c.text(60 + col_w - 18 - tw, yy + 5, temp, a.text, GREY)
-        yy += row_h
-    yy = y + 56
-    x0 = 60 + col_w + 30
-    for _o, _l, item, icon in marked[:rows]:
+    sy = y + 60
+    c.rect(60, sy, W - 120, H - sy - 30, PANEL)
+    cols, cw, rh = 5, (W - 120) // 5, 56
+    for i, (_o, _l, item, icon) in enumerate(marked[:cols * max(1, (H - sy - 40) // rh)]):
+        cx, cy = 60 + (i % cols) * cw + 20, sy + 14 + (i // cols) * rh
         on = item.get('type') == 'Switch' and item.get('state') == 'ON'
-        colour = ORANGE if (icon == 'flame' and on) else BLUE
-        c.mask(x0 + 18, yy + 2, a.icon(icon), colour)
+        c.mask(cx, cy, a.icon(icon, 36), ORANGE if (icon == 'flame' and on) else BLUE)
         st = _state_text(item)
-        sw = a.text.width(st)
-        c.text(x0 + 64, yy + 5, oh.label(item), a.text, WHITE, col_w - 64 - 18 - sw - 20)
-        c.text(x0 + col_w - 18 - sw, yy + 5, st, a.text, GREY)
-        yy += row_h
+        x = c.text(cx + 46, cy + 4, oh.label(item), a.text, WHITE, cw - 46 - 30 - a.text.width(st) - 16)
+        c.text(x + 12, cy + 4, st, a.text, GREY)
     c.save_png(path)
     return time.time() - t0

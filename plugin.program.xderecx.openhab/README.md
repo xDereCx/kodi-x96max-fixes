@@ -149,8 +149,9 @@ Every skin stores its main menu differently:
   It uses the first free main menu slot Custom1-6 (`Skin.SetString`, no skin file is changed), adds the
   House status widget under it and reloads the skin. The widget layout (type 1-13) can be changed in the
   settings ("Apply widget type"); "Remove from the main menu" undoes it.
-- **Aeon Nox 5 background:** the add-on's background service draws a **house status picture** (problems,
-  rooms with temperature and a flame when heating, items marked `status` with their icon) every 5 minutes
+- **Aeon Nox 5 background:** the add-on's background service draws a **house status picture** (1920x1080:
+  the floor plans with each room's temperature, red below its setpoint / green ok, a flame when heat is needed;
+  problems; items marked `status` with their icon in a strip at the bottom) every 5 minutes
   (settings: on/off, interval) and sets it as the background of its main menu item (`MultiFanart`). It is
   drawn in pure Python (Kodi on CoreELEC/LibreELEC has no Pillow); about 0.5 s on an Amlogic S905X3 box.
 - **Skins with a home menu editor** (Skin Shortcuts, e.g. Arctic Horizon 2, Estuary Mod V2): skin settings →
