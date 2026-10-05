@@ -98,7 +98,30 @@ def _text_colour(item, cfg, default):
     return COLOURS.get(_lookup(cfg or {}, 'colors', item.get('state')), default)
 
 
-def _icon_colour(item, icon):
+COLD, MILD, HOT = (70, 130, 255), (235, 235, 235), (240, 60, 60)
+
+
+def _spectrum(state, rng):
+    """Colour of a number: blue -> white -> red; rng = "low,high", values outside are clamped."""
+    try:
+        lo, hi = [float(v) for v in str(rng).split(',')[:2]]
+        v = float(str(state).split(' ')[0])
+    except (ValueError, TypeError):
+        return None
+    t = max(0.0, min(1.0, (v - lo) / (hi - lo))) if hi != lo else 1.0
+    a, b, t = (COLD, MILD, t * 2) if t < 0.5 else (MILD, HOT, t * 2 - 1)
+    return tuple(int(a[i] + (b[i] - a[i]) * t) for i in range(3))
+
+
+def _icon_colour(item, icon, cfg=None):
+    cfg = cfg or {}
+    if cfg.get('icon_range'):              # e.g. tank temperature 18 -> 90 °C: blue -> red
+        col = _spectrum(item.get('state'), cfg['icon_range'])
+        if col:
+            return col
+    col = COLOURS.get(_lookup(cfg, 'icon_colors', item.get('state')))   # e.g. ON=orange,OFF=blue
+    if col:
+        return col
     on = item.get('type') == 'Switch' and item.get('state') == 'ON'
     return ORANGE if (icon == 'flame' and on) else BLUE
 
@@ -171,7 +194,7 @@ def _draw_items(c, a, rect, align, entries):
             st = _state_text(item, cfg)
             label = None if flag(cfg, 'compact') else oh.label(item)
             w = isz + 6 + (font.width(label) + 8 if label else 0) + font.width(st)
-            rows.append((icon, label, st, _icon_colour(item, icon), _text_colour(item, cfg, WHITE), w))
+            rows.append((icon, label, st, _icon_colour(item, icon, cfg), _text_colour(item, cfg, WHITE), w))
         if align == 'center':
             lines, cur = [], []
             for r in rows:
@@ -341,7 +364,7 @@ def _draw_panel(c, a, entries, x, y, h, items):
             c.image(cx - 6, cy + (rh_ - WICON) // 2, img)
             tx = cx + WICON + 4
         else:
-            c.mask(cx, cy + (rh_ - isz) // 2, a.icon(icon, isz), _icon_colour(item, icon))
+            c.mask(cx, cy + (rh_ - isz) // 2, a.icon(icon, isz), _icon_colour(item, icon, cfg))
             tx = cx + isz + 10
         cy += (rh_ - a.tiny.height - vfont.height) // 2 - 4 if img else 0
         value = _fmt(items, cfg['text']) if cfg.get('text') else _state_text(item, cfg)
@@ -418,9 +441,10 @@ def render(model, path, texts, assets, area='full'):
     py = (sy if strip else ah - 20) - 52   # problems line
     top, gap = 50, 40   # below the skin's top bar
     pw_ = (PANEL_W2 if any(str(e[2].get('panel_columns', '1')) not in ('', '1') for e in panel) else PANEL_W) if panel else 0
-    if panel:
-        _draw_panel(c, a, panel, M, top, py - 16 - top, items)
+    if panel:   # the problems line goes under the plans, the panel gets the full height
+        _draw_panel(c, a, panel, M, top, (sy if strip else ah - 20) - 16 - top, items)
 
+    px = M   # left edge of the problems line: first plan when there is a panel
     if floors:
         avail_h = py - 16 - top - a.floor.height - 10
         avail_w = (aw - 2 * M - pw_ - gap * (len(floors) - 1)) // len(floors)
@@ -435,26 +459,31 @@ def render(model, path, texts, assets, area='full'):
         sizes = [ref if flag(oh.kodi(items[f])[1] if f in items else {}, 'stretch') else fit(pd) for f, pd in floors]
         total = sum(s[0] for s in sizes) + gap * (len(floors) - 1)
         x = aw - M - total if panel else (aw - total) // 2   # with a panel: plans on the right
+        if panel:
+            px = x
         for (f, pd), (dw, dh) in zip(floors, sizes):
             _draw_plan(c, a, model, f, pd, x, top, dw, dh, placed)
             x += dw + gap
 
     problems = model.problems()
     if problems:
-        x = M
+        x = px
         for text, _owner in problems[:3]:
+            room = aw - M - x - 46
+            if room < 120:
+                break
             c.mask(x, py, a.icon('warning', 36), RED)
-            x = c.text(x + 46, py + 4, text, a.text, RED, 560) + 40
+            x = c.text(x + 46, py + 4, text, a.text, RED, min(560, room)) + 40
     else:
-        c.mask(M, py, a.icon('ok', 36), GREEN)
-        c.text(M + 46, py + 4, texts['ok'], a.text, GREY)
+        c.mask(px, py, a.icon('ok', 36), GREEN)
+        c.text(px + 46, py + 4, texts['ok'], a.text, GREY)
 
     if strip:
         c.rect(M, sy, aw - 2 * M, strip_h, PANEL)
         cw = (aw - 2 * M) // cols
         for i, (item, icon, cfg) in enumerate(strip):
             cx, cy = M + (i % cols) * cw + 20, sy + 10 + (i // cols) * STRIP_ROW
-            c.mask(cx, cy, a.icon(icon, 36), _icon_colour(item, icon))
+            c.mask(cx, cy, a.icon(icon, 36), _icon_colour(item, icon, cfg))
             st = _state_text(item, cfg)
             tx = c.text(cx + 46, cy + 4, oh.label(item), a.text, WHITE, cw - 46 - 30 - a.text.width(st) - 16)
             c.text(tx + 12, cy + 4, st, a.text, _text_colour(item, cfg, GREY))

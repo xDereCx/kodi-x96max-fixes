@@ -118,6 +118,8 @@ Use value `-` (or a role above) and these config parameters:
 | `weather_icon` | panel item: weather.com icon code (0-47, usually `{Icon_Item}`) → colour icon from Kodi's weather icon pack `resource.images.weathericons.default` (e.g. the Weather Company forecast `iconCode` channel) |
 | `map` | status item: state → text, e.g. `OL=GRID,OB=BATT` (exact state, else its first word) |
 | `colors` | status item: state → colour of the value: `green`, `red`, `orange`, `blue`, `white`, `grey`, e.g. `OL=green,OB=red` |
+| `icon_colors` | status item: state → colour of the icon, e.g. `ON=orange,OFF=blue` (default: blue, a `flame` icon orange when a switch is ON) |
+| `icon_range` | status item: `low,high` → icon colour from blue (≤ low) over white to red (≥ high) by the number, e.g. a water tank `18,90` |
 | `problem` | condition; when the state matches, the item is listed as a problem (status list first, room red on the plan) |
 | `problem_text` | text of the problem, `{state}` = current state (default: `equipment – label: state`) |
 
