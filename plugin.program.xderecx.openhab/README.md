@@ -66,7 +66,8 @@ an `.items` file, or over the REST API (`PUT /rest/items/<item>/metadata/kodi`).
 | floor (optional) | `plan` | `w`, `h` = size of the drawing (default: bounding box of its rooms); `stretch=true` = in the house status picture draw it as large as the biggest plan in scale (for a sketch that is not measured) |
 | room / location | `plan` | `x`, `y`, `w`, `h` = rectangle; optional `label`, `floor` (draw it on this floor although it is not part of it in the model, e.g. a yard), `x2`, `y2`, `w2`, `h2`, `label2` … up to `x9`…`label9` = further, non-selectable rectangles of the same room (L-shaped rooms, niches) |
 
-Units are up to you (cm, pixels of a drawing…); the plan is scaled to the screen. `y` grows downwards.
+Units are up to you (cm, pixels of a drawing…); the plan is scaled to the screen. `y` grows downwards. In the house
+status picture all floors in scale share one scale, so a house measured in the same units is equally large on every floor.
 A floor with at least one room with a plan opens as a plan; the plan has a "Room list" button.
 
 ```
@@ -114,10 +115,16 @@ Use value `-` (or a role above) and these config parameters:
 | `compact=true` | status item: icon and value only, without the label (small rooms) |
 | `small=true` | status item: smaller icon and font (the whole group in that corner of the room) |
 | `panel=left` | status item: in a column left of the plans (e.g. weather) instead of a room; the plans move right. `big=true` = large value, `panel_title` (on any panel item) = heading of the column, `panel_columns=2` (on any panel item) = items in a grid of 2 columns (wider panel), `wide=true` = full-width row, `section="…"` = sub-heading before the item |
-| `text` | panel item: value from a template of item states, e.g. `{Max_Item} / {Min_Item} · {Rain_Item}`; the label may use `{Item}` too (e.g. a forecast day name) |
+| `text` | panel or status item: value from a template of item states, e.g. `{Max_Item} / {Min_Item} · {Rain_Item}`; the label may use `{Item}` too (e.g. a forecast day name); `{Item|n}` = number without unit, `{Item|i}` = rounded whole number, `{Item|d}` = date `YYYY-MM-DD` as `04.10.` |
 | `weather_icon` | panel item: weather.com icon code (0-47, usually `{Icon_Item}`) → colour icon from Kodi's weather icon pack `resource.images.weathericons.default` (e.g. the Weather Company forecast `iconCode` channel) |
 | `map` | status item: state → text, e.g. `OL=GRID,OB=BATT` (exact state, else its first word) |
-| `colors` | status item: state → colour of the value: `green`, `red`, `orange`, `blue`, `white`, `grey`, e.g. `OL=green,OB=red` |
+| `colors` | status item: state → colour of the value: `green`, `red`, `orange`, `blue`, `white`, `grey`, e.g. `OL=green,OB=red`, or numeric conditions `<0=red,>0=green` |
+| `area` | status item: `x,y,w,h` (plan units) = own rectangle for the group instead of the room's, e.g. across an L-shaped room; with `floor` = on that floor without a room (an empty part of the plan) |
+| `rows` | status item: at most n rows per column (smaller rows when needed) |
+| `size` | status item: `mini` (16 px font, 20 px icons, tight rows) or `micro` (12 px font) for very small spaces |
+| `justify=left` | status item in a right corner: the column is left-aligned |
+| `noicon=true` | status item: text only, no icon |
+| `cols` | status item: a table row across the whole rectangle, `"left|centre|right"` (templates), e.g. `{A|n} / {B|n}|Odber|{C|n}`; `header=true` = grey row |
 | `icon_colors` | status item: state → colour of the icon, e.g. `ON=orange,OFF=blue` (default: blue, a `flame` icon orange when a switch is ON) |
 | `icon_range` | status item: `low,high` → icon colour from blue (≤ low) over white to red (≥ high) by the number, e.g. a water tank `18,90` |
 | `problem` | condition; when the state matches, the item is listed as a problem (status list first, room red on the plan) |

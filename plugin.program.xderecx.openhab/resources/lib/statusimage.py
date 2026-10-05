@@ -66,10 +66,32 @@ class Assets:
         key = (name, size)
         if key not in self._icons:
             path = os.path.join(self.icondir, '%s-%d.png' % (name, size))
-            if not os.path.exists(path):
-                path = os.path.join(self.icondir, 'info-%d.png' % size)
-            self._icons[key] = canvas.read_mask(path)
+            if os.path.exists(path):
+                self._icons[key] = canvas.read_mask(path)
+            else:   # no file in this size: scale the 56 px one down (box filter), e.g. 20 px for size=micro
+                big = os.path.join(self.icondir, '%s-56.png' % name)
+                if not os.path.exists(big):
+                    big = os.path.join(self.icondir, 'info-56.png')
+                self._icons[key] = _shrink_mask(canvas.read_mask(big), size)
         return self._icons[key]
+
+
+def _shrink_mask(mask, size):
+    """(w, h, alpha bytes) scaled down to size x size, box filter."""
+    w, h, data = mask
+    out = bytearray(size * size)
+    for oy in range(size):
+        y0, y1 = oy * h // size, max(oy * h // size + 1, (oy + 1) * h // size)
+        for ox in range(size):
+            x0, x1 = ox * w // size, max(ox * w // size + 1, (ox + 1) * w // size)
+            s = n = 0
+            for yy in range(y0, y1):
+                row = yy * w
+                for xx in range(x0, x1):
+                    s += data[row + xx]
+                    n += 1
+            out[oy * size + ox] = s // n
+    return size, size, bytes(out)
 
 
 COLOURS = {'green': GREEN, 'red': RED, 'orange': ORANGE, 'blue': BLUE, 'white': WHITE, 'grey': GREY}
@@ -94,8 +116,27 @@ def _state_text(item, cfg=None):
     return oh.display_state(item)
 
 
+_CMP = re.compile(r'^(<=|>=|<|>)\s*(-?[0-9.]+)$')
+
+
 def _text_colour(item, cfg, default):
-    return COLOURS.get(_lookup(cfg or {}, 'colors', item.get('state')), default)
+    """colors="OL=green,OB=red" (state / its first word) or numeric conditions "<0=red,>0=green"."""
+    col = _lookup(cfg or {}, 'colors', item.get('state'))
+    if col is None and cfg and cfg.get('colors'):
+        try:
+            v = float(str(item.get('state')).split(' ')[0])
+        except ValueError:
+            v = None
+        if v is not None:
+            for pair in str(cfg['colors']).split(','):
+                cond, _, name = pair.rpartition('=')
+                m = _CMP.match(cond.strip())
+                if m:
+                    op, lim = m.group(1), float(m.group(2))
+                    if {'<': v < lim, '>': v > lim, '<=': v <= lim, '>=': v >= lim}[op]:
+                        col = name.strip()
+                        break
+    return COLOURS.get(col, default)
 
 
 COLD, MILD, HOT = (70, 130, 255), (235, 235, 235), (240, 60, 60)
@@ -179,22 +220,49 @@ def _rect(cfg, part):
 
 
 ALIGNS = ('left', 'right', 'center', 'top-left', 'top-right', 'bottom-left', 'bottom-right')
-SIZES = ((36, 'small', ROW, 24), (28, 'tiny', 30, 14))   # icon px, font, row height, gap; 2nd = crowded room
+SIZES = ((36, 'small', ROW, 24), (28, 'tiny', 30, 14), (28, 'tiny', 27, 12))   # icon px, font, row, gap; crowded rooms
 
 
-def _draw_items(c, a, rect, align, entries):
+def _draw_items(c, a, rect, align, entries, items=None):
     """Status items inside a room rectangle (screen px): stacked in a corner (left/right = top corners,
-    bottom-left/bottom-right) or centred lines. Smaller icons and font when they would not fit."""
+    bottom-left/bottom-right) or centred lines. Smaller icons and font when they would not fit.
+    rows=n (any item): at most n rows per column; justify=left: a right-corner column is left-aligned;
+    text="{A} / {B}": value from a template ({A|n} = number without unit); noicon=true: text only."""
     rx, ry, rw, rh = rect
-    sizes = SIZES[1:] if any(flag(cfg, 'small') for _i, _ic, cfg in entries) else SIZES
+    cfgs = [cfg for _i, _ic, cfg in entries]
+    if any(cfg.get('cols') for cfg in cfgs):
+        # table rows across the whole rectangle: cols="left|centre|right" (templates); header=true: grey row
+        font, row = a.tiny, 27
+        y = ry + 4
+        for _item, _icon, cfg in entries:
+            parts = (_fmt(items, cfg.get('cols', '')) if items is not None else str(cfg.get('cols', ''))).split('|')
+            left, mid, right = (parts + ['', '', ''])[:3]
+            colr = GREY if flag(cfg, 'header') else WHITE
+            c.text(rx + 8, y, left, font, colr)
+            c.text(rx + (rw - font.width(mid)) // 2, y, mid, font, GREY)
+            c.text(rx + rw - 8 - font.width(right), y, right, font, colr)
+            y += row
+        return
+    if any(cfg.get('size') == 'micro' for cfg in cfgs):   # smallest: 12 px font, 20 px icons
+        sizes = ((20, 'micro', 20, 10),)
+    elif any(cfg.get('size') == 'mini' for cfg in cfgs):  # 16 px font with 20 px icons, tight rows
+        sizes = ((20, 'tiny', 23, 10),)
+    else:
+        sizes = SIZES[1:] if any(flag(cfg, 'small') for cfg in cfgs) else SIZES
+    try:
+        max_rows = min(int(float(cfg['rows'])) for cfg in cfgs if cfg.get('rows'))
+    except ValueError:
+        max_rows = None
+    justify_left = any(cfg.get('justify') == 'left' for cfg in cfgs)
     for isz, fname, row, gap in sizes:
         font = getattr(a, fname)
         rows = []
         for item, icon, cfg in entries:
-            st = _state_text(item, cfg)
-            label = None if flag(cfg, 'compact') else oh.label(item)
-            w = isz + 6 + (font.width(label) + 8 if label else 0) + font.width(st)
-            rows.append((icon, label, st, _icon_colour(item, icon, cfg), _text_colour(item, cfg, WHITE), w))
+            st = _fmt(items, cfg['text']) if (cfg.get('text') and items is not None) else _state_text(item, cfg)
+            label = None if flag(cfg, 'compact') else (_fmt(items, oh.label(item)) if items is not None else oh.label(item))
+            iw = 0 if flag(cfg, 'noicon') else isz + 6
+            w = iw + (font.width(label) + 8 if label else 0) + font.width(st)
+            rows.append((None if flag(cfg, 'noicon') else icon, label, st, _icon_colour(item, icon, cfg), _text_colour(item, cfg, WHITE), w))
         if align == 'center':
             lines, cur = [], []
             for r in rows:
@@ -206,15 +274,21 @@ def _draw_items(c, a, rect, align, entries):
             fits = row * len(lines) <= rh - 8 and all(sum(q[5] for q in ln) + gap * (len(ln) - 1) <= rw - 12 for ln in lines)
         else:   # corners: further columns when the rows do not fit the height
             per = max(1, (rh - 12) // row)
+            if max_rows:
+                per = min(per, max_rows)
             cols = [rows[i:i + per] for i in range(0, len(rows), per)]
             fits = sum(max(r[5] for r in col) for col in cols) + gap * (len(cols) - 1) <= rw - 16
+            if max_rows and per < max_rows and len(rows) > per:   # wanted more rows per column: smaller rows
+                fits = False
         if fits:
             break
 
     def one(x, y, r):
         icon, label, st, icol, tcol, w = r
-        c.mask(x, y + (row - isz) // 2 - 2, a.icon(icon, isz), icol)
-        tx, ty = x + isz + 6, y + (row - font.height) // 2 - 2
+        tx, ty = x, y + (row - font.height) // 2 - 2
+        if icon:
+            c.mask(x, y + (row - isz) // 2 - 2, a.icon(icon, isz), icol)
+            tx = x + isz + 6
         if label:
             tx = c.text(tx, ty, label, font, WHITE, rx + rw - tx - 4) + 8
         c.text(tx, ty, st, font, tcol, max(0, rx + rw - tx - 4))
@@ -235,7 +309,7 @@ def _draw_items(c, a, rect, align, entries):
         cw = max(r[5] for r in col)
         y = ry + rh - 8 - row * len(col) if bottom else ry + 8
         for r in col:
-            one(x - r[5] if right else x, y, r)
+            one((x - (cw if justify_left else r[5])) if right else x, y, r)
             y += row
         x = x - cw - gap if right else x + cw + gap
 
@@ -320,11 +394,26 @@ def _draw_plan(c, a, model, floor, pd, x0, y0, dw, dh, placed):
                 _draw_temp(c, a, (rx, ry + rh * k // n, rw, rh // n), cur, target, heating, flag(cfg, 'small'))
     groups = {}
     for loc, part, align, item, icon, cfg in placed:
-        if loc in mains:
+        area = _area(cfg)
+        if area and (loc in mains or cfg.get('floor') == floor):   # own rectangle in plan units
+            groups.setdefault(('area', area, align), []).append((item, icon, cfg))
+        elif loc in mains:
             groups.setdefault((loc, part, align), []).append((item, icon, cfg))
     for (loc, part, align), entries in groups.items():
+        if loc == 'area':
+            _draw_items(c, a, screen(part), align, entries, items)
+            continue
         r = _rect(oh.kodi(items[loc])[1], part) if part != 1 else None
-        _draw_items(c, a, screen(r) if r else mains[loc], align, entries)
+        _draw_items(c, a, screen(r) if r else mains[loc], align, entries, items)
+
+
+def _area(cfg):
+    """area="x,y,w,h" (plan units) of a status item group, or None."""
+    try:
+        r = tuple(float(v) for v in str(cfg.get('area', '')).split(','))
+    except ValueError:
+        return None
+    return r if len(r) == 4 else None
 
 
 PANEL_W = 300   # left panel width incl. the gap to the plans (one column)
@@ -334,8 +423,21 @@ WICON = 64      # weather icon size in the panel
 
 def _fmt(items, s):
     """'{Item_Name}' in a label or text template -> that item's readable state."""
-    return re.sub(r'\{([A-Za-z0-9_]+)\}',
-                  lambda m: oh.display_state(items[m.group(1)]) if m.group(1) in items else '–', str(s))
+    def one(m):
+        it = items.get(m.group(1))
+        if it is None:
+            return '–'
+        if m.group(2) == '|d':   # {Item|d}: a date as 04.10.
+            mm = re.match(r'(\d{4})-(\d\d)-(\d\d)', str(it.get('state') or ''))
+            return '%s.%s.' % (mm.group(3), mm.group(2)) if mm else '–'
+        if m.group(2) == '|i':   # {Item|i}: rounded to a whole number, without the unit
+            v = oh.number(it)
+            return '%d' % round(v) if v is not None and v == v else '–'
+        if m.group(2):   # {Item|n}: the number only, without the unit
+            v = oh.number(it)
+            return ('%.1f' % v).replace('.0', '') if v is not None and v == v else '–'
+        return oh.display_state(it)
+    return re.sub(r'\{([A-Za-z0-9_]+)(\|[ndi])?\}', one, str(s))
 
 
 def _draw_panel(c, a, entries, x, y, h, items):
@@ -425,7 +527,8 @@ def render(model, path, texts, assets, area='full'):
             panel.append((item, icon, cfg))
             continue
         loc = cfg.get('room') or _location_of(items, item['name'])
-        if loc in on_plan:
+        on_floor = cfg.get('floor') in [f for f, _pd in floors] and _area(cfg)   # free area on a floor, no room
+        if loc in on_plan or on_floor:
             try:
                 part = max(1, min(9, int(float(cfg.get('part', 1)))))
             except ValueError:
@@ -449,14 +552,20 @@ def render(model, path, texts, assets, area='full'):
         avail_h = py - 16 - top - a.floor.height - 10
         avail_w = (aw - 2 * M - pw_ - gap * (len(floors) - 1)) // len(floors)
 
+        def stretched(f):
+            return flag(oh.kodi(items[f])[1] if f in items else {}, 'stretch')
+        # plans in scale share ONE scale (same units -> the house is equally large on every floor), the one that
+        # fits the largest of them
+        measured = [pd['size'] for f, pd in floors if not stretched(f)]
+        scale = min(min(avail_w / float(pw), avail_h / float(ph)) for pw, ph in measured) if measured else 1.0
+
         def fit(pd):
             pw, ph = pd['size']
-            s = min(avail_w / float(pw), avail_h / float(ph))
-            return int(pw * s), int(ph * s)
+            return int(pw * scale), int(ph * scale)
         # a floor with stretch=true (e.g. a sketch, not measured) gets the size of the largest plan in scale
-        scaled = [fit(pd) for f, pd in floors if not flag(oh.kodi(items[f])[1] if f in items else {}, 'stretch')]
+        scaled = [fit(pd) for f, pd in floors if not stretched(f)]
         ref = max(scaled, key=lambda s: s[0] * s[1]) if scaled else (avail_w, avail_h)
-        sizes = [ref if flag(oh.kodi(items[f])[1] if f in items else {}, 'stretch') else fit(pd) for f, pd in floors]
+        sizes = [ref if stretched(f) else fit(pd) for f, pd in floors]
         total = sum(s[0] for s in sizes) + gap * (len(floors) - 1)
         x = aw - M - total if panel else (aw - total) // 2   # with a panel: plans on the right
         if panel:
