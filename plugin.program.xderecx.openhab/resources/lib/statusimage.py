@@ -32,9 +32,11 @@ class Assets:
             return canvas.Font(os.path.join(f, name + '.png'), os.path.join(f, name + '.json'))
         self.title = font('bold-44')
         self.floor = font('bold-30')
-        self.temps = [font('bold-36'), font('bold-30'), font('bold-26')]   # largest that fits the room
+        self.temps = [font('bold-36'), font('bold-30'), font('bold-26'), font('bold-22')]   # largest that fits
         self.text = font('regular-24')
         self.small = font('regular-20')
+        self.tiny = font('regular-16')   # status items in crowded rooms (with 28 px icons)
+        self.micro = font('regular-12')  # setpoint "(19°)" under a room temperature
         self._icons = {}
         self.icondir = os.path.join(media, 'icons', 'small')
 
@@ -48,10 +50,30 @@ class Assets:
         return self._icons[key]
 
 
-def _state_text(item):
+COLOURS = {'green': GREEN, 'red': RED, 'orange': ORANGE, 'blue': BLUE, 'white': WHITE, 'grey': GREY}
+
+
+def _lookup(cfg, key, state):
+    """Value for `state` from a kodi config list like map="OL=GRID,OB=BATT" (exact state, else its first word)."""
+    pairs = dict(p.split('=', 1) for p in str(cfg.get(key) or '').split(',') if '=' in p)
+    st = str(state or '')
+    if st in pairs:
+        return pairs[st]
+    first = st.split(' ')[0]
+    return pairs.get(first)
+
+
+def _state_text(item, cfg=None):
+    mapped = _lookup(cfg or {}, 'map', item.get('state'))
+    if mapped is not None:
+        return mapped
     if item.get('type') == 'Switch' and item.get('state') in ('ON', 'OFF'):
         return '✔' if item['state'] == 'ON' else '✘'
     return oh.display_state(item)
+
+
+def _text_colour(item, cfg, default):
+    return COLOURS.get(_lookup(cfg or {}, 'colors', item.get('state')), default)
 
 
 def _icon_colour(item, icon):
@@ -59,12 +81,18 @@ def _icon_colour(item, icon):
     return ORANGE if (icon == 'flame' and on) else BLUE
 
 
-def _room_temps(model, loc):
+def _valve_temps(model, loc):
+    """[(cur, target, heating, config of the temperature point)] for every equipment at loc with a temperature."""
+    out = []
     for eq in model.equipment_at.get(loc, []):
         c, t = model.role_point(eq, 'temperature'), model.role_point(eq, 'setpoint')
-        if c or t:
-            return (oh.number(c) if c else None), (oh.number(t) if t else None)
-    return None, None
+        if not (c or t):
+            continue
+        h = model.role_point(eq, 'heating')
+        heating = bool(h and str(h.get('state')) == str(oh.kodi(h)[1].get('on', 'ON')))
+        out.append(((oh.number(c) if c else None), (oh.number(t) if t else None), heating,
+                    oh.kodi(c)[1] if c else {}))
+    return out
 
 
 def _location_of(items, name, depth=0):
@@ -105,37 +133,104 @@ def _rect(cfg, part):
     return None if None in r else r
 
 
+ALIGNS = ('left', 'right', 'center', 'top-left', 'top-right', 'bottom-left', 'bottom-right')
+SIZES = ((36, 'small', ROW, 24), (28, 'tiny', 30, 14))   # icon px, font, row height, gap; 2nd = crowded room
+
+
 def _draw_items(c, a, rect, align, entries):
-    """Status items inside a room rectangle (screen px): stacked from the top (left/right) or centred lines."""
+    """Status items inside a room rectangle (screen px): stacked in a corner (left/right = top corners,
+    bottom-left/bottom-right) or centred lines. Smaller icons and font when they would not fit."""
     rx, ry, rw, rh = rect
-    rows = []
-    for item, icon, cfg in entries:
-        st = _state_text(item)
-        txt = st if flag(cfg, 'compact') else '%s %s' % (oh.label(item), st)
-        rows.append((icon, txt, _icon_colour(item, icon), min(42 + a.small.width(txt), rw - 20), item))
+    sizes = SIZES[1:] if any(flag(cfg, 'small') for _i, _ic, cfg in entries) else SIZES
+    for isz, fname, row, gap in sizes:
+        font = getattr(a, fname)
+        rows = []
+        for item, icon, cfg in entries:
+            st = _state_text(item, cfg)
+            label = None if flag(cfg, 'compact') else oh.label(item)
+            w = isz + 6 + (font.width(label) + 8 if label else 0) + font.width(st)
+            rows.append((icon, label, st, _icon_colour(item, icon), _text_colour(item, cfg, WHITE), w))
+        if align == 'center':
+            lines, cur = [], []
+            for r in rows:
+                if cur and sum(q[5] for q in cur) + gap * len(cur) + r[5] > rw - 12:
+                    lines.append(cur)
+                    cur = []
+                cur.append(r)
+            lines.append(cur)
+            fits = row * len(lines) <= rh - 8 and all(sum(q[5] for q in ln) + gap * (len(ln) - 1) <= rw - 12 for ln in lines)
+        else:   # corners: further columns when the rows do not fit the height
+            per = max(1, (rh - 12) // row)
+            cols = [rows[i:i + per] for i in range(0, len(rows), per)]
+            fits = sum(max(r[5] for r in col) for col in cols) + gap * (len(cols) - 1) <= rw - 16
+        if fits:
+            break
+
+    def one(x, y, r):
+        icon, label, st, icol, tcol, w = r
+        c.mask(x, y + (row - isz) // 2 - 2, a.icon(icon, isz), icol)
+        tx, ty = x + isz + 6, y + (row - font.height) // 2 - 2
+        if label:
+            tx = c.text(tx, ty, label, font, WHITE, rx + rw - tx - 4) + 8
+        c.text(tx, ty, st, font, tcol, max(0, rx + rw - tx - 4))
+
     if align == 'center':
-        lines, cur = [], []
-        for r in rows:
-            if cur and sum(q[3] for q in cur) + 24 * len(cur) + r[3] > rw - 20:
-                lines.append(cur)
-                cur = []
-            cur.append(r)
-        lines.append(cur)
-        y = ry + (rh - ROW * len(lines) + 4) // 2
+        y = ry + (rh - row * len(lines)) // 2
         for line in lines:
-            x = rx + (rw - sum(r[3] for r in line) - 24 * (len(line) - 1)) // 2
-            for icon, txt, col, w, _it in line:
-                c.mask(x, y, a.icon(icon, 36), col)
-                c.text(x + 42, y + 6, txt, a.small, WHITE, w - 42)
-                x += w + 24
-            y += ROW
+            x = rx + (rw - sum(r[5] for r in line) - gap * (len(line) - 1)) // 2
+            for r in line:
+                one(x, y, r)
+                x += r[5] + gap
+            y += row
         return
-    y = ry + 10
-    for icon, txt, col, w, _it in rows:
-        x = rx + 10 if align == 'left' else rx + rw - 10 - w
-        c.mask(x, y, a.icon(icon, 36), col)
-        c.text(x + 42, y + 6, txt, a.small, WHITE, w - 42)
-        y += ROW
+    bottom = align.startswith('bottom')
+    right = align.endswith('right')
+    x = rx + rw - 8 if right else rx + 8          # columns go inwards from the chosen side
+    for col in cols:
+        cw = max(r[5] for r in col)
+        y = ry + rh - 8 - row * len(col) if bottom else ry + 8
+        for r in col:
+            one(x - r[5] if right else x, y, r)
+            y += row
+        x = x - cw - gap if right else x + cw + gap
+
+
+def _deg(v):
+    return ('%.1f°' % v).replace('.0°', '°')
+
+
+def _draw_temp(c, a, area, cur, target, heating, small=False):
+    """Temperature (red below the setpoint, green ok) centred in area (x, y, w, h), the setpoint in small
+    type below it "(19°)"; the flame, when heat is needed or the valve heats, right of the number if it fits,
+    else below; number font fitted to the area (small=True: start at the smallest size)."""
+    x, y, w, h = area
+    need = cur is not None and target is not None and cur < target
+    flame = need or heating
+    txt = _deg(cur)
+    sp = '(%s)' % _deg(target) if target is not None else ''
+    sh = a.micro.height if sp else 0
+    for f in (a.temps[-1:] if small else a.temps):
+        isz = 36 if f.height >= 30 else 28
+        inline = f.width(txt) + (isz + 4 if flame else 0) <= w - 10 and f.height + sh <= h - 6
+        below = f.width(txt) <= w - 10 and f.height + sh + (isz + 2 if flame else 0) <= h - 6
+        if inline or below:
+            break
+    tw = f.width(txt)
+    col = RED if need else GREEN
+    block = f.height + sh + (isz + 2 if flame and not inline else 0)
+    ty = y + (h - block) // 2
+    if flame and inline:
+        gx = x + (w - tw - isz - 4) // 2
+        c.text(gx, ty, txt, f, col)
+        c.mask(gx + tw + 4, ty + (f.height - isz) // 2, a.icon('flame', isz), ORANGE)
+        cx = gx + tw // 2
+    else:
+        c.text(x + (w - tw) // 2, ty, txt, f, col)
+        cx = x + w // 2
+    if sp:
+        c.text(cx - a.micro.width(sp) // 2, ty + f.height - 2, sp, a.micro, GREY)
+    if flame and not inline:
+        c.mask(x + (w - isz) // 2, ty + f.height + sh + 2, a.icon('flame', isz), ORANGE)
 
 
 def _draw_plan(c, a, model, floor, pd, x0, y0, dw, dh, placed):
@@ -159,16 +254,25 @@ def _draw_plan(c, a, model, floor, pd, x0, y0, dw, dh, placed):
                 c.rect(bx, by, bw2, bh2, colour)
         c.rect(rx + 2, ry + 2, rw - 4, rh - 4, colour)
     for loc, (rx, ry, rw, rh) in mains.items():
-        cur, target = _room_temps(model, loc)
-        need = cur is not None and target is not None and cur < target
-        if cur is not None:
-            txt = ('%.1f°' % cur).replace('.0°', '°')
-            f = next((f for f in a.temps if f.width(txt) <= rw - 12 and f.height <= rh - 8), a.temps[-1])
-            c.text(rx + (rw - f.width(txt)) // 2, ry + (rh - f.height) // 2, txt, f, RED if need else GREEN)
-        if need or model.heating(loc):
-            wide = rw >= 90   # narrow room: flame at the bottom, below the number
-            c.mask(rx + rw - 42 if wide else rx + (rw - 36) // 2, ry + 6 if wide else ry + rh - 42,
-                   a.icon('flame', 36), ORANGE)
+        valves = [v for v in _valve_temps(model, loc) if v[0] is not None]
+        free = [v for v in valves if not (v[3].get('part') or v[3].get('at'))]
+        for i, (cur, target, heating, cfg) in enumerate(valves):
+            if cfg.get('at'):   # at="x,y": centre of the number in plan units
+                try:
+                    px, py = [float(v) for v in str(cfg['at']).split(',')]
+                except ValueError:
+                    px = py = None
+                if px is not None:
+                    cx, cy = x0 + int(px * sx), top + int(py * sy)
+                    w2 = min(rw, 160)
+                    _draw_temp(c, a, (cx - w2 // 2, cy - 40, w2, 80), cur, target, heating, flag(cfg, 'small'))
+                    continue
+            r = _rect(oh.kodi(items[loc])[1], int(float(cfg.get('part', 1)))) if cfg.get('part') else None
+            if r:
+                _draw_temp(c, a, screen(r), cur, target, heating, flag(cfg, 'small'))
+            else:   # unplaced valves share the main rectangle, one below the other
+                k, n = free.index((cur, target, heating, cfg)), len(free)
+                _draw_temp(c, a, (rx, ry + rh * k // n, rw, rh // n), cur, target, heating, flag(cfg, 'small'))
     groups = {}
     for loc, part, align, item, icon, cfg in placed:
         if loc in mains:
@@ -206,10 +310,10 @@ def render(model, path, texts, assets, area='full'):
                 part = max(1, min(9, int(float(cfg.get('part', 1)))))
             except ValueError:
                 part = 1
-            align = cfg.get('align') if cfg.get('align') in ('left', 'right', 'center') else 'left'
+            align = cfg.get('align') if cfg.get('align') in ALIGNS else 'left'
             placed.append((loc, part, align, item, icon, cfg))
         else:
-            strip.append((item, icon))
+            strip.append((item, icon, cfg))
 
     cols = max(1, (aw - 2 * M) // 360)
     strip_h = (-(-len(strip) // cols)) * STRIP_ROW + 20 if strip else 0
@@ -247,11 +351,11 @@ def render(model, path, texts, assets, area='full'):
     if strip:
         c.rect(M, sy, aw - 2 * M, strip_h, PANEL)
         cw = (aw - 2 * M) // cols
-        for i, (item, icon) in enumerate(strip):
+        for i, (item, icon, cfg) in enumerate(strip):
             cx, cy = M + (i % cols) * cw + 20, sy + 10 + (i // cols) * STRIP_ROW
             c.mask(cx, cy, a.icon(icon, 36), _icon_colour(item, icon))
-            st = _state_text(item)
+            st = _state_text(item, cfg)
             tx = c.text(cx + 46, cy + 4, oh.label(item), a.text, WHITE, cw - 46 - 30 - a.text.width(st) - 16)
-            c.text(tx + 12, cy + 4, st, a.text, GREY)
+            c.text(tx + 12, cy + 4, st, a.text, _text_colour(item, cfg, GREY))
     c.save_png(path)
     return time.time() - t0

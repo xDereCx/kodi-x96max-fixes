@@ -85,6 +85,11 @@ Mark the points of a thermostat / radiator valve:
 | `mode` | mode / preset shown in brackets | |
 | `heating` | heating indicator (room drawn orange) | `on` = state that means heating (default `ON`, e.g. `heating`) |
 
+In the house status picture each valve's temperature is drawn with its setpoint in small type below it, e.g.
+`21°` `(19°)`. Config on the `temperature` point: `at="x,y"` = centre of the number in plan units, `part=n` = in
+that rectangle of the room, `small=true` = smallest number size (narrow rooms). A room with several valves
+without a position shows them one below the other.
+
 ```
 Number:Temperature Office_TRV_Temp   (Office_TRV) { kodi="temperature"[label="Room temperature"] }
 Number:Temperature Office_TRV_Target (Office_TRV) { kodi="setpoint"[label="Target"] }
@@ -105,8 +110,11 @@ Use value `-` (or a role above) and these config parameters:
 | `icon` | icon of a status item in the house status picture: `person`, `person_off`, `home`, `flame`, `water`, `fridge`, `freezer`, `ups`, `power`, `door`, `window`, `thermometer`, `valve`, `info`… (files in `resources/media/icons`) |
 | `room` | status item: draw it in this location (item name) instead of its semantic location, e.g. for virtual items without a location |
 | `part` | status item: rectangle of the room it is drawn in: `1` = main (default), `2` = `x2/y2/w2/h2` … |
-| `align` | status item: `left` (default, stacked from the top left), `right` (top right), `center` (centred lines) |
+| `align` | status item: `top-left` (= `left`, default), `top-right` (= `right`), `bottom-left`, `bottom-right` (stacked in that corner, further columns when they do not fit the height) or `center` (centred lines) |
 | `compact=true` | status item: icon and value only, without the label (small rooms) |
+| `small=true` | status item: smaller icon and font (the whole group in that corner of the room) |
+| `map` | status item: state → text, e.g. `OL=GRID,OB=BATT` (exact state, else its first word) |
+| `colors` | status item: state → colour of the value: `green`, `red`, `orange`, `blue`, `white`, `grey`, e.g. `OL=green,OB=red` |
 | `problem` | condition; when the state matches, the item is listed as a problem (status list first, room red on the plan) |
 | `problem_text` | text of the problem, `{state}` = current state (default: `equipment – label: state`) |
 
