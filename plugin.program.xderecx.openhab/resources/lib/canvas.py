@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Tiny pure-Python RGB canvas with PNG read/write, rectangles, tinted alpha masks (icons) and bitmap-font text.
-Kodi on CoreELEC has no Pillow, so the house status background is drawn with this. Only the add-on's own
-assets are read: 8-bit greyscale PNGs (colour type 0) used as alpha masks."""
+Kodi on CoreELEC has no Pillow, so the house status background is drawn with this. Reads 8-bit PNGs: the
+add-on's greyscale assets as alpha masks, and colour images (e.g. Kodi's weather icons) scaled down."""
 import json
 import struct
 import zlib
@@ -15,51 +15,92 @@ def _paeth(a, b, c):
     return b if pb <= pc else c
 
 
-def read_mask(path):
-    """(width, height, bytes) of an 8-bit greyscale, non-interlaced PNG (the grey value is used as alpha)."""
+CHANNELS = {0: 1, 2: 3, 4: 2, 6: 4}   # PNG colour type -> bytes per pixel (8-bit)
+
+
+def read_png(path):
+    """(width, height, channels, bytes) of an 8-bit, non-interlaced grey / RGB / grey+alpha / RGBA PNG."""
     with open(path, 'rb') as f:
         data = f.read()
     if data[:8] != b'\x89PNG\r\n\x1a\n':
         raise ValueError('not a PNG: %s' % path)
-    pos, idat, w = 8, b'', 0
+    pos, idat, w, bpp = 8, b'', 0, 1
     while pos < len(data):
         length, ctype = struct.unpack('>I4s', data[pos:pos + 8])
         chunk = data[pos + 8:pos + 8 + length]
         if ctype == b'IHDR':
             w, h, depth, colour, _, _, interlace = struct.unpack('>IIBBBBB', chunk)
-            if depth != 8 or colour != 0 or interlace:
-                raise ValueError('unsupported PNG (need 8-bit grey): %s' % path)
+            if depth != 8 or colour not in CHANNELS or interlace:
+                raise ValueError('unsupported PNG (need 8-bit grey/RGB/RGBA, not interlaced): %s' % path)
+            bpp = CHANNELS[colour]
         elif ctype == b'IDAT':
             idat += chunk
         elif ctype == b'IEND':
             break
         pos += 12 + length
     raw = zlib.decompress(idat)
-    out = bytearray(w * h)
-    prev = bytearray(w)
+    stride = w * bpp
+    out = bytearray(stride * h)
+    prev = bytearray(stride)
     i = 0
     for y in range(h):
         ftype = raw[i]
-        line = bytearray(raw[i + 1:i + 1 + w])
-        i += 1 + w
+        line = bytearray(raw[i + 1:i + 1 + stride])
+        i += 1 + stride
         if ftype == 1:
-            for x in range(1, w):
-                line[x] = (line[x] + line[x - 1]) & 255
+            for x in range(bpp, stride):
+                line[x] = (line[x] + line[x - bpp]) & 255
         elif ftype == 2:
-            for x in range(w):
+            for x in range(stride):
                 line[x] = (line[x] + prev[x]) & 255
         elif ftype == 3:
-            for x in range(w):
-                left = line[x - 1] if x else 0
+            for x in range(stride):
+                left = line[x - bpp] if x >= bpp else 0
                 line[x] = (line[x] + ((left + prev[x]) >> 1)) & 255
         elif ftype == 4:
-            for x in range(w):
-                left = line[x - 1] if x else 0
-                upleft = prev[x - 1] if x else 0
+            for x in range(stride):
+                left = line[x - bpp] if x >= bpp else 0
+                upleft = prev[x - bpp] if x >= bpp else 0
                 line[x] = (line[x] + _paeth(left, prev[x], upleft)) & 255
-        out[y * w:(y + 1) * w] = line
+        out[y * stride:(y + 1) * stride] = line
         prev = line
-    return w, h, bytes(out)
+    return w, h, bpp, bytes(out)
+
+
+def read_mask(path):
+    """(width, height, bytes) of an 8-bit greyscale PNG (the grey value is used as alpha)."""
+    w, h, bpp, data = read_png(path)
+    if bpp != 1:
+        raise ValueError('need an 8-bit grey PNG: %s' % path)
+    return w, h, data
+
+
+def read_image(path, size):
+    """A colour PNG (RGBA/RGB/grey) scaled down to size x size (box filter): (size, size, RGBA bytes)."""
+    w, h, bpp, data = read_png(path)
+    out = bytearray(size * size * 4)
+    for oy in range(size):
+        y0, y1 = oy * h // size, max(oy * h // size + 1, (oy + 1) * h // size)
+        for ox in range(size):
+            x0, x1 = ox * w // size, max(ox * w // size + 1, (ox + 1) * w // size)
+            r = g = b = al = n = 0
+            for yy in range(y0, y1):
+                base = (yy * w) * bpp
+                for xx in range(x0, x1):
+                    p = base + xx * bpp
+                    if bpp >= 3:
+                        a = data[p + 3] if bpp == 4 else 255
+                        r += data[p] * a; g += data[p + 1] * a; b += data[p + 2] * a
+                    else:
+                        a = data[p + 1] if bpp == 2 else 255
+                        r += data[p] * a; g += data[p] * a; b += data[p] * a
+                    al += a
+                    n += 1
+            o = (oy * size + ox) * 4
+            if al:
+                out[o], out[o + 1], out[o + 2] = r // al, g // al, b // al
+            out[o + 3] = al // n
+    return size, size, bytes(out)
 
 
 def hexcolour(argb):
@@ -118,6 +159,20 @@ class Canvas:
         p[i] = (p[i] * inv + rgb[0] * a) // 255
         p[i + 1] = (p[i + 1] * inv + rgb[1] * a) // 255
         p[i + 2] = (p[i + 2] * inv + rgb[2] * a) // 255
+
+    def image(self, x, y, img):
+        """Draws a (w, h, RGBA bytes) image with its alpha."""
+        iw, ih, data = img
+        for dy in range(ih):
+            yy = y + dy
+            if not 0 <= yy < self.h:
+                continue
+            for dx in range(iw):
+                o = (dy * iw + dx) * 4
+                a = data[o + 3]
+                xx = x + dx
+                if a and 0 <= xx < self.w:
+                    self._blend((yy * self.w + xx) * 3, (data[o], data[o + 1], data[o + 2]), a)
 
     def mask(self, x, y, mask, rgb):
         """Draws a (w, h, bytes) alpha mask in a colour (icons)."""

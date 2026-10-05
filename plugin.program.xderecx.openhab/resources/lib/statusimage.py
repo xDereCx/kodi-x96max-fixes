@@ -5,6 +5,7 @@ their rooms, problems below; items without a room on a plan go to a strip at the
 in a part of the screen (top 3/4, left 3/4) that the skin's menu does not cover. Pure Python (canvas.py);
 data = the add-on's model and metadata."""
 import os
+import re
 import time
 
 import canvas
@@ -25,7 +26,9 @@ STRIP_ROW = 52  # row of the strip at the bottom
 
 
 class Assets:
-    def __init__(self, media):
+    def __init__(self, media, weather_dir=None):
+        self.weather_dir = weather_dir   # Kodi weather icon pack (0.png … 47.png, na.png = weather.com codes)
+        self._images = {}
         f = os.path.join(media, 'font')
 
         def font(name):
@@ -39,6 +42,25 @@ class Assets:
         self.micro = font('regular-12')  # setpoint "(19°)" under a room temperature
         self._icons = {}
         self.icondir = os.path.join(media, 'icons', 'small')
+
+    def weather(self, code, size):
+        """Colour weather icon for a weather.com code (0-47) from Kodi's icon pack, or None."""
+        if not self.weather_dir:
+            return None
+        try:
+            name = '%d' % int(float(code))
+        except (TypeError, ValueError):
+            name = 'na'
+        key = (name, size)
+        if key not in self._images:
+            path = os.path.join(self.weather_dir, name + '.png')
+            if not os.path.exists(path):
+                path = os.path.join(self.weather_dir, 'na.png')
+            try:
+                self._images[key] = canvas.read_image(path, size)
+            except (OSError, ValueError):
+                self._images[key] = None
+        return self._images[key]
 
     def icon(self, name, size=36):
         key = (name, size)
@@ -282,29 +304,76 @@ def _draw_plan(c, a, model, floor, pd, x0, y0, dw, dh, placed):
         _draw_items(c, a, screen(r) if r else mains[loc], align, entries)
 
 
-PANEL_W = 300   # left panel width incl. the gap to the plans
+PANEL_W = 300   # left panel width incl. the gap to the plans (one column)
+PANEL_W2 = 520  # with panel_columns >= 2
+WICON = 64      # weather icon size in the panel
 
 
-def _draw_panel(c, a, entries, x, y, h):
-    """Status items marked panel=left as a column: optional heading (panel_title on an item), then per item
-    the label in small type and the value below it (big=true: large value)."""
+def _fmt(items, s):
+    """'{Item_Name}' in a label or text template -> that item's readable state."""
+    return re.sub(r'\{([A-Za-z0-9_]+)\}',
+                  lambda m: oh.display_state(items[m.group(1)]) if m.group(1) in items else '–', str(s))
+
+
+def _draw_panel(c, a, entries, x, y, h, items):
+    """Status items marked panel=left as a column (panel_columns = grid of n columns): optional heading
+    (panel_title on an item), per item the label in small type and the value below it. big=true: large value,
+    wide=true: full width, section="…": sub-heading before the item, text="{A} / {B}": value from a template
+    of item states (label may use {…} too)."""
     title = next((cfg.get('panel_title') for _i, _ic, cfg in entries if cfg.get('panel_title')), None)
+    bottom = y + h
     if title:
         c.text(x, y, title, a.floor, GREY)
         y += a.floor.height + 14
-    bottom = y + h
+    try:
+        ncol = max(1, int(next((cfg.get('panel_columns') for _i, _ic, cfg in entries if cfg.get('panel_columns')), 1)))
+    except ValueError:
+        ncol = 1
+    pw = PANEL_W2 if ncol > 1 else PANEL_W
+    cw = (pw - 30) // ncol
+    isz, vf = (36, a.text) if ncol == 1 else (28, a.small)
+
+    def cell(cx, cy, item, icon, cfg, vfont, width):
+        rh_ = a.tiny.height + vfont.height + 8
+        img = a.weather(_fmt(items, cfg['weather_icon']), WICON) if cfg.get('weather_icon') else None
+        if img:   # colour weather icon (Kodi's icon pack), taller row
+            rh_ = max(rh_, WICON + 4)
+            c.image(cx - 6, cy + (rh_ - WICON) // 2, img)
+            tx = cx + WICON + 4
+        else:
+            c.mask(cx, cy + (rh_ - isz) // 2, a.icon(icon, isz), _icon_colour(item, icon))
+            tx = cx + isz + 10
+        cy += (rh_ - a.tiny.height - vfont.height) // 2 - 4 if img else 0
+        value = _fmt(items, cfg['text']) if cfg.get('text') else _state_text(item, cfg)
+        c.text(tx, cy, _fmt(items, oh.label(item)), a.tiny, DIM, width - isz - 14)
+        c.text(tx, cy + a.tiny.height, value, vfont, _text_colour(item, cfg, WHITE), width - isz - 14)
+        return rh_
+
+    rh = a.tiny.height + vf.height + 8
+    col = 0                                   # next free column in the current grid row
     for item, icon, cfg in entries:
-        big = flag(cfg, 'big')
-        vf = a.temps[0] if big else a.text
-        rh = a.tiny.height + vf.height + (14 if big else 8)
+        big, wide = flag(cfg, 'big'), flag(cfg, 'wide') or flag(cfg, 'big')
+        if (cfg.get('section') or wide) and col:
+            y, col = y + rh, 0                # finish the half-filled row
+        if cfg.get('section'):
+            sf = a.temps[-1]
+            if y + 10 + sf.height > bottom:
+                return
+            c.text(x, y + 10, cfg['section'], sf, GREY)
+            y += sf.height + 18
+        if wide:
+            vfont = a.temps[0] if big else vf
+            h_ = a.tiny.height + vfont.height + (14 if big else 8)
+            if y + h_ > bottom:
+                return
+            y += max(h_, cell(x, y, item, icon, cfg, vfont, pw - 30))
+            continue
         if y + rh > bottom:
-            break
-        isz = 56 if big else 36
-        c.mask(x, y + (rh - isz) // 2, a.icon(icon, isz), _icon_colour(item, icon))
-        tx = x + isz + 12
-        c.text(tx, y, oh.label(item), a.tiny, DIM, PANEL_W - isz - 40)
-        c.text(tx, y + a.tiny.height, _state_text(item, cfg), vf, _text_colour(item, cfg, WHITE), PANEL_W - isz - 40)
-        y += rh
+            return
+        cell(x + col * cw, y, item, icon, cfg, vf, cw)
+        col += 1
+        if col == ncol:
+            y, col = y + rh, 0
 
 
 def render(model, path, texts, assets, area='full'):
@@ -348,9 +417,9 @@ def render(model, path, texts, assets, area='full'):
     sy = ah - 20 - strip_h
     py = (sy if strip else ah - 20) - 52   # problems line
     top, gap = 50, 40   # below the skin's top bar
-    pw_ = PANEL_W if panel else 0
+    pw_ = (PANEL_W2 if any(str(e[2].get('panel_columns', '1')) not in ('', '1') for e in panel) else PANEL_W) if panel else 0
     if panel:
-        _draw_panel(c, a, panel, M, top, py - 16 - top)
+        _draw_panel(c, a, panel, M, top, py - 16 - top, items)
 
     if floors:
         avail_h = py - 16 - top - a.floor.height - 10

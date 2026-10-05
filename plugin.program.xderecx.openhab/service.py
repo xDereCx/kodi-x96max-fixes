@@ -94,7 +94,9 @@ def main():
     monitor = xbmc.Monitor()
     outdir = xbmcvfs.translatePath('special://profile/addon_data/plugin.program.xderecx.openhab/background')
     os.makedirs(outdir, exist_ok=True)
-    assets = statusimage.Assets(os.path.join(PATH, 'resources', 'media'))
+    # Kodi's default weather icon pack (weather.com codes 0-47), for metadata weather_icon
+    wdir = xbmcvfs.translatePath('special://xbmc/addons/resource.images.weathericons.default/resources')
+    assets = statusimage.Assets(os.path.join(PATH, 'resources', 'media'), wdir if os.path.isdir(wdir) else None)
     if monitor.waitForAbort(20):   # let Kodi and the skin start first
         return
     while not monitor.abortRequested():

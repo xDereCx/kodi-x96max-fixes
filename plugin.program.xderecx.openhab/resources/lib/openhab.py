@@ -86,7 +86,7 @@ def display_state(item):
     if m:
         num = float(m.group(1))
         unit = (m.group(2) or '').strip()
-        txt = ('%d' % num) if num == int(num) else ('%.1f' % num)
+        txt = ('%d' % round(num)) if num == int(num) or abs(num) >= 100 else ('%.1f' % num)   # 1023 hPa, 21.5 °C
         return (txt + ' ' + unit).strip()
     return st
 

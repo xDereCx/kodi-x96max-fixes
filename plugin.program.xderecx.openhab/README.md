@@ -113,7 +113,9 @@ Use value `-` (or a role above) and these config parameters:
 | `align` | status item: `top-left` (= `left`, default), `top-right` (= `right`), `bottom-left`, `bottom-right` (stacked in that corner, further columns when they do not fit the height) or `center` (centred lines) |
 | `compact=true` | status item: icon and value only, without the label (small rooms) |
 | `small=true` | status item: smaller icon and font (the whole group in that corner of the room) |
-| `panel=left` | status item: in a column left of the plans (e.g. weather) instead of a room; the plans move right. `big=true` = large value, `panel_title` (on any panel item) = heading of the column |
+| `panel=left` | status item: in a column left of the plans (e.g. weather) instead of a room; the plans move right. `big=true` = large value, `panel_title` (on any panel item) = heading of the column, `panel_columns=2` (on any panel item) = items in a grid of 2 columns (wider panel), `wide=true` = full-width row, `section="…"` = sub-heading before the item |
+| `text` | panel item: value from a template of item states, e.g. `{Max_Item} / {Min_Item} · {Rain_Item}`; the label may use `{Item}` too (e.g. a forecast day name) |
+| `weather_icon` | panel item: weather.com icon code (0-47, usually `{Icon_Item}`) → colour icon from Kodi's weather icon pack `resource.images.weathericons.default` (e.g. the Weather Company forecast `iconCode` channel) |
 | `map` | status item: state → text, e.g. `OL=GRID,OB=BATT` (exact state, else its first word) |
 | `colors` | status item: state → colour of the value: `green`, `red`, `orange`, `blue`, `white`, `grey`, e.g. `OL=green,OB=red` |
 | `problem` | condition; when the state matches, the item is listed as a problem (status list first, room red on the plan) |
