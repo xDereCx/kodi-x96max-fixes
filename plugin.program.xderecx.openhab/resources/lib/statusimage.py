@@ -282,6 +282,31 @@ def _draw_plan(c, a, model, floor, pd, x0, y0, dw, dh, placed):
         _draw_items(c, a, screen(r) if r else mains[loc], align, entries)
 
 
+PANEL_W = 300   # left panel width incl. the gap to the plans
+
+
+def _draw_panel(c, a, entries, x, y, h):
+    """Status items marked panel=left as a column: optional heading (panel_title on an item), then per item
+    the label in small type and the value below it (big=true: large value)."""
+    title = next((cfg.get('panel_title') for _i, _ic, cfg in entries if cfg.get('panel_title')), None)
+    if title:
+        c.text(x, y, title, a.floor, GREY)
+        y += a.floor.height + 14
+    bottom = y + h
+    for item, icon, cfg in entries:
+        big = flag(cfg, 'big')
+        vf = a.temps[0] if big else a.text
+        rh = a.tiny.height + vf.height + (14 if big else 8)
+        if y + rh > bottom:
+            break
+        isz = 56 if big else 36
+        c.mask(x, y + (rh - isz) // 2, a.icon(icon, isz), _icon_colour(item, icon))
+        tx = x + isz + 12
+        c.text(tx, y, oh.label(item), a.tiny, DIM, PANEL_W - isz - 40)
+        c.text(tx, y + a.tiny.height, _state_text(item, cfg), vf, _text_colour(item, cfg, WHITE), PANEL_W - isz - 40)
+        y += rh
+
+
 def render(model, path, texts, assets, area='full'):
     """Draws the picture to `path`; texts: {'title','ok','updated'} (localised); area: full | top | left
     (everything inside that part of the screen). Returns seconds taken."""
@@ -290,9 +315,9 @@ def render(model, path, texts, assets, area='full'):
     a = assets
     aw, ah = AREAS.get(area, AREAS['full'])
     c = canvas.Canvas(W, H, BG)
-    c.text(M, 26, texts['title'], a.title, WHITE)
+    # no title: the skin shows the menu item's name, and its top bar (RSS) covers the first ~40 px
     stamp = '%s %s' % (texts['updated'], time.strftime('%H:%M'))
-    c.text(aw - M - a.small.width(stamp), 44, stamp, a.small, DIM)
+    c.text(aw - M - a.small.width(stamp), 52, stamp, a.small, DIM)
 
     floors = []
     for f in model.tops():
@@ -302,8 +327,11 @@ def render(model, path, texts, assets, area='full'):
     on_plan = {loc for _f, pd in floors for loc, _x, _y, _w, _h, kind, _l in pd['areas'] if kind != 'part'}
 
     # status items: into their room (kodi config room=…, else the semantic location) when it is on a plan
-    placed, strip = [], []
+    placed, strip, panel = [], [], []
     for _o, _l, item, icon, cfg in _marked(items):
+        if cfg.get('panel') == 'left':   # column left of the plans (e.g. the weather)
+            panel.append((item, icon, cfg))
+            continue
         loc = cfg.get('room') or _location_of(items, item['name'])
         if loc in on_plan:
             try:
@@ -319,11 +347,14 @@ def render(model, path, texts, assets, area='full'):
     strip_h = (-(-len(strip) // cols)) * STRIP_ROW + 20 if strip else 0
     sy = ah - 20 - strip_h
     py = (sy if strip else ah - 20) - 52   # problems line
-    top, gap = 96, 40
+    top, gap = 50, 40   # below the skin's top bar
+    pw_ = PANEL_W if panel else 0
+    if panel:
+        _draw_panel(c, a, panel, M, top, py - 16 - top)
 
     if floors:
         avail_h = py - 16 - top - a.floor.height - 10
-        avail_w = (aw - 2 * M - gap * (len(floors) - 1)) // len(floors)
+        avail_w = (aw - 2 * M - pw_ - gap * (len(floors) - 1)) // len(floors)
 
         def fit(pd):
             pw, ph = pd['size']
@@ -333,7 +364,8 @@ def render(model, path, texts, assets, area='full'):
         scaled = [fit(pd) for f, pd in floors if not flag(oh.kodi(items[f])[1] if f in items else {}, 'stretch')]
         ref = max(scaled, key=lambda s: s[0] * s[1]) if scaled else (avail_w, avail_h)
         sizes = [ref if flag(oh.kodi(items[f])[1] if f in items else {}, 'stretch') else fit(pd) for f, pd in floors]
-        x = (aw - sum(s[0] for s in sizes) - gap * (len(floors) - 1)) // 2
+        total = sum(s[0] for s in sizes) + gap * (len(floors) - 1)
+        x = aw - M - total if panel else (aw - total) // 2   # with a panel: plans on the right
         for (f, pd), (dw, dh) in zip(floors, sizes):
             _draw_plan(c, a, model, f, pd, x, top, dw, dh, placed)
             x += dw + gap

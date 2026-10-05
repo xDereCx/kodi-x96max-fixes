@@ -113,6 +113,7 @@ Use value `-` (or a role above) and these config parameters:
 | `align` | status item: `top-left` (= `left`, default), `top-right` (= `right`), `bottom-left`, `bottom-right` (stacked in that corner, further columns when they do not fit the height) or `center` (centred lines) |
 | `compact=true` | status item: icon and value only, without the label (small rooms) |
 | `small=true` | status item: smaller icon and font (the whole group in that corner of the room) |
+| `panel=left` | status item: in a column left of the plans (e.g. weather) instead of a room; the plans move right. `big=true` = large value, `panel_title` (on any panel item) = heading of the column |
 | `map` | status item: state → text, e.g. `OL=GRID,OB=BATT` (exact state, else its first word) |
 | `colors` | status item: state → colour of the value: `green`, `red`, `orange`, `blue`, `white`, `grey`, e.g. `OL=green,OB=red` |
 | `problem` | condition; when the state matches, the item is listed as a problem (status list first, room red on the plan) |
