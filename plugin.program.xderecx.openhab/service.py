@@ -3,7 +3,9 @@
 background (Custom<N>HomeItem.MultiFanart) of the add-on's main menu item. A new file name each time, so Kodi's
 texture cache can't show an old picture; older pictures are deleted."""
 import glob
+import importlib
 import os
+import re
 import sys
 import time
 
@@ -14,9 +16,14 @@ import xbmcvfs
 ADDON = xbmcaddon.Addon()
 PATH = ADDON.getAddonInfo('path')
 sys.path.insert(0, os.path.join(PATH, 'resources', 'lib'))
+import canvas  # noqa: E402
+import floorplan  # noqa: E402
+import model  # noqa: E402
 import openhab as oh  # noqa: E402
 import statusimage  # noqa: E402
-from model import Model  # noqa: E402
+
+# reloaded in this order when the add-on is updated while the service keeps running (dependencies first)
+LIBS = (canvas, oh, model, floorplan, statusimage)
 
 AN5 = 'skin.aeon.nox.5'
 MENU_PATH = 'RunAddon(plugin.program.xderecx.openhab)'
@@ -71,7 +78,7 @@ def update(assets, outdir):
     except Exception as err:  # openHAB down: keep the last picture
         log('status picture: openHAB not reachable: %s' % err, xbmc.LOGWARNING)
         return
-    m = Model(items)
+    m = model.Model(items)
     path = os.path.join(outdir, 'status-%s.png' % time.strftime('%Y%m%d-%H%M%S'))
     area = {'0': 'full', '1': 'top', '2': 'left'}.get(ADDON.getSetting('bg_area'), 'top')
     try:
@@ -89,17 +96,44 @@ def update(assets, outdir):
     log('status picture %s drawn in %.1f s' % (os.path.basename(path), secs))
 
 
+def disk_version():
+    """Version in addon.xml on disk (the running code may be older: Kodi does not always restart a service
+    when it updates its add-on - seen 2026-10-05, a box kept drawing with 2.6.0 code after the update to 2.6.3)."""
+    try:
+        with open(os.path.join(PATH, 'addon.xml'), encoding='utf-8') as f:
+            m = re.search(r'<addon\b[^>]*\bversion="([^"]+)"', f.read())
+        return m.group(1) if m else None
+    except OSError:
+        return None
+
+
+def load_assets():
+    # Kodi's default weather icon pack (weather.com codes 0-47), for metadata weather_icon
+    wdir = xbmcvfs.translatePath('special://xbmc/addons/resource.images.weathericons.default/resources')
+    return statusimage.Assets(os.path.join(PATH, 'resources', 'media'), wdir if os.path.isdir(wdir) else None)
+
+
 def main():
-    log('background service %s started' % ADDON.getAddonInfo('version'))
+    loaded = disk_version() or ADDON.getAddonInfo('version')
+    log('background service %s started' % loaded)
     monitor = xbmc.Monitor()
     outdir = xbmcvfs.translatePath('special://profile/addon_data/plugin.program.xderecx.openhab/background')
     os.makedirs(outdir, exist_ok=True)
-    # Kodi's default weather icon pack (weather.com codes 0-47), for metadata weather_icon
-    wdir = xbmcvfs.translatePath('special://xbmc/addons/resource.images.weathericons.default/resources')
-    assets = statusimage.Assets(os.path.join(PATH, 'resources', 'media'), wdir if os.path.isdir(wdir) else None)
+    assets = load_assets()
     if monitor.waitForAbort(20):   # let Kodi and the skin start first
         return
     while not monitor.abortRequested():
+        now = disk_version()
+        if now and now != loaded:   # add-on updated under the running service: take the new drawing code
+            try:
+                for lib in LIBS:
+                    importlib.reload(lib)
+                assets = load_assets()
+                log('add-on updated %s -> %s: drawing code reloaded' % (loaded, now))
+                loaded = now
+            except Exception as err:
+                log('reload after update to %s failed: %s' % (now, err), xbmc.LOGERROR)
+                loaded = now   # do not retry every interval; a Kodi restart loads it
         update(assets, outdir)
         try:
             minutes = max(1, int(float(ADDON.getSetting('bg_interval') or 5)))
