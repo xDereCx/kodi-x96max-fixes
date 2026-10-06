@@ -216,6 +216,29 @@ every folder under `zips/` so Kodi's browser can see what's there.
   settings schema itself. VPN functionality is otherwise untouched -
   see the addon's own `addon.xml` news/changelog for the exact diff.
 
+- **`script.xderecx.timers`** ("Timers (DC Fix)") — minimally patched
+  fork of [Heckie's Timers addon](https://github.com/Heckie75/kodi-addon-timers)
+  (`script.timers`, MIT), id changed to avoid colliding with the real
+  upstream addon if that's ever installed too - and like the CU LRC
+  Lyrics fork, auto-disables the original `script.timers` on every
+  boot if it's found installed and enabled (both can't run as the
+  timers service at once). The fix: a single-day timer (eg. a "sleep
+  in 1 hour" quick timer) created while its own period is already
+  active, where that period crosses midnight (started at 23:15 for a
+  1-hour duration, meant to end 00:15) got silently rescheduled a full
+  24 hours later instead of firing that same night - confirmed live
+  (reported symptom: "set a 23:15 shutdown timer, it never shuts
+  down"). Root cause: `to_timer_by_date()` in
+  `resources/lib/timer/timer.py` used the date of the active period's
+  END (tomorrow, since you're inside the window when it fires) instead
+  of its START (today) when converting the timer to a fixed-date one -
+  combined with the unchanged start-of-day time string, this
+  reconstructed the timer for "tomorrow at the same clock time"
+  instead of tonight. Fixed to use the active period's own start date
+  when one is running, verified via a standalone reproduction of the
+  exact reported scenario before and after the fix (same-day timers,
+  which were never affected, keep working identically).
+
 ## ⚠ Maintenance note: don't bulk-remove the vendored shared modules
 
 `script.module.beautifulsoup4`, `requests`, `urllib3`, `chardet`,
