@@ -196,6 +196,26 @@ every folder under `zips/` so Kodi's browser can see what's there.
   intact, and only deletes the file entirely if nothing else was left
   in it.
 
+- **`service.xderecx.vpnmanager`** ("VPN Manager for OpenVPN (DC
+  Fix)") — minimally patched fork of
+  [Zomboided's VPN Manager for OpenVPN](https://github.com/Zomboided/service.vpn.manager)
+  (`service.vpn.manager`, GPL-2.0-or-later), id changed to avoid
+  colliding with the real upstream addon if that's ever installed
+  too. The only change: its background service used to reconstruct a
+  full `xbmcaddon.Addon()` object on every single poll cycle (every 4
+  seconds, forever) just to check it hadn't been uninstalled mid-run.
+  Because this addon's `settings.xml` is still in the legacy
+  pre-Kodi18 flat format, every one of those reconstructions forced
+  Kodi to fully reparse the old-format settings definitions - a
+  continuous, confirmed-live CPU and log-spam drain for as long as the
+  box was on (`CAddonSettings: trying to load setting definitions
+  from old format...` repeating in the log, ~700 failed label lookups
+  per cycle). Fixed by swapping that check for the same cheap
+  file-existence test the addon already uses elsewhere for the same
+  purpose, instead of touching the (large, deeply interdependent)
+  settings schema itself. VPN functionality is otherwise untouched -
+  see the addon's own `addon.xml` news/changelog for the exact diff.
+
 ## ⚠ Maintenance note: don't bulk-remove the vendored shared modules
 
 `script.module.beautifulsoup4`, `requests`, `urllib3`, `chardet`,
