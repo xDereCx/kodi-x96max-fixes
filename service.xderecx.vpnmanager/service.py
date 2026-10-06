@@ -46,6 +46,40 @@ from libs.vpnproviders import getUserDataPath, getAlternativeMessages, postConne
 from libs.access import getVPNURL, setVPNURL, getVPNProfile
 from libs.vpnapi import VPNAPI
 
+import json
+
+CONFLICTING_ADDON_ID = 'service.vpn.manager'
+
+
+def disable_conflicting_addon():
+    # The original (unfixed) addon and this fork can't both run as the VPN
+    # service - whichever Kodi picks second silently loses. If the original
+    # is installed and enabled, disable it automatically instead of leaving
+    # the user to discover and resolve the conflict themselves. Same pattern
+    # as this repo's CU LRC Lyrics and Timers forks.
+    try:
+        req = json.dumps({
+            'jsonrpc': '2.0', 'id': 1, 'method': 'Addons.GetAddonDetails',
+            'params': {'addonid': CONFLICTING_ADDON_ID, 'properties': ['enabled']}
+        })
+        resp = json.loads(xbmc.executeJSONRPC(req))
+        conflicting = resp.get('result', {}).get('addon')
+        if not conflicting or not conflicting.get('enabled'):
+            return
+        xbmc.executeJSONRPC(json.dumps({
+            'jsonrpc': '2.0', 'id': 1, 'method': 'Addons.SetAddonEnabled',
+            'params': {'addonid': CONFLICTING_ADDON_ID, 'enabled': False}
+        }))
+        xbmc.log('[service.xderecx.vpnmanager] disabled conflicting %s (both can\'t run as the VPN service)' % CONFLICTING_ADDON_ID, xbmc.LOGINFO)
+    except Exception as e:
+        # most common case: service.vpn.manager simply isn't installed,
+        # which GetAddonDetails reports as a JSON-RPC error, not an empty
+        # result - nothing to do either way
+        xbmc.log('[service.xderecx.vpnmanager] conflicting-addon check skipped: %s' % e, xbmc.LOGDEBUG)
+
+
+disable_conflicting_addon()
+
 # Set the addon name for use in the dialogs
 # It's in a finite loop because it seems to take a while for Kodi to settle
 count = 0

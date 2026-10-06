@@ -435,7 +435,7 @@ Complete changelog see https://github.com/Heckie75/kodi-addon-timers
 </addon>
 <addon id="service.xderecx.vpnmanager"
        name="VPN Manager for OpenVPN (DC Fix)"
-       version="6.9.3.1"
+       version="6.9.3.2"
        provider-name="Zomboided, patched by xDereCx">
   <requires>
     <import addon="xbmc.python" version="3.0.0"/>
@@ -446,7 +446,9 @@ Complete changelog see https://github.com/Heckie75/kodi-addon-timers
     <provides>executable</provides>
   </extension>
   <extension point="xbmc.addon.metadata">
-    <news>6.9.3.1: fixed a real, confirmed-live bug - the main service loop recreated a full xbmcaddon.Addon() object every single poll cycle (every 4s, forever) purely to check the addon hadn't been uninstalled mid-run. Because this addon's settings.xml is still in the legacy pre-Kodi18 flat format, every one of those re-creations forced Kodi to fully reparse the old-format settings definitions (visible as repeated "CAddonSettings: trying to load setting definitions from old format..." log spam, ~700 failed label lookups per cycle). This was a genuine continuous CPU/log-I/O drain running for as long as the box was on, confirmed via live log analysis and fixed by replacing the per-cycle Addon() recreation with the same cheap file-existence check (connect.py presence) already used elsewhere in this same file for the same purpose. VPN functionality itself is untouched. Forked from upstream 6.9.3 solely to carry this one-line fix; id changed from service.vpn.manager to avoid colliding with the real upstream addon if that's ever installed from its own repository too.</news>
+    <news>6.9.3.2: now auto-disables the original service.vpn.manager on every boot if found installed and enabled - both can't run as the VPN service at once, and this used to require manually disabling the old one by hand after installing this fork. Same pattern as this repo's CU LRC Lyrics and Timers forks.
+
+6.9.3.1: fixed a real, confirmed-live bug - the main service loop recreated a full xbmcaddon.Addon() object every single poll cycle (every 4s, forever) purely to check the addon hadn't been uninstalled mid-run. Because this addon's settings.xml is still in the legacy pre-Kodi18 flat format, every one of those re-creations forced Kodi to fully reparse the old-format settings definitions (visible as repeated "CAddonSettings: trying to load setting definitions from old format..." log spam, ~700 failed label lookups per cycle). This was a genuine continuous CPU/log-I/O drain running for as long as the box was on, confirmed via live log analysis and fixed by replacing the per-cycle Addon() recreation with the same cheap file-existence check (connect.py presence) already used elsewhere in this same file for the same purpose. VPN functionality itself is untouched. Forked from upstream 6.9.3 solely to carry this one-line fix; id changed from service.vpn.manager to avoid colliding with the real upstream addon if that's ever installed from its own repository too.</news>
     <platform>all</platform>
     <summary lang="en">Configure and manage VPN connections using openVPN (DC Fix - stops a continuous settings-reparse loop)</summary>
     <description lang="en">Establish a connection to a VPN service and automatically switch VPN locations based on the add-on being used. This is a minimally patched fork of Zomboided's VPN Manager for OpenVPN (service.vpn.manager) - see https://github.com/Zomboided/service.vpn.manager for the original and full documentation. The only change is a one-line fix to stop the background service from reparsing its own legacy-format settings.xml every 4 seconds forever (see changelog).</description>
