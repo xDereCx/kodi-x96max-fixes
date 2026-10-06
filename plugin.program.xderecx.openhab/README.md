@@ -115,14 +115,18 @@ Use value `-` (or a role above) and these config parameters:
 | `compact=true` | status item: icon and value only, without the label (small rooms) |
 | `small=true` | status item: smaller icon and font (the whole group in that corner of the room) |
 | `panel=left` | status item: in a column left of the plans (e.g. weather) instead of a room; the plans move right. `big=true` = large value, `panel_title` (on any panel item) = heading of the column, `panel_columns=2` (on any panel item) = items in a grid of 2 columns (wider panel), `wide=true` = full-width row, `section="…"` = sub-heading before the item |
-| `text` | panel or status item: value from a template of item states, e.g. `{Max_Item} / {Min_Item} · {Rain_Item}`; the label may use `{Item}` too (e.g. a forecast day name); `{Item|n}` = number without unit, `{Item|i}` = rounded whole number, `{Item|d}` = date `YYYY-MM-DD` as `04.10.` |
+| `text` | panel or status item: value from a template of item states, e.g. `{Max_Item} / {Min_Item} · {Rain_Item}`; the label may use `{Item}` too (e.g. a forecast day name); `{Item|n}` = number without unit, `{Item|i}` = rounded whole number, `{Item|d}` = date `YYYY-MM-DD` as `04.10.2026`, `{A?B}` = A, or B when A has no value; `~kWh~` = small grey type (units) |
+| `side` / `under` | panel: `side=true` on the big item = its own left column, the next plain items in a grid right of it; `under=true` = items below it in that column |
+| `split`, `split_icons`, `header` | panel row: `split=true` = the value `A|B` in two columns, `split_icons="{IconA}|{IconB}"` = a weather icon per column; `header=true` = grey headings `A|B` over such columns |
+| `hours` | panel row: name of an item with a JSON list `[{"h": 15, "t": 19, "ikona": 32}, …]` -> a strip of hours with weather icons |
+| `icon_size` | panel item: size of its icon / weather icon in px (e.g. 56, 44) |
 | `weather_icon` | panel item: weather.com icon code (0-47, usually `{Icon_Item}`) → colour icon from Kodi's weather icon pack `resource.images.weathericons.default` (e.g. the Weather Company forecast `iconCode` channel) |
 | `map` | status item: state → text, e.g. `OL=GRID,OB=BATT` (exact state, else its first word) |
 | `colors` | status item: state → colour of the value: `green`, `red`, `orange`, `blue`, `white`, `grey`, e.g. `OL=green,OB=red`, or numeric conditions `<0=red,>0=green` |
 | `area` | status item: `x,y,w,h` (plan units) = own rectangle for the group instead of the room's, e.g. across an L-shaped room; with `floor` = on that floor without a room (an empty part of the plan) |
 | `rows` | status item: at most n rows per column (smaller rows when needed) |
 | `size` | status item: `mini` (16 px font, 20 px icons, tight rows) or `micro` (12 px font) for very small spaces |
-| `justify=left` | status item in a right corner: the column is left-aligned |
+| `justify=left` | status item in a right corner: these rows share one left edge (as far right as they fit), the others stay right-aligned |
 | `noicon=true` | status item: text only, no icon |
 | `cols` | status item: a table row across the whole rectangle, `"left|centre|right"` (templates), e.g. `{A|n} / {B|n}|Odber|{C|n}`; `header=true` = grey row |
 | `icon_colors` | status item: state → colour of the icon, e.g. `ON=orange,OFF=blue` (default: blue, a `flame` icon orange when a switch is ON) |

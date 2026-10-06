@@ -4,6 +4,7 @@
 their rooms, problems below; items without a room on a plan go to a strip at the bottom. The picture can be kept
 in a part of the screen (top 3/4, left 3/4) that the skin's menu does not cover. Pure Python (canvas.py);
 data = the add-on's model and metadata."""
+import json
 import os
 import re
 import time
@@ -238,9 +239,9 @@ def _draw_items(c, a, rect, align, entries, items=None):
             parts = (_fmt(items, cfg.get('cols', '')) if items is not None else str(cfg.get('cols', ''))).split('|')
             left, mid, right = (parts + ['', '', ''])[:3]
             colr = GREY if flag(cfg, 'header') else WHITE
-            c.text(rx + 8, y, left, font, colr)
+            _rich(c, rx + 8, y, left, font, a.micro, colr)
             c.text(rx + (rw - font.width(mid)) // 2, y, mid, font, GREY)
-            c.text(rx + rw - 8 - font.width(right), y, right, font, colr)
+            _rich(c, rx + rw - 8 - _rich_width(right, font, a.micro), y, right, font, a.micro, colr)
             y += row
         return
     if any(cfg.get('size') == 'micro' for cfg in cfgs):   # smallest: 12 px font, 20 px icons
@@ -253,7 +254,6 @@ def _draw_items(c, a, rect, align, entries, items=None):
         max_rows = min(int(float(cfg['rows'])) for cfg in cfgs if cfg.get('rows'))
     except ValueError:
         max_rows = None
-    justify_left = any(cfg.get('justify') == 'left' for cfg in cfgs)
     for isz, fname, row, gap in sizes:
         font = getattr(a, fname)
         rows = []
@@ -261,8 +261,9 @@ def _draw_items(c, a, rect, align, entries, items=None):
             st = _fmt(items, cfg['text']) if (cfg.get('text') and items is not None) else _state_text(item, cfg)
             label = None if flag(cfg, 'compact') else (_fmt(items, oh.label(item)) if items is not None else oh.label(item))
             iw = 0 if flag(cfg, 'noicon') else isz + 6
-            w = iw + (font.width(label) + 8 if label else 0) + font.width(st)
-            rows.append((None if flag(cfg, 'noicon') else icon, label, st, _icon_colour(item, icon, cfg), _text_colour(item, cfg, WHITE), w))
+            w = iw + (font.width(label) + 8 if label else 0) + _rich_width(st, font, a.micro)
+            rows.append((None if flag(cfg, 'noicon') else icon, label, st, _icon_colour(item, icon, cfg), _text_colour(item, cfg, WHITE), w,
+                         cfg.get('justify') == 'left'))
         if align == 'center':
             lines, cur = [], []
             for r in rows:
@@ -284,14 +285,14 @@ def _draw_items(c, a, rect, align, entries, items=None):
             break
 
     def one(x, y, r):
-        icon, label, st, icol, tcol, w = r
+        icon, label, st, icol, tcol, w, _j = r
         tx, ty = x, y + (row - font.height) // 2 - 2
         if icon:
             c.mask(x, y + (row - isz) // 2 - 2, a.icon(icon, isz), icol)
             tx = x + isz + 6
         if label:
             tx = c.text(tx, ty, label, font, WHITE, rx + rw - tx - 4) + 8
-        c.text(tx, ty, st, font, tcol, max(0, rx + rw - tx - 4))
+        _rich(c, tx, ty, st, font, a.micro, tcol, max(0, rx + rw - tx - 4))
 
     if align == 'center':
         y = ry + (rh - row * len(lines)) // 2
@@ -307,9 +308,10 @@ def _draw_items(c, a, rect, align, entries, items=None):
     x = rx + rw - 8 if right else rx + 8          # columns go inwards from the chosen side
     for col in cols:
         cw = max(r[5] for r in col)
+        jw = max([r[5] for r in col if r[6]] or [0])   # justify=left rows: one left edge, as far right as they fit
         y = ry + rh - 8 - row * len(col) if bottom else ry + 8
         for r in col:
-            one((x - (cw if justify_left else r[5])) if right else x, y, r)
+            one((x - (jw if r[6] else r[5])) if right else x, y, r)
             y += row
         x = x - cw - gap if right else x + cw + gap
 
@@ -361,8 +363,10 @@ def _draw_plan(c, a, model, floor, pd, x0, y0, dw, dh, placed):
     pw, ph = pd['size']
     sx, sy = dw / float(pw), dh / float(ph)   # equal for a plan in scale, different for a stretched one
 
-    def screen(r):
-        return x0 + int(r[0] * sx), top + int(r[1] * sy), int(r[2] * sx), int(r[3] * sy)
+    def screen(r):   # edges rounded, so rooms sharing an edge end on the same pixel
+        xa, ya = int(round(r[0] * sx)), int(round(r[1] * sy))
+        xb, yb = int(round((r[0] + r[2]) * sx)), int(round((r[1] + r[3]) * sy))
+        return x0 + xa, top + ya, xb - xa, yb - ya
     areas = [(loc, kind) + screen((x, y, w, h)) for loc, x, y, w, h, kind, _l in pd['areas']]
     mains = {s[0]: s[2:] for s in areas if s[1] != 'part'}
     for loc, kind, rx, ry, rw, rh in areas:
@@ -422,76 +426,200 @@ WICON = 64      # weather icon size in the panel
 
 
 def _fmt(items, s):
-    """'{Item_Name}' in a label or text template -> that item's readable state."""
-    def one(m):
-        it = items.get(m.group(1))
-        if it is None:
-            return '–'
-        if m.group(2) == '|d':   # {Item|d}: a date as 04.10.
+    """'{Item_Name}' in a label or text template -> that item's readable state. {A|n} number without unit,
+    {A|i} whole number, {A|d} date YYYY-MM-DD as 04.10.2026; {A?B} = A, or B when A is NULL/UNDEF/missing."""
+    def value(name, flt):
+        it = items.get(name)
+        if it is None or str(it.get('state')) in ('NULL', 'UNDEF', 'None', ''):
+            return None
+        if flt == '|d':
             mm = re.match(r'(\d{4})-(\d\d)-(\d\d)', str(it.get('state') or ''))
-            return '%s.%s.' % (mm.group(3), mm.group(2)) if mm else '–'
-        if m.group(2) == '|i':   # {Item|i}: rounded to a whole number, without the unit
+            return '%s.%s.%s' % (mm.group(3), mm.group(2), mm.group(1)) if mm else None
+        if flt in ('|i', '|n'):
             v = oh.number(it)
-            return '%d' % round(v) if v is not None and v == v else '–'
-        if m.group(2):   # {Item|n}: the number only, without the unit
-            v = oh.number(it)
-            return ('%.1f' % v).replace('.0', '') if v is not None and v == v else '–'
+            if v is None or v != v:
+                return None
+            return '%d' % round(v) if flt == '|i' else ('%.1f' % v).replace('.0', '')
         return oh.display_state(it)
-    return re.sub(r'\{([A-Za-z0-9_]+)(\|[ndi])?\}', one, str(s))
+
+    def one(m):
+        for name in m.group(1).split('?'):
+            v = value(name, m.group(2))
+            if v is not None:
+                return v
+        return '–'
+    return re.sub(r'\{([A-Za-z0-9_?]+)(\|[ndi])?\}', one, str(s))
+
+def _rich_width(s, font, small):
+    """Width of a text where ~…~ parts are drawn in the small font (units: "5.6 / 5.5 ~kWh~")."""
+    return sum((small if i % 2 else font).width(p) for i, p in enumerate(str(s).split('~')))
+
+
+def _rich(c, x, y, s, font, small, rgb, max_width=None):
+    """Draws a text with ~…~ parts in the small font (bottom-aligned with the normal text). Returns end x."""
+    end = None if max_width is None else x + max_width
+    for i, p in enumerate(str(s).split('~')):
+        if not p:
+            continue
+        f = small if i % 2 else font
+        if end is not None and x >= end:
+            break
+        x = c.text(x, y + (font.height - f.height) - (1 if i % 2 else 0), p, f, GREY if i % 2 else rgb,
+                   None if end is None else max(0, end - x))
+    return x
+
+
+PANEL_W3 = 640   # side layout: the big value in its own left column, the grid right of it
+SIDE_W = 240     # width of that left column
+
+
+def _panel_cols(entries):
+    try:
+        return max(1, int(next((cfg.get('panel_columns') for _i, _ic, cfg in entries if cfg.get('panel_columns')), 1)))
+    except ValueError:
+        return 1
+
+
+def _panel_width(entries):
+    """Width of the left panel incl. the gap to the plans."""
+    if any(flag(cfg, 'side') for _i, _ic, cfg in entries):
+        return PANEL_W3
+    return PANEL_W2 if _panel_cols(entries) > 1 else PANEL_W
 
 
 def _draw_panel(c, a, entries, x, y, h, items):
     """Status items marked panel=left as a column (panel_columns = grid of n columns): optional heading
     (panel_title on an item), per item the label in small type and the value below it. big=true: large value,
     wide=true: full width, section="…": sub-heading before the item, text="{A} / {B}": value from a template
-    of item states (label may use {…} too)."""
+    of item states (label may use {…} too). side=true (on the big item): it gets its own left column, the grid
+    of the following items is right of it, items with under=true go below it in that column. split=true: the
+    value "A|B" in two columns; header=true: a grey row "A|B" over such columns. ~…~ in a value = small type."""
     title = next((cfg.get('panel_title') for _i, _ic, cfg in entries if cfg.get('panel_title')), None)
     bottom = y + h
     if title:
         c.text(x, y, title, a.floor, GREY)
         y += a.floor.height + 14
-    try:
-        ncol = max(1, int(next((cfg.get('panel_columns') for _i, _ic, cfg in entries if cfg.get('panel_columns')), 1)))
-    except ValueError:
-        ncol = 1
-    pw = PANEL_W2 if ncol > 1 else PANEL_W
-    cw = (pw - 30) // ncol
+    ncol = _panel_cols(entries)
+    pw = _panel_width(entries)
     isz, vf = (36, a.text) if ncol == 1 else (28, a.small)
 
     def cell(cx, cy, item, icon, cfg, vfont, width):
-        rh_ = a.tiny.height + vfont.height + 8
-        img = a.weather(_fmt(items, cfg['weather_icon']), WICON) if cfg.get('weather_icon') else None
-        if img:   # colour weather icon (Kodi's icon pack), taller row
-            rh_ = max(rh_, WICON + 4)
-            c.image(cx - 6, cy + (rh_ - WICON) // 2, img)
-            tx = cx + WICON + 4
-        else:
-            c.mask(cx, cy + (rh_ - isz) // 2, a.icon(icon, isz), _icon_colour(item, icon, cfg))
-            tx = cx + isz + 10
-        cy += (rh_ - a.tiny.height - vfont.height) // 2 - 4 if img else 0
+        if flag(cfg, 'header'):   # column headings for split rows (aligned with their values)
+            parts = _fmt(items, cfg.get('text', '')).split('|')
+            half = width // 2
+            for i, p in enumerate(parts[:2]):
+                c.text(cx + i * half, cy, p, a.small, GREY)
+            return a.small.height + 4
+        if cfg.get('hours'):   # a strip of hours: [{"h": 15, "t": 19, "ikona": 32}, ...] from a JSON item
+            try:
+                hrs = json.loads(str((items.get(cfg['hours']) or {}).get('state') or '[]'))
+            except ValueError:
+                hrs = []
+            c.text(cx, cy, _fmt(items, oh.label(item)), a.tiny, DIM, width)
+            if not isinstance(hrs, list) or not hrs:
+                return a.tiny.height + 4
+            hsz = 40
+            bw = width // len(hrs)
+            yy = cy + a.tiny.height + 2
+            for i, hr in enumerate(hrs):
+                bx = cx + i * bw
+                img = a.weather(hr.get('ikona'), hsz)
+                if img:
+                    c.image(bx - 4, yy, img)
+                tx2 = bx + hsz + 2
+                c.text(tx2, yy, '%sh' % hr.get('h', ''), a.tiny, GREY)
+                t = hr.get('t')
+                c.text(tx2, yy + a.tiny.height, '–' if t is None else '%d°' % t, a.small, WHITE)
+            return a.tiny.height + 2 + hsz + 4
         value = _fmt(items, cfg['text']) if cfg.get('text') else _state_text(item, cfg)
-        c.text(tx, cy, _fmt(items, oh.label(item)), a.tiny, DIM, width - isz - 14)
-        c.text(tx, cy + a.tiny.height, value, vfont, _text_colour(item, cfg, WHITE), width - isz - 14)
+        colr = _text_colour(item, cfg, WHITE)
+        if flag(cfg, 'split'):   # day label, then two columns, each with its own weather icon (split_icons="{A}|{B}")
+            icons = _fmt(items, cfg.get('split_icons', '')).split('|') if cfg.get('split_icons') else []
+            c.text(cx, cy, _fmt(items, oh.label(item)), a.tiny, DIM, width)
+            ssz = 44
+            half = width // 2
+            vy = cy + a.tiny.height + 2
+            for i, p in enumerate(value.split('|')[:2]):
+                px = cx + i * half
+                img = a.weather(icons[i], ssz) if i < len(icons) and icons[i].strip() else None
+                if img:
+                    c.image(px - 4, vy, img)
+                    px += ssz + 2
+                _rich(c, px, vy + (ssz - vfont.height) // 2, p.strip(), vfont, a.micro, colr, cx + (i + 1) * half - px - 8)
+            return a.tiny.height + 2 + ssz + 6
+        try:
+            wsz = int(float(cfg.get('icon_size', WICON)))
+        except ValueError:
+            wsz = WICON
+        rh_ = a.tiny.height + vfont.height + 8
+        img = a.weather(_fmt(items, cfg['weather_icon']), wsz) if cfg.get('weather_icon') else None
+        if img:   # colour weather icon (Kodi's icon pack), taller row
+            rh_ = max(rh_, wsz + 4)
+            c.image(cx - 6, cy + (rh_ - wsz) // 2, img)
+            tx = cx + wsz + 4
+        else:
+            msz = int(float(cfg.get('icon_size', isz))) if str(cfg.get('icon_size', '')).replace('.', '').isdigit() else isz
+            # the big side value: icon centred like the 44 px weather icons below it, text starting where theirs does
+            mx = cx + 16 - msz // 2 if flag(cfg, 'side') else cx
+            c.mask(mx, cy + (rh_ - msz) // 2, a.icon(icon, msz), _icon_colour(item, icon, cfg))
+            tx = mx + msz + 4 if flag(cfg, 'side') else cx + msz + 10
+        cy += (rh_ - a.tiny.height - vfont.height) // 2 - 4 if img else 0
+        c.text(tx, cy, _fmt(items, oh.label(item)), a.tiny, DIM, cx + width - tx)
+        _rich(c, tx, cy + a.tiny.height, value, vfont, a.micro, colr, cx + width - tx)
         return rh_
 
     rh = a.tiny.height + vf.height + 8
+    rest = list(entries)
+    side = next((e for e in rest if flag(e[2], 'side')), None)
+    if side:
+        # left column: the big value, then the items marked under=true; grid of the next plain items right of it
+        rest.remove(side)
+        under = [e for e in rest if flag(e[2], 'under')]
+        grid = []
+        for e in rest:
+            if e in under:
+                continue
+            if e[2].get('section') or flag(e[2], 'wide') or flag(e[2], 'big'):
+                break
+            grid.append(e)
+        rest = [e for e in rest if e not in under and e not in grid]
+        ly = y
+        _i, _ic, scfg = side
+        ly += cell(x, ly, side[0], side[1], scfg, a.temps[0], SIDE_W - 10)
+        for item, icon, cfg in under:
+            if cfg.get('section'):
+                c.text(x, ly, cfg['section'], a.temps[-1], GREY)
+                ly += a.temps[-1].height + 4
+            ly += cell(x, ly, item, icon, cfg, a.small, SIDE_W - 10) + 2
+        gx, gw = x + SIDE_W, pw - 30 - SIDE_W
+        cw = gw // ncol
+        gy, col = y, 0
+        for item, icon, cfg in grid:
+            if gy + rh > bottom:
+                break
+            cell(gx + col * cw, gy, item, icon, cfg, vf, cw)
+            col += 1
+            if col == ncol:
+                gy, col = gy + rh, 0
+        y = max(ly, gy + (rh if col else 0))
+    cw = (pw - 30) // ncol
     col = 0                                   # next free column in the current grid row
-    for item, icon, cfg in entries:
+    for item, icon, cfg in rest:
         big, wide = flag(cfg, 'big'), flag(cfg, 'wide') or flag(cfg, 'big')
         if (cfg.get('section') or wide) and col:
             y, col = y + rh, 0                # finish the half-filled row
         if cfg.get('section'):
             sf = a.temps[-1]
-            if y + 10 + sf.height > bottom:
+            if y + 24 + sf.height > bottom:
                 return
-            c.text(x, y + 10, cfg['section'], sf, GREY)
-            y += sf.height + 18
+            c.text(x, y + 24, cfg['section'], sf, GREY)
+            y += sf.height + 32
         if wide:
             vfont = a.temps[0] if big else vf
             h_ = a.tiny.height + vfont.height + (14 if big else 8)
             if y + h_ > bottom:
                 return
-            y += max(h_, cell(x, y, item, icon, cfg, vfont, pw - 30))
+            y += max(h_ if not flag(cfg, 'header') else 0, cell(x, y, item, icon, cfg, vfont, pw - 30))
             continue
         if y + rh > bottom:
             return
@@ -543,7 +671,7 @@ def render(model, path, texts, assets, area='full'):
     sy = ah - 20 - strip_h
     py = (sy if strip else ah - 20) - 52   # problems line
     top, gap = 50, 40   # below the skin's top bar
-    pw_ = (PANEL_W2 if any(str(e[2].get('panel_columns', '1')) not in ('', '1') for e in panel) else PANEL_W) if panel else 0
+    pw_ = _panel_width(panel) if panel else 0
     if panel:   # the problems line goes under the plans, the panel gets the full height
         _draw_panel(c, a, panel, M, top, (sy if strip else ah - 20) - 16 - top, items)
 
