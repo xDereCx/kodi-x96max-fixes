@@ -120,6 +120,8 @@ Use value `-` (or a role above) and these config parameters:
 | `split`, `split_icons`, `header` | panel row: `split=true` = the value `A|B` in two columns, `split_icons="{IconA}|{IconB}"` = a weather icon per column; `header=true` = grey headings `A|B` over such columns |
 | `hours` | panel row: name of an item with a JSON list `[{"h": 15, "t": 19, "ikona": 32}, …]` -> a strip of hours with weather icons |
 | `icon_size` | panel item: size of its icon / weather icon in px (e.g. 56, 44) |
+| `align_bottom` | panel: the block from this item to the end is moved down so that its last row ends on the lower edge of the first floor plan; an hours strip (`hours`) at its start keeps its caption level with the last grid row and sits centred between that caption and the next heading |
+| `col_gap` | status item: gap between the columns of its group in px |
 | `weather_icon` | panel item: weather.com icon code (0-47, usually `{Icon_Item}`) → colour icon from Kodi's weather icon pack `resource.images.weathericons.default` (e.g. the Weather Company forecast `iconCode` channel) |
 | `map` | status item: state → text, e.g. `OL=GRID,OB=BATT` (exact state, else its first word) |
 | `colors` | status item: state → colour of the value: `green`, `red`, `orange`, `blue`, `white`, `grey`, e.g. `OL=green,OB=red`, or numeric conditions `<0=red,>0=green` |

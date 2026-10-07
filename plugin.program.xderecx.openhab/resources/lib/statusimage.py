@@ -254,7 +254,13 @@ def _draw_items(c, a, rect, align, entries, items=None):
         max_rows = min(int(float(cfg['rows'])) for cfg in cfgs if cfg.get('rows'))
     except ValueError:
         max_rows = None
+    try:
+        gap_override = max(int(float(cfg['col_gap'])) for cfg in cfgs if cfg.get('col_gap'))
+    except ValueError:
+        gap_override = None
     for isz, fname, row, gap in sizes:
+        if gap_override:
+            gap = gap_override
         font = getattr(a, fname)
         rows = []
         for item, icon, cfg in entries:
@@ -487,7 +493,7 @@ def _panel_width(entries):
     return PANEL_W2 if _panel_cols(entries) > 1 else PANEL_W
 
 
-def _draw_panel(c, a, entries, x, y, h, items):
+def _draw_panel(c, a, entries, x, y, h, items, bottom_line=None):
     """Status items marked panel=left as a column (panel_columns = grid of n columns): optional heading
     (panel_title on an item), per item the label in small type and the value below it. big=true: large value,
     wide=true: full width, section="…": sub-heading before the item, text="{A} / {B}": value from a template
@@ -515,12 +521,13 @@ def _draw_panel(c, a, entries, x, y, h, items):
                 hrs = json.loads(str((items.get(cfg['hours']) or {}).get('state') or '[]'))
             except ValueError:
                 hrs = []
-            c.text(cx, cy, _fmt(items, oh.label(item)), a.tiny, DIM, width)
+            cap_y = cfg.get('_cap_y')
+            c.text(cx, cy if cap_y is None else cap_y, _fmt(items, oh.label(item)), a.tiny, DIM, width)
             if not isinstance(hrs, list) or not hrs:
                 return a.tiny.height + 4
             hsz = 40
             bw = width // len(hrs)
-            yy = cy + a.tiny.height + 2
+            yy = cy + a.tiny.height + 2 if cap_y is None else cy
             for i, hr in enumerate(hrs):
                 bx = cx + i * bw
                 img = a.weather(hr.get('ikona'), hsz)
@@ -530,7 +537,7 @@ def _draw_panel(c, a, entries, x, y, h, items):
                 c.text(tx2, yy, '%sh' % hr.get('h', ''), a.tiny, GREY)
                 t = hr.get('t')
                 c.text(tx2, yy + a.tiny.height, '–' if t is None else '%d°' % t, a.small, WHITE)
-            return a.tiny.height + 2 + hsz + 4
+            return (a.tiny.height + 2 if cap_y is None else 0) + hsz + 4
         value = _fmt(items, cfg['text']) if cfg.get('text') else _state_text(item, cfg)
         colr = _text_colour(item, cfg, WHITE)
         if flag(cfg, 'split'):   # day label, then two columns, each with its own weather icon (split_icons="{A}|{B}")
@@ -586,11 +593,6 @@ def _draw_panel(c, a, entries, x, y, h, items):
         ly = y
         _i, _ic, scfg = side
         ly += cell(x, ly, side[0], side[1], scfg, a.temps[0], SIDE_W - 10)
-        for item, icon, cfg in under:
-            if cfg.get('section'):
-                c.text(x, ly, cfg['section'], a.temps[-1], GREY)
-                ly += a.temps[-1].height + 4
-            ly += cell(x, ly, item, icon, cfg, a.small, SIDE_W - 10) + 2
         gx, gw = x + SIDE_W, pw - 30 - SIDE_W
         cw = gw // ncol
         gy, col = y, 0
@@ -601,10 +603,73 @@ def _draw_panel(c, a, entries, x, y, h, items):
             col += 1
             if col == ncol:
                 gy, col = gy + rh, 0
-        y = max(ly, gy + (rh if col else 0))
+        grid_bottom = gy + (rh if col else 0)
+
+        def under_h(cfg):   # height of an under row (same rule as cell())
+            try:
+                wsz = int(float(cfg.get('icon_size', WICON)))
+            except ValueError:
+                wsz = WICON
+            hh = a.tiny.height + a.small.height + 8
+            if cfg.get('weather_icon'):
+                hh = max(hh, wsz + 4)
+            return hh + 2 + (a.temps[-1].height + 4 if cfg.get('section') else 0)
+        # the under block right below the big value (under_bottom=true: it ends level with the last grid row instead)
+        if any(flag(e[2], 'under_bottom') for e in under):
+            ly = max(ly, grid_bottom - sum(under_h(e[2]) for e in under))
+        for item, icon, cfg in under:
+            if cfg.get('section'):
+                c.text(x, ly, cfg['section'], a.temps[-1], GREY)
+                ly += a.temps[-1].height + 4
+            ly += cell(x, ly, item, icon, cfg, a.small, SIDE_W - 10) + 2
+        y = max(ly, grid_bottom)
+        # an hours strip right after the grid: its caption in the free left column, level with the last grid row's value,
+        # the icons from the grid's bottom (user 2026-10-07)
+        # caption baseline = baseline of the last grid row's values (row: label, value, 8 px gap)
+        cap_y = grid_bottom - 8 - vf.height + vf.ascent - a.tiny.ascent
+        if rest and rest[0][2].get('hours') and ly <= cap_y:
+            y = cap_y
     cw = (pw - 30) // ncol
+    k0 = next((i for i, e in enumerate(rest) if flag(e[2], 'align_bottom')), None)
+    start_y = hours_y = None
+    if bottom_line is not None and k0 is not None:
+        # align_bottom=true: the block from this item to the end is moved down so that the value text of its last
+        # row ends on bottom_line (the bottom of its weather icons = the lower edge of the first plan, user 2026-10-07);
+        # an hours caption stays where it is
+        def blk_h(cfg, first):
+            hh = (a.temps[-1].height + 32) if cfg.get('section') else 0
+            if flag(cfg, 'header'):
+                return hh + a.small.height + 4
+            if cfg.get('hours'):   # a wide row advances at least by a normal row's height
+                return hh + max(a.tiny.height + vf.height + 8, 44 + (0 if first else a.tiny.height + 2))
+            if flag(cfg, 'split'):
+                return hh + a.tiny.height + 2 + 44 + 6
+            return hh + a.tiny.height + vf.height + 8
+        blk = rest[k0:]
+        before = sum(blk_h(e[2], i == 0) for i, e in enumerate(blk[:-1]))
+        last = blk[-1][2]
+        last_off = (a.temps[-1].height + 32 if last.get('section') else 0) + (a.tiny.height + 2 + 44 if flag(last, 'split') else blk_h(last, False))
+        start_y = bottom_line - before - last_off
+        hours_y = None
+        if blk[0][2].get('hours') and len(blk) > 1:
+            # the hours strip in the middle between its caption (left column, level with the grid) and the heading
+            # of the block after it; that block alone keeps its end on bottom_line
+            rest_start = start_y + blk_h(blk[0][2], True)
+            sf = a.temps[-1]
+            head_top = rest_start + (24 + sf.height - sf.ascent if blk[1][2].get('section') else 0)   # visible top
+            cap_bottom = y + a.tiny.ascent + 1                                          # visible bottom
+            strip_h = 36                       # visible height of the strip (icons / hour + temperature)
+            hours_y = (cap_bottom + head_top - strip_h) // 2 - 3
+            start_y = rest_start
     col = 0                                   # next free column in the current grid row
-    for item, icon, cfg in rest:
+    for idx, (item, icon, cfg) in enumerate(rest):
+        if idx == k0 and start_y is not None and hours_y is not None and hours_y > y:
+            cfg = dict(cfg, _cap_y=y)        # caption stays, the strip moves
+            y = hours_y
+        elif idx == (k0 + 1 if hours_y is not None else k0) and start_y is not None and (hours_y is not None or start_y > y):
+            if cfg.get('hours'):
+                cfg = dict(cfg, _cap_y=y)
+            y = start_y
         big, wide = flag(cfg, 'big'), flag(cfg, 'wide') or flag(cfg, 'big')
         if (cfg.get('section') or wide) and col:
             y, col = y + rh, 0                # finish the half-filled row
@@ -672,8 +737,7 @@ def render(model, path, texts, assets, area='full'):
     py = (sy if strip else ah - 20) - 52   # problems line
     top, gap = 50, 40   # below the skin's top bar
     pw_ = _panel_width(panel) if panel else 0
-    if panel:   # the problems line goes under the plans, the panel gets the full height
-        _draw_panel(c, a, panel, M, top, (sy if strip else ah - 20) - 16 - top, items)
+    plan_bottom = None   # lower edge of the first plan (for panel items with align_bottom)
 
     px = M   # left edge of the problems line: first plan when there is a panel
     if floors:
@@ -700,7 +764,11 @@ def render(model, path, texts, assets, area='full'):
             px = x
         for (f, pd), (dw, dh) in zip(floors, sizes):
             _draw_plan(c, a, model, f, pd, x, top, dw, dh, placed)
+            if plan_bottom is None:
+                plan_bottom = top + a.floor.height + 10 + dh - 2   # rooms are inset 2 px
             x += dw + gap
+    if panel:   # the problems line goes under the plans, the panel gets the full height
+        _draw_panel(c, a, panel, M, top, (sy if strip else ah - 20) - 16 - top, items, plan_bottom)
 
     problems = model.problems()
     if problems:

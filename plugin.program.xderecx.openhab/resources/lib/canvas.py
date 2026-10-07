@@ -114,6 +114,7 @@ class Font:
         self.w, self.h, self.atlas = read_mask(png)
         meta = json.load(open(js, encoding='utf-8'))
         self.height, self.pad, self.glyphs = meta['height'], meta['pad'], meta['glyphs']
+        self.ascent = meta.get('ascent', self.height)   # baseline below the top of a line
         self._cache = {}
 
     def glyph(self, ch):
