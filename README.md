@@ -114,6 +114,17 @@ every folder under `zips/` so Kodi's browser can see what's there.
   optionally, install `script.xderecx.aeonnox5lyricsfix` (below) for a
   rotating full-screen background bound to this same property.
 
+- **`plugin.program.xderecx.openhab`** ("openHAB Home") — browse and
+  control an openHAB server from Kodi, any skin: floors → rooms → devices
+  from openHAB's semantic model, floor plans with room temperatures
+  (orange = heating, red = problem), a "House status" list/widget
+  (problems first), switches, temperature and option dialogs. Nothing
+  house-specific is in the code: floor plans, status items, labels and
+  problem conditions come from openHAB item metadata (namespace `kodi`).
+  English + Slovak. In Aeon Nox 5 it can add itself to the main menu
+  (with the status widget). **Full setup guide (openHAB + Kodi):**
+  [`plugin.program.xderecx.openhab/README.md`](plugin.program.xderecx.openhab/README.md).
+
 ### Aeon Nox 5 special (optional, frozen — not being extended further)
 
 - **`script.xderecx.aeonnox5lyricsfix`** ("Aeon Nox 5 Skin Fixes") —
@@ -184,6 +195,49 @@ every folder under `zips/` so Kodi's browser can see what's there.
   out just this addon's entries, leaving everything else in the file
   intact, and only deletes the file entirely if nothing else was left
   in it.
+
+- **`service.xderecx.vpnmanager`** ("VPN Manager for OpenVPN (DC
+  Fix)") — minimally patched fork of
+  [Zomboided's VPN Manager for OpenVPN](https://github.com/Zomboided/service.vpn.manager)
+  (`service.vpn.manager`, GPL-2.0-or-later), id changed to avoid
+  colliding with the real upstream addon if that's ever installed
+  too. The only change: its background service used to reconstruct a
+  full `xbmcaddon.Addon()` object on every single poll cycle (every 4
+  seconds, forever) just to check it hadn't been uninstalled mid-run.
+  Because this addon's `settings.xml` is still in the legacy
+  pre-Kodi18 flat format, every one of those reconstructions forced
+  Kodi to fully reparse the old-format settings definitions - a
+  continuous, confirmed-live CPU and log-spam drain for as long as the
+  box was on (`CAddonSettings: trying to load setting definitions
+  from old format...` repeating in the log, ~700 failed label lookups
+  per cycle). Fixed by swapping that check for the same cheap
+  file-existence test the addon already uses elsewhere for the same
+  purpose, instead of touching the (large, deeply interdependent)
+  settings schema itself. VPN functionality is otherwise untouched -
+  see the addon's own `addon.xml` news/changelog for the exact diff.
+
+- **`script.xderecx.timers`** ("Timers (DC Fix)") — minimally patched
+  fork of [Heckie's Timers addon](https://github.com/Heckie75/kodi-addon-timers)
+  (`script.timers`, MIT), id changed to avoid colliding with the real
+  upstream addon if that's ever installed too - and like the CU LRC
+  Lyrics fork, auto-disables the original `script.timers` on every
+  boot if it's found installed and enabled (both can't run as the
+  timers service at once). The fix: a single-day timer (eg. a "sleep
+  in 1 hour" quick timer) created while its own period is already
+  active, where that period crosses midnight (started at 23:15 for a
+  1-hour duration, meant to end 00:15) got silently rescheduled a full
+  24 hours later instead of firing that same night - confirmed live
+  (reported symptom: "set a 23:15 shutdown timer, it never shuts
+  down"). Root cause: `to_timer_by_date()` in
+  `resources/lib/timer/timer.py` used the date of the active period's
+  END (tomorrow, since you're inside the window when it fires) instead
+  of its START (today) when converting the timer to a fixed-date one -
+  combined with the unchanged start-of-day time string, this
+  reconstructed the timer for "tomorrow at the same clock time"
+  instead of tonight. Fixed to use the active period's own start date
+  when one is running, verified via a standalone reproduction of the
+  exact reported scenario before and after the fix (same-day timers,
+  which were never affected, keep working identically).
 
 ## ⚠ Maintenance note: don't bulk-remove the vendored shared modules
 
