@@ -1,6 +1,8 @@
 import os
 import re
+import glob
 import shutil
+import sqlite3
 import zipfile
 import tempfile
 import urllib.request
@@ -16,6 +18,21 @@ PROFILE = xbmcvfs.translatePath(ADDON.getAddonInfo('profile'))
 
 SYSTEM_ADDONS_DIR = '/usr/share/kodi/addons'
 STORAGE_ADDONS_DIR = '/storage/.kodi/addons'
+ADDONS_DB_GLOB = '/storage/.kodi/userdata/Database/Addons*.db'
+
+# These two ids are the ones confirmed (2026-10-20, box oco) to make Kodi
+# reject an addon outright as "not compatible" when the addon's own
+# <requires> import names an older version than what's actually installed
+# - NOT just "too low to satisfy >=", which would be harmless, but rejected
+# even though the real installed version numerically satisfies the import's
+# declared minimum. Seen after a CoreELEC major-version OS update (20->21
+# Omega) bumped the real xbmc.gui from 5.16.0 to 5.17.0: skin.aeon.nox.5
+# still declared "<import addon=\"xbmc.gui\" version=\"5.15.0\" />" and Kodi
+# flagged it incompatible regardless - the fix was only ever rewriting that
+# one import line to match the real installed version exactly. The box
+# "oby" already had this exact one-line fix applied (from an earlier,
+# undocumented session) while "oco" did not, which is how this was found.
+VERSION_SENSITIVE_IMPORTS = ('xbmc.gui', 'xbmc.python')
 
 # This repo's own published addons.xml - the same one the repository addon
 # itself points Kodi at. Used to self-heal stale *repo-fetched* dependency
@@ -183,6 +200,98 @@ def repair_repo_module(addon_id, version):
             os.remove(tmp_zip)
 
 
+def addons_db_path():
+    matches = sorted(glob.glob(ADDONS_DB_GLOB))
+    return matches[-1] if matches else None
+
+
+def find_incompatible_addon_ids():
+    """addonIDs Kodi's own DB currently marks disabledReason=2 (incompatible)
+    - read-only, used to scope the version-mismatch check to addons Kodi has
+    actually rejected, never to ones that are simply disabled on purpose."""
+    db_path = addons_db_path()
+    if not db_path:
+        return []
+    try:
+        conn = sqlite3.connect(db_path, timeout=5)
+        try:
+            rows = conn.execute("SELECT addonID FROM installed WHERE disabledReason=2").fetchall()
+        finally:
+            conn.close()
+        return [r[0] for r in rows]
+    except Exception as e:
+        log('could not read %s: %s' % (db_path, e))
+        return []
+
+
+def find_version_mismatches():
+    """Return [(addon_id, dep_id, declared_version, system_version), ...]
+    for every currently-incompatible addon whose own addon.xml declares a
+    <requires> import of xbmc.gui or xbmc.python at a version strictly
+    older than what's actually installed system-wide. See
+    VERSION_SENSITIVE_IMPORTS above for why only these two ids."""
+    mismatches = []
+    for addon_id in find_incompatible_addon_ids():
+        xml_path = os.path.join(STORAGE_ADDONS_DIR, addon_id, 'addon.xml')
+        if not os.path.isfile(xml_path):
+            continue
+        try:
+            with open(xml_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+        except Exception as e:
+            log('could not read %s: %s' % (xml_path, e))
+            continue
+        for dep_id in VERSION_SENSITIVE_IMPORTS:
+            m = re.search(r'<import\s+addon="%s"\s+version="([^"]+)"\s*/>' % re.escape(dep_id), content)
+            if not m:
+                continue
+            declared = m.group(1)
+            system_xml = os.path.join(SYSTEM_ADDONS_DIR, dep_id, 'addon.xml')
+            system_v = addon_version(system_xml, dep_id)
+            if system_v and version_tuple(declared) < version_tuple(system_v):
+                mismatches.append((addon_id, dep_id, declared, system_v))
+    return mismatches
+
+
+def repair_version_mismatch(addon_id, dep_id, declared, system_v):
+    """Rewrite just the one stale <import> line to match the real installed
+    version, then clear Kodi's cached 'incompatible' row for this addon so
+    the next FindAddons pass actually re-evaluates it fresh - a file edit
+    alone was confirmed NOT enough on its own (2026-10-19/20, multiple
+    addons): once Kodi caches disabledReason=2 for an addon it does not
+    re-check it just because the file on disk changed underneath it."""
+    xml_path = os.path.join(STORAGE_ADDONS_DIR, addon_id, 'addon.xml')
+    try:
+        with open(xml_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        old = '<import addon="%s" version="%s" />' % (dep_id, declared)
+        if old not in content:
+            # tolerate the no-space-before-slash variant too
+            old = '<import addon="%s" version="%s"/>' % (dep_id, declared)
+        new = old.replace(declared, system_v)
+        if old not in content:
+            log('could not locate the exact import line for %s/%s in %s, skipping' % (addon_id, dep_id, xml_path))
+            return False
+        with open(xml_path, 'w', encoding='utf-8') as f:
+            f.write(content.replace(old, new))
+    except Exception as e:
+        log('could not patch %s for %s: %s' % (xml_path, addon_id, e))
+        return False
+
+    db_path = addons_db_path()
+    if db_path:
+        try:
+            conn = sqlite3.connect(db_path, timeout=5)
+            try:
+                conn.execute("DELETE FROM installed WHERE addonID=?", (addon_id,))
+                conn.commit()
+            finally:
+                conn.close()
+        except Exception as e:
+            log('patched %s but could not clear its cached DB row: %s' % (addon_id, e))
+    return True
+
+
 def repair():
     fixed = []
 
@@ -199,6 +308,14 @@ def repair():
                 fixed.append((addon_id, sv, rv))
             else:
                 log('%s could not be repaired this run, will retry next start' % addon_id)
+
+    for addon_id, dep_id, declared, system_v in find_version_mismatches():
+        log('%s declares %s %s but system has %s - rewriting the import line' % (
+            addon_id, dep_id, declared, system_v))
+        if repair_version_mismatch(addon_id, dep_id, declared, system_v):
+            fixed.append(('%s (%s)' % (addon_id, dep_id), declared, system_v))
+        else:
+            log('%s could not be repaired this run, will retry next start' % addon_id)
 
     return fixed
 
